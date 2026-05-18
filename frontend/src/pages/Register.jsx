@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import {
   Box,
   Button,
@@ -19,6 +20,8 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function Register() {
   const navigate = useNavigate();
+  const { login } = useAuth();
+
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState("");
 
@@ -76,7 +79,14 @@ export default function Register() {
       }
 
       // Redirect to login on success
-      navigate("/login", { state: { registered: true } });
+      // Actually, log them in and redirect to home
+      if (data.user && data.session) {
+        login(data.user, data.session);
+        navigate("/");
+      } else {
+        // Fallback in case backend doesn't return session
+        navigate("/login", { state: { registered: true } });
+      }
     } catch {
       setServerError("Không thể kết nối đến máy chủ. Vui lòng thử lại sau.");
     } finally {

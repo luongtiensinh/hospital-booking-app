@@ -1,4 +1,7 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useForm } from "@mantine/form";
+import { useAuth } from "../contexts/AuthContext";
 import {
   Box,
   Button,
@@ -30,9 +33,56 @@ function IconCheck() {
   );
 }
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 export default function Login() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { login } = useAuth();
+
+  const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState("");
+
   const justRegistered = location.state?.registered;
+
+  const form = useForm({
+    initialValues: {
+      email: "",
+      password: "",
+    },
+    validate: {
+      email: (v) => (!v.trim() ? "Vui lòng nhập email." : null),
+      password: (v) => (!v ? "Vui lòng nhập mật khẩu." : null),
+    },
+  });
+
+  async function handleSubmit(values) {
+    setLoading(true);
+    setServerError("");
+
+    try {
+      const res = await fetch(`${API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setServerError(data.message || "Đăng nhập thất bại. Vui lòng thử lại.");
+        return;
+      }
+
+      // Handle successful login
+      login(data.user, data.session);
+      navigate("/");
+    } catch {
+      setServerError("Không thể kết nối đến máy chủ. Vui lòng thử lại sau.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <Center mih="100vh" bg="gray.0" p="md">
@@ -60,7 +110,13 @@ export default function Login() {
             </Alert>
           )}
 
-          <form onSubmit={(e) => e.preventDefault()}>
+          {serverError && (
+            <Alert color="red" variant="light" mb="md" radius="md">
+              {serverError}
+            </Alert>
+          )}
+
+          <form onSubmit={form.onSubmit(handleSubmit)} noValidate>
             <Stack gap="md">
               <TextInput
                 id="login-email"
@@ -70,6 +126,7 @@ export default function Login() {
                 radius="md"
                 type="email"
                 autoComplete="email"
+                {...form.getInputProps("email")}
               />
 
               <PasswordInput
@@ -79,6 +136,7 @@ export default function Login() {
                 size="md"
                 radius="md"
                 autoComplete="current-password"
+                {...form.getInputProps("password")}
               />
 
               <Button
@@ -90,6 +148,7 @@ export default function Login() {
                 mt="xs"
                 variant="filled"
                 color="blue"
+                loading={loading}
               >
                 Đăng nhập
               </Button>

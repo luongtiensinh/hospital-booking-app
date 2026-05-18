@@ -70,6 +70,40 @@ router.post("/register", async (req, res) => {
   return res.status(201).json({
     success: true,
     message: "Đăng ký thành công!",
+    user: authData.user,
+    session: authData.session,
+  });
+});
+
+// POST /api/auth/login
+router.post("/login", async (req, res) => {
+  const { email, password } = req.body || {};
+
+  if (!email || !password) {
+    return res.status(400).json({
+      success: false,
+      message: "Vui lòng nhập đầy đủ email và mật khẩu.",
+    });
+  }
+
+  const { data: authData, error: authError } =
+    await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+
+  if (authError) {
+    return res.status(401).json({
+      success: false,
+      message: "Sai email hoặc mật khẩu.",
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: "Đăng nhập thành công!",
+    user: authData.user,
+    session: authData.session,
   });
 });
 
