@@ -9,7 +9,7 @@ const supabase = createClient(
 
 // POST /api/auth/register
 router.post("/register", async (req, res) => {
-  const { fullname, email, phone, password } = req.body;
+  const { fullname, email, phone, password } = req.body || {};
 
   // --- Server-side validation ---
   const errors = {};
@@ -26,6 +26,8 @@ router.post("/register", async (req, res) => {
 
   if (!phone || phone.trim().length === 0) {
     errors.phone = "Số điện thoại không được để trống.";
+  } else if (!/^[0-9]{9,11}$/.test(phone.trim())) {
+    errors.phone = "Số điện thoại không hợp lệ (9–11 chữ số).";
   }
 
   if (!password || password.length === 0) {
@@ -51,7 +53,6 @@ router.post("/register", async (req, res) => {
   });
 
   if (authError) {
-    // Bắt lỗi email đã tồn tại
     if (
       authError.message.toLowerCase().includes("already registered") ||
       authError.message.toLowerCase().includes("user already registered")
