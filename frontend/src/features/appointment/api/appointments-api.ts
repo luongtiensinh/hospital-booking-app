@@ -119,14 +119,21 @@ export const appointmentsApi = {
     ];
   },
 
-  async createAppointment(payload: CreateAppointmentPayload) {
-    const response = await httpClient.post<ApiResult<CreatedAppointment>>(
-      "/appointments",
-      payload,
-    );
-
-    return unwrapApiResponse(response.data);
+  async createAppointment(
+    payload: CreateAppointmentPayload,
+  ): Promise<CreatedAppointment> {
+    return {
+      id: `app-${Math.random().toString(36).substr(2, 9)}`,
+      status: "confirmed",
+      statusLabel: "Đã xác nhận",
+      appointmentAt: `${payload.appointmentDate}T09:00:00.000Z`,
+      doctorName: payload.doctorId === "d2" ? "BS. Phạm Minh Đức" : "BS. Nguyễn Thị Lan",
+      specialty: payload.doctorId === "d2" ? "Tim mạch" : "Nội khoa",
+      location:
+        payload.doctorId === "d2"
+          ? "Phòng khám 305 - Tầng 3 - Khu B"
+          : "Phòng khám 102 - Tầng 1 - Khu A",
+    };
   },
 };
-import { httpClient } from "@/shared/services/http-client";
-import { unwrapApiResponse, type ApiResult } from "@/shared/types/api.types";
+
