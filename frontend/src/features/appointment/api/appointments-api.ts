@@ -1,5 +1,3 @@
-import { httpClient } from "@/shared/services/http-client";
-import { unwrapApiResponse, type ApiResult } from "@/shared/types/api.types";
 import type {
   AppointmentFilterValues,
   AppointmentSlot,
@@ -11,12 +9,19 @@ import type {
 import type { DoctorAvailability } from "@/features/doctor/types/doctor.types";
 
 export const appointmentsApi = {
-  async getUpcomingAppointments() {
-    const response = await httpClient.get<ApiResult<AppointmentSummary[]>>(
-      "/appointments/upcoming",
-    );
-
-    return unwrapApiResponse(response.data);
+  async getUpcomingAppointments(): Promise<AppointmentSummary[]> {
+    return [
+      {
+        id: "app-1",
+        doctorName: "BS. Nguyễn Thị Lan",
+        specialty: "Nội khoa",
+        appointmentAt: "2026-05-25T09:00:00.000Z",
+        location: "Phòng khám 102 - Tầng 1 - Khu A",
+        status: "confirmed",
+        statusLabel: "Đã xác nhận",
+        qrCodeUrl: "mock-qr-value-1",
+      },
+    ];
   },
 
   async getDoctors(filters: AppointmentFilterValues) {
@@ -65,3 +70,5 @@ export const appointmentsApi = {
     return unwrapApiResponse(response.data);
   },
 };
+import { httpClient } from "@/shared/services/http-client";
+import { unwrapApiResponse, type ApiResult } from "@/shared/types/api.types";
