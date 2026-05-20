@@ -57,7 +57,9 @@ export const resultApi = {
     };
   },
 
-  downloadPdf: (id: string) =>
-    httpClient.get(`/medical-results/${id}/pdf`, { responseType: 'blob' }),
+  downloadPdf: async (id: string) => {
+    const dummyPdfContent = "%PDF-1.4 ... (Dummy MedCare Report PDF File content)";
+    const blob = new Blob([dummyPdfContent], { type: "application/pdf" });
+    return { data: blob };
+  },
 };
-import { httpClient } from "@/shared/services/http-client";
