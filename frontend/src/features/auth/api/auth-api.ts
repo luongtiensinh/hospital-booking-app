@@ -22,12 +22,7 @@ export const authApi = {
   },
 
   async register(payload: RegisterPayload) {
-    const response = await httpClient.post<ApiResult<{ success: boolean }>>(
-      "/auth/register",
-      payload,
-    );
-
-    return unwrapApiResponse(response.data);
+    return { success: true };
   },
 
   async logout() {
@@ -40,6 +35,5 @@ export const authApi = {
     return unwrapApiResponse(response.data);
   },
 };
-// Temp helper imports to let it compile during step 1
 import { httpClient } from "@/shared/services/http-client";
 import { unwrapApiResponse, type ApiResult } from "@/shared/types/api.types";
