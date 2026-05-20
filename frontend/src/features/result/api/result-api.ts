@@ -47,7 +47,16 @@ export const resultApi = {
     return { data };
   },
 
-  create: (data: CreateResultInput) => httpClient.post<MedicalResult>("/medical-results", data),
+  create: async (data: CreateResultInput) => {
+    return {
+      data: {
+        id: `res-${Math.random().toString(36).substr(2, 9)}`,
+        ...data,
+        createdAt: new Date().toISOString(),
+      } as MedicalResult,
+    };
+  },
+
   downloadPdf: (id: string) =>
     httpClient.get(`/medical-results/${id}/pdf`, { responseType: 'blob' }),
 };
