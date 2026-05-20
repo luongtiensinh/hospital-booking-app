@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+<<<<<<< HEAD
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-slot": "^1.2.4",
     "@tanstack/react-query": "^5.100.11",
@@ -28,6 +29,14 @@
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3",
     "zustand": "^5.0.13"
+=======
+    "@mantine/core": "^9.2.1",
+    "@mantine/form": "^9.2.1",
+    "@mantine/hooks": "^9.2.1",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-router-dom": "^7.15.1"
+>>>>>>> c22f916e43c55d9fe713ff6d6a3e8978b5590c51
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

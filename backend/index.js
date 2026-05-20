@@ -9,18 +9,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Khởi tạo Supabase client
+// Khởi tạo Supabase client (anon key - dùng cho các query thông thường)
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY,
 );
 
-app.get("/api/todos", async (req, res) => {
-  const { data, error } = await supabase.from("doctor_schedules").select("*");
-
-  if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
-});
+// Routes
+const authRouter = require("./routes/auth");
+app.use("/api/auth", authRouter);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
