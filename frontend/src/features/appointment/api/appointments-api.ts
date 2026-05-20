@@ -82,17 +82,41 @@ export const appointmentsApi = {
     ];
   },
 
-  async getDoctorSlots(doctorId: string, date: string) {
-    const response = await httpClient.get<ApiResult<AppointmentSlot[]>>(
-      `/doctors/${doctorId}/slots`,
+  async getDoctorSlots(doctorId: string, date: string): Promise<AppointmentSlot[]> {
+    return [
       {
-        params: {
-          date,
-        },
+        id: "slot-1",
+        startAt: "08:00",
+        endAt: "08:30",
+        isBooked: false,
+        remainingCapacity: 1,
+        roomLabel: "P.102",
       },
-    );
-
-    return unwrapApiResponse(response.data);
+      {
+        id: "slot-2",
+        startAt: "08:30",
+        endAt: "09:00",
+        isBooked: false,
+        remainingCapacity: 1,
+        roomLabel: "P.102",
+      },
+      {
+        id: "slot-3",
+        startAt: "09:00",
+        endAt: "09:30",
+        isBooked: true,
+        remainingCapacity: 0,
+        roomLabel: "P.102",
+      },
+      {
+        id: "slot-4",
+        startAt: "09:30",
+        endAt: "10:00",
+        isBooked: false,
+        remainingCapacity: 1,
+        roomLabel: "P.102",
+      },
+    ];
   },
 
   async createAppointment(payload: CreateAppointmentPayload) {
