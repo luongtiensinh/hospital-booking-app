@@ -69,17 +69,17 @@ export const appointmentsApi = {
     return result;
   },
 
-  async getDoctorCalendar(doctorId: string, month: string) {
-    const response = await httpClient.get<ApiResult<DoctorCalendarDay[]>>(
-      `/doctors/${doctorId}/calendar`,
-      {
-        params: {
-          month,
-        },
-      },
-    );
-
-    return unwrapApiResponse(response.data);
+  async getDoctorCalendar(
+    doctorId: string,
+    month: string,
+  ): Promise<DoctorCalendarDay[]> {
+    return [
+      { date: "2026-05-21", availableSlots: 5, status: "available" },
+      { date: "2026-05-22", availableSlots: 2, status: "limited" },
+      { date: "2026-05-23", availableSlots: 0, status: "full" },
+      { date: "2026-05-24", availableSlots: 8, status: "available" },
+      { date: "2026-05-25", availableSlots: 4, status: "available" },
+    ];
   },
 
   async getDoctorSlots(doctorId: string, date: string) {
