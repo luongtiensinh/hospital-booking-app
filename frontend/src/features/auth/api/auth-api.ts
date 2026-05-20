@@ -29,11 +29,15 @@ export const authApi = {
     return;
   },
 
-  async getProfile() {
-    const response = await httpClient.get<ApiResult<AuthUser>>("/auth/me");
-
-    return unwrapApiResponse(response.data);
+  async getProfile(): Promise<AuthUser> {
+    return {
+      id: "mock-patient-id",
+      fullName: "Nguyễn Văn Bệnh Nhân",
+      email: "benhnhan@medcare.vn",
+      phoneNumber: "0912345678",
+      role: "patient",
+      avatarUrl: null,
+    };
   },
 };
-import { httpClient } from "@/shared/services/http-client";
-import { unwrapApiResponse, type ApiResult } from "@/shared/types/api.types";
+
