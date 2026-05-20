@@ -21,14 +21,18 @@ export const qrApi = {
     };
   },
 
-  async verifyQr(payload: VerifyQrPayload) {
-    const response = await httpClient.post<ApiResult<VerifyQrResponse>>(
-      "/qr/verify",
-      payload,
-    );
-
-    return unwrapApiResponse(response.data);
+  async verifyQr(payload: VerifyQrPayload): Promise<VerifyQrResponse> {
+    return {
+      outcome: "valid",
+      message: "Xác thực mã QR thành công. Đã check-in lịch khám.",
+      appointmentId: "app-1",
+      patientName: "Nguyễn Văn Bệnh Nhân",
+      doctorName: "BS. Nguyễn Thị Lan",
+      specialty: "Nội khoa",
+      location: "Phòng khám 102 - Tầng 1 - Khu A",
+      appointmentAt: "2026-05-25T09:00:00.000Z",
+      checkedInAt: new Date().toISOString(),
+    };
   },
 };
-import { httpClient } from "@/shared/services/http-client";
-import { unwrapApiResponse, type ApiResult } from "@/shared/types/api.types";
+
