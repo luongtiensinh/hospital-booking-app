@@ -26,7 +26,7 @@ export const authApi = {
   },
 
   async logout() {
-    await httpClient.post("/auth/logout");
+    return;
   },
 
   async getProfile() {
