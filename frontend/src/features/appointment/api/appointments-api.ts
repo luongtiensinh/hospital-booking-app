@@ -24,15 +24,49 @@ export const appointmentsApi = {
     ];
   },
 
-  async getDoctors(filters: AppointmentFilterValues) {
-    const response = await httpClient.get<ApiResult<DoctorAvailability[]>>(
-      "/doctors",
+  async getDoctors(filters: AppointmentFilterValues): Promise<DoctorAvailability[]> {
+    const list = [
       {
-        params: filters,
+        id: "d1",
+        fullName: "BS. Nguyễn Thị Lan",
+        specialty: "Nội khoa",
+        yearsOfExperience: 15,
+        clinicName: "Phòng khám 102 - Tầng 1 - Khu A",
+        avatarUrl: null,
+        nextAvailableAt: "2026-05-21T08:00:00.000Z",
+        bio: "Bác sĩ nội khoa với hơn 15 năm kinh nghiệm điều trị các bệnh lý mãn tính.",
       },
-    );
-
-    return unwrapApiResponse(response.data);
+      {
+        id: "d2",
+        fullName: "BS. Phạm Minh Đức",
+        specialty: "Tim mạch",
+        yearsOfExperience: 12,
+        clinicName: "Phòng khám 305 - Tầng 3 - Khu B",
+        avatarUrl: null,
+        nextAvailableAt: "2026-05-22T09:00:00.000Z",
+        bio: "Chuyên gia Tim mạch giàu kinh nghiệm, tận tụy với bệnh nhân.",
+      },
+      {
+        id: "d3",
+        fullName: "BS. Hoàng Thu Trang",
+        specialty: "Nhi khoa",
+        yearsOfExperience: 8,
+        clinicName: "Phòng khám 201 - Tầng 2 - Khu C",
+        avatarUrl: null,
+        nextAvailableAt: "2026-05-21T10:30:00.000Z",
+        bio: "Yêu trẻ và có chuyên môn sâu về dinh dưỡng, hô hấp trẻ em.",
+      },
+    ];
+    let result = list;
+    if (filters.specialty) {
+      result = result.filter((d) => d.specialty === filters.specialty);
+    }
+    if (filters.search) {
+      result = result.filter((d) =>
+        d.fullName.toLowerCase().includes(filters.search.toLowerCase()),
+      );
+    }
+    return result;
   },
 
   async getDoctorCalendar(doctorId: string, month: string) {
