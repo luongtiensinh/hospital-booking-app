@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Segoe UI", sans-serif;
+  --font-display: "Plus Jakarta Sans", "Inter", sans-serif;
+
+  --color-background: #f4f8fb;
+  --color-foreground: #11314d;
+  --color-muted: #6b8299;
+  --color-muted-foreground: #5a7087;
+  --color-card: #ffffff;
+  --color-card-foreground: #11314d;
+  --color-border: #d7e4f0;
+  --color-input: #d7e4f0;
+  --color-primary: #0f6fec;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #eaf3fe;
+  --color-secondary-foreground: #10416f;
+  --color-accent: #dff4ff;
+  --color-accent-foreground: #0f4f77;
+  --color-success: #0f9f7f;
+  --color-success-foreground: #ffffff;
+  --color-warning: #dd8f16;
+  --color-danger: #dc4d56;
+  --color-danger-foreground: #ffffff;
+  --color-ring: #63a4ff;
+
+  --radius-sm: 0.75rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.5rem;
+  --radius-xl: 2rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply min-h-screen bg-background font-sans text-foreground antialiased;
+    background-image:
+      radial-gradient(circle at top left, rgba(15, 111, 236, 0.12), transparent 28%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 248, 251, 0.96));
+  }
+
+  #root {
+    @apply min-h-screen;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display tracking-tight text-foreground;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    @apply outline-none;
+  }
+}
+
+@utility surface-panel {
+  @apply rounded-[28px] border border-white/70 bg-white/85 shadow-[0_18px_65px_-25px_rgba(14,42,71,0.28)] backdrop-blur;
+}
+
+@utility section-grid {
+  @apply grid gap-4 md:gap-5 xl:grid-cols-12;
+}
+
+@utility metric-card {
+  @apply rounded-[28px] border border-white/70 bg-white/85 p-5 shadow-[0_18px_65px_-25px_rgba(14,42,71,0.28)] backdrop-blur;
+}
