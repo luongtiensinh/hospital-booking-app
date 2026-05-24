@@ -3,6 +3,18 @@ const router = express.Router();
 const supabase = require('../utils/supabaseClient');
 const dayjs = require('dayjs');
 
+// GET /api/appointments/:id - chi tiết lịch hẹn
+router.get('/:id', async (req, res) => {
+  const { id } = req.params;
+  const { data, error } = await supabase
+    .from('appointments')
+    .select('*')
+    .eq('id', id)
+    .single();
+  if (error) return res.status(404).json({ success: false, error: error.message });
+  res.json({ success: true, appointment: data });
+});
+
 // POST /api/appointments - tạo lịch hẹn
 router.post('/', async (req, res) => {
   const { doctorId, patientId, appointmentDate, slotId } = req.body || {};
