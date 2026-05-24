@@ -17,7 +17,7 @@ router.get('/:id', async (req, res) => {
 
 // POST /api/appointments - tạo lịch hẹn
 router.post('/', async (req, res) => {
-  const { doctorId, patientId, appointmentDate, slotId } = req.body || {};
+  const { doctorId, patientId, appointmentDate, slotId, doctorName, specialty, location } = req.body || {};
 
   // validation
   if (!doctorId || !patientId || !appointmentDate || !slotId) {
@@ -33,7 +33,8 @@ router.post('/', async (req, res) => {
     .select('id')
     .eq('doctor_id', doctorId)
     .eq('appointment_date', appointmentDate)
-    .eq('slot_id', slotId);
+    .eq('slot_id', slotId)
+    .neq('status', 'cancelled'); // Không tính các lịch đã hủy
 
   if (checkErr) return res.status(500).json({ success: false, error: checkErr.message });
   if (existing && existing.length > 0) {
@@ -49,21 +50,25 @@ router.post('/', async (req, res) => {
         patient_id: patientId,
         appointment_date: appointmentDate,
         slot_id: slotId,
+        doctor_name: doctorName,
+        specialty: specialty,
+        location: location,
         status: 'confirmed',
       },
     ])
+    .select()
     .single();
 
   if (insertErr) return res.status(500).json({ success: false, error: insertErr.message });
 
   // generate simple QR code string (could be replaced with real image later)
   const qrCode = `qr-${newAppt.id}-${Date.now()}`;
-  await supabase.from('appointments').update({ qr_code: qrCode }).eq('id', newAppt.id);
+  const { data: updatedAppt } = await supabase.from('appointments').update({ qr_code: qrCode }).eq('id', newAppt.id).select().single();
 
   res.status(201).json({
     success: true,
     message: 'Đặt lịch thành công.',
-    appointment: { ...newAppt, qr_code: qrCode },
+    appointment: updatedAppt,
   });
 });
 

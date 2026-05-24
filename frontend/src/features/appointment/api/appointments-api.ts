@@ -137,7 +137,6 @@
 //   },
 // };
 
-import { supabase } from '@/lib/supabaseClient';
 import type {
   AppointmentFilterValues,
   AppointmentSlot,
@@ -147,102 +146,57 @@ import type {
   DoctorCalendarDay,
 } from '@/features/appointment/types/appointment.types';
 
-// Lấy danh sách các bác sĩ (từ bảng `doctors`)
-async function fetchDoctors(): Promise<DoctorAvailability[]> {
-  const { data, error } = await supabase.from('doctors').select('*');
-  if (error) throw error;
-  return data.map((d: any) => ({
-    id: d.id,
-    fullName: d.full_name,
-    specialty: d.specialty,
-    yearsOfExperience: d.years_experience,
-    clinicName: d.clinic_name,
-    avatarUrl: d.avatar_url,
-    nextAvailableAt: d.next_available_at,
-    bio: d.bio,
-  }));
-}
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-// Các hàm còn lại sẽ dùng `supabase` tương tự, ví dụ:
 export const appointmentsApi = {
   async getUpcomingAppointments(): Promise<AppointmentSummary[]> {
-    const { data, error } = await supabase
-      .from('appointments')
-      .select('*')
-      .eq('status', 'confirmed')
-      .order('appointment_at', { ascending: true })
-      .limit(5);
-    if (error) throw error;
-    return data.map((a: any) => ({
-      id: a.id,
-      doctorName: a.doctor_name,
-      specialty: a.specialty,
-      appointmentAt: a.appointment_at,
-      location: a.location,
-      status: a.status,
-      statusLabel: a.status_label,
-      qrCodeUrl: a.qr_code,
-    }));
+    const res = await fetch(`${API_URL}/api/appointments`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Lỗi lấy danh sách lịch hẹn');
+    return data.appointments || [];
   },
 
   async getDoctors(filters: AppointmentFilterValues): Promise<DoctorAvailability[]> {
-    const doctors = await fetchDoctors();
-    // Áp dụng filter phía client (specialty, search)
-    let result = doctors;
-    if (filters.specialty) {
-      result = result.filter((d) => d.specialty === filters.specialty);
-    }
-    if (filters.search) {
-      result = result.filter((d) =>
-        d.fullName.toLowerCase().includes(filters.search!.toLowerCase()),
-      );
-    }
-    return result;
+    const params = new URLSearchParams();
+    if (filters.specialty) params.append('specialty', filters.specialty);
+    if (filters.search) params.append('search', filters.search);
+
+    const res = await fetch(`${API_URL}/api/doctors?${params.toString()}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Lỗi lấy danh sách bác sĩ');
+    return data.doctors || [];
   },
 
   async getDoctorCalendar(doctorId: string, month: string) {
-    const { data, error } = await supabase
-      .from('doctor_calendar')
-      .select('*')
-      .eq('doctor_id', doctorId)
-      .eq('month', month);
-    if (error) throw error;
-    return data as DoctorCalendarDay[];
+    const res = await fetch(`${API_URL}/api/calendar?doctorId=${doctorId}&month=${month}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Lỗi lấy lịch bác sĩ');
+    return data.calendar as DoctorCalendarDay[];
   },
 
   async getDoctorSlots(doctorId: string, date: string) {
-    const { data, error } = await supabase
-      .from('doctor_slots')
-      .select('*')
-      .eq('doctor_id', doctorId)
-      .eq('date', date);
-    if (error) throw error;
-    return data as AppointmentSlot[];
+    const res = await fetch(`${API_URL}/api/calendar/slots?doctorId=${doctorId}&date=${date}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Lỗi lấy slot trống');
+    return data.slots as AppointmentSlot[];
   },
 
   async createAppointment(payload: any): Promise<CreatedAppointment> {
-    // Thêm vào bảng `appointments`
-    const { data, error } = await supabase
-      .from('appointments')
-      .insert([
-        {
-          doctor_id: payload.doctorId,
-          patient_id: payload.patientId,
-          appointment_date: payload.appointmentDate,
-          slot_id: payload.slotId,
-          status: 'confirmed',
-        },
-      ])
-      .single();
-    if (error) throw error;
-    return {
-      id: data.id,
-      status: data.status,
-      statusLabel: 'Đã xác nhận',
-      appointmentAt: data.appointment_date,
-      doctorName: data.doctor_name,
-      specialty: data.specialty,
-      location: data.location,
-    };
+    const res = await fetch(`${API_URL}/api/appointments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Đặt lịch thất bại');
+    return data.appointment;
+  },
+
+  async cancelAppointment(id: string): Promise<void> {
+    const res = await fetch(`${API_URL}/api/appointments/${id}`, {
+      method: 'DELETE',
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Không thể hủy lịch');
   },
 };
