@@ -54,4 +54,27 @@ router.post('/', async (req, res) => {
   });
 });
 
+// DELETE /api/appointments/:id - hủy lịch (cần >24h trước giờ khám)
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+  const { data: appt, error: fetchErr } = await supabase
+    .from('appointments')
+    .select('appointment_date, status')
+    .eq('id', id)
+    .single();
+
+  if (fetchErr) return res.status(404).json({ success: false, message: 'Không tìm thấy lịch hẹn.' });
+  if (appt.status === 'cancelled') return res.status(400).json({ success: false, message: 'Lịch đã được hủy.' });
+
+  // kiểm tra thời gian hủy (cần ít nhất 24h trước lịch)
+  if (dayjs(appt.appointment_date).diff(dayjs(), 'hour') < 24) {
+    return res.status(400).json({ success: false, message: 'Không thể hủy trong vòng 24h trước giờ khám.' });
+  }
+
+  const { error: updErr } = await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', id);
+  if (updErr) return res.status(500).json({ success: false, error: updErr.message });
+
+  res.json({ success: true, message: 'Hủy lịch thành công.' });
+});
+
 module.exports = router;
