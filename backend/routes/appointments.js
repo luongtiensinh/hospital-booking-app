@@ -27,6 +27,19 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Ngày khám không được trong quá khứ.' });
   }
 
+  // race‑condition check: slot already booked?
+  const { data: existing, error: checkErr } = await supabase
+    .from('appointments')
+    .select('id')
+    .eq('doctor_id', doctorId)
+    .eq('appointment_date', appointmentDate)
+    .eq('slot_id', slotId);
+
+  if (checkErr) return res.status(500).json({ success: false, error: checkErr.message });
+  if (existing && existing.length > 0) {
+    return res.status(409).json({ success: false, message: 'Slot này đã được đặt.' });
+  }
+
   // create appointment
   const { data: newAppt, error: insertErr } = await supabase
     .from('appointments')
