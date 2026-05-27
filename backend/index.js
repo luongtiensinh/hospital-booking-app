@@ -1,7 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const supabase = require('./utils/supabaseClient'); // service role client
 
 const app = express();
 app.use(cors());

@@ -1,98 +1,219 @@
 const express = require('express');
-const router = express.Router();
-const supabase = require('../utils/supabaseClient');
 const dayjs = require('dayjs');
+const supabase = require('../utils/supabaseClient');
+const requireAuth = require('../middleware/requireAuth');
 
-// GET /api/appointments/:id - chi tiết lịch hẹn
-router.get('/:id', async (req, res) => {
-  const { id } = req.params;
-  const { data, error } = await supabase
+const router = express.Router();
+
+router.use(requireAuth);
+
+function getStatusLabel(status) {
+  switch (status) {
+    case 'confirmed':
+      return 'Da xac nhan';
+    case 'cancelled':
+      return 'Da huy';
+    case 'completed':
+      return 'Da kham';
+    default:
+      return 'Dang xu ly';
+  }
+}
+
+function toAppointmentSummary(appointment) {
+  return {
+    id: appointment.id,
+    doctorName: appointment.doctor_name,
+    specialty: appointment.specialty,
+    appointmentAt: appointment.appointment_date,
+    location: appointment.location,
+    status: appointment.status,
+    statusLabel: getStatusLabel(appointment.status),
+    qrCodeUrl: appointment.qr_code || undefined,
+  };
+}
+
+async function getOwnedAppointment(id, patientId, columns = '*') {
+  return supabase
+    .from('appointments')
+    .select(columns)
+    .eq('id', id)
+    .eq('patient_id', patientId)
+    .single();
+}
+
+// GET /api/appointments?status=...&upcoming=true
+router.get('/', async (req, res) => {
+  const { status, upcoming } = req.query;
+  let query = supabase
     .from('appointments')
     .select('*')
-    .eq('id', id)
-    .single();
-  if (error) return res.status(404).json({ success: false, error: error.message });
-  res.json({ success: true, appointment: data });
+    .eq('patient_id', req.user.id)
+    .order('appointment_date', { ascending: true });
+
+  if (status) query = query.eq('status', status);
+  if (upcoming !== 'false') {
+    query = query.gte('appointment_date', dayjs().format('YYYY-MM-DD'));
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+
+  return res.json({
+    success: true,
+    appointments: (data || []).map(toAppointmentSummary),
+  });
 });
 
-// POST /api/appointments - tạo lịch hẹn
+// GET /api/appointments/:id
+router.get('/:id', async (req, res) => {
+  const { data, error } = await getOwnedAppointment(req.params.id, req.user.id);
+
+  if (error || !data) {
+    return res
+      .status(404)
+      .json({ success: false, message: 'Khong tim thay lich hen.' });
+  }
+
+  return res.json({
+    success: true,
+    appointment: data,
+  });
+});
+
+// POST /api/appointments
 router.post('/', async (req, res) => {
-  const { doctorId, patientId, appointmentDate, slotId, doctorName, specialty, location } = req.body || {};
+  const { doctorId, appointmentDate, slotId, doctorName, specialty, location } =
+    req.body || {};
 
-  // validation
-  if (!doctorId || !patientId || !appointmentDate || !slotId) {
-    return res.status(400).json({ success: false, message: 'Thiếu thông tin cần thiết.' });
-  }
-  if (dayjs(appointmentDate).isBefore(dayjs())) {
-    return res.status(400).json({ success: false, message: 'Ngày khám không được trong quá khứ.' });
+  if (!doctorId || !appointmentDate || !slotId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Thieu thong tin can thiet.',
+    });
   }
 
-  // race‑condition check: slot already booked?
-  const { data: existing, error: checkErr } = await supabase
+  if (dayjs(appointmentDate).isBefore(dayjs(), 'day')) {
+    return res.status(400).json({
+      success: false,
+      message: 'Ngay kham khong duoc trong qua khu.',
+    });
+  }
+
+  const { data: existing, error: checkError } = await supabase
     .from('appointments')
     .select('id')
     .eq('doctor_id', doctorId)
     .eq('appointment_date', appointmentDate)
     .eq('slot_id', slotId)
-    .neq('status', 'cancelled'); // Không tính các lịch đã hủy
+    .neq('status', 'cancelled');
 
-  if (checkErr) return res.status(500).json({ success: false, error: checkErr.message });
-  if (existing && existing.length > 0) {
-    return res.status(409).json({ success: false, message: 'Slot này đã được đặt.' });
+  if (checkError) {
+    return res.status(500).json({ success: false, message: checkError.message });
   }
 
-  // create appointment
-  const { data: newAppt, error: insertErr } = await supabase
+  if (existing && existing.length > 0) {
+    return res.status(409).json({
+      success: false,
+      message: 'Slot nay da duoc dat.',
+    });
+  }
+
+  const { data: createdAppointment, error: insertError } = await supabase
     .from('appointments')
     .insert([
       {
         doctor_id: doctorId,
-        patient_id: patientId,
+        patient_id: req.user.id,
         appointment_date: appointmentDate,
         slot_id: slotId,
         doctor_name: doctorName,
-        specialty: specialty,
-        location: location,
+        specialty,
+        location,
         status: 'confirmed',
       },
     ])
     .select()
     .single();
 
-  if (insertErr) return res.status(500).json({ success: false, error: insertErr.message });
+  if (insertError || !createdAppointment) {
+    return res
+      .status(500)
+      .json({ success: false, message: insertError?.message || 'Khong the tao lich hen.' });
+  }
 
-  // generate simple QR code string (could be replaced with real image later)
-  const qrCode = `qr-${newAppt.id}-${Date.now()}`;
-  const { data: updatedAppt } = await supabase.from('appointments').update({ qr_code: qrCode }).eq('id', newAppt.id).select().single();
+  const qrCode = `qr-${createdAppointment.id}-${Date.now()}`;
+  const { data: updatedAppointment, error: updateError } = await supabase
+    .from('appointments')
+    .update({ qr_code: qrCode })
+    .eq('id', createdAppointment.id)
+    .eq('patient_id', req.user.id)
+    .select()
+    .single();
 
-  res.status(201).json({
+  if (updateError || !updatedAppointment) {
+    return res.status(500).json({
+      success: false,
+      message: updateError?.message || 'Khong the cap nhat QR code.',
+    });
+  }
+
+  return res.status(201).json({
     success: true,
-    message: 'Đặt lịch thành công.',
-    appointment: updatedAppt,
+    message: 'Dat lich thanh cong.',
+    appointment: toAppointmentSummary(updatedAppointment),
   });
 });
 
-// DELETE /api/appointments/:id - hủy lịch (cần >24h trước giờ khám)
+// DELETE /api/appointments/:id
 router.delete('/:id', async (req, res) => {
-  const { id } = req.params;
-  const { data: appt, error: fetchErr } = await supabase
-    .from('appointments')
-    .select('appointment_date, status')
-    .eq('id', id)
-    .single();
+  const { data: appointment, error: fetchError } = await getOwnedAppointment(
+    req.params.id,
+    req.user.id,
+    'appointment_date, status'
+  );
 
-  if (fetchErr) return res.status(404).json({ success: false, message: 'Không tìm thấy lịch hẹn.' });
-  if (appt.status === 'cancelled') return res.status(400).json({ success: false, message: 'Lịch đã được hủy.' });
-
-  // kiểm tra thời gian hủy (cần ít nhất 24h trước lịch)
-  if (dayjs(appt.appointment_date).diff(dayjs(), 'hour') < 24) {
-    return res.status(400).json({ success: false, message: 'Không thể hủy trong vòng 24h trước giờ khám.' });
+  if (fetchError || !appointment) {
+    return res.status(404).json({
+      success: false,
+      message: 'Khong tim thay lich hen.',
+    });
   }
 
-  const { error: updErr } = await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', id);
-  if (updErr) return res.status(500).json({ success: false, error: updErr.message });
+  if (appointment.status === 'cancelled') {
+    return res.status(400).json({
+      success: false,
+      message: 'Lich da duoc huy.',
+    });
+  }
 
-  res.json({ success: true, message: 'Hủy lịch thành công.' });
+  if (dayjs(appointment.appointment_date).diff(dayjs(), 'hour') < 24) {
+    return res.status(400).json({
+      success: false,
+      message: 'Khong the huy trong vong 24h truoc gio kham.',
+    });
+  }
+
+  const { error: updateError } = await supabase
+    .from('appointments')
+    .update({ status: 'cancelled' })
+    .eq('id', req.params.id)
+    .eq('patient_id', req.user.id);
+
+  if (updateError) {
+    return res.status(500).json({
+      success: false,
+      message: updateError.message,
+    });
+  }
+
+  return res.json({
+    success: true,
+    message: 'Huy lich thanh cong.',
+  });
 });
 
 module.exports = router;
