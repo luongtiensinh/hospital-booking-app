@@ -181,6 +181,7 @@ router.post('/', async (req, res) => {
         doctor_id: doctorId,
         patient_id: req.user.id,
         appointment_date: appointmentDate,
+        appointment_time: startTimeStr,
         slot_id: slotId,
         doctor_name: doctorName,
         specialty,
