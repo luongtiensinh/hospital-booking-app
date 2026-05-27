@@ -194,7 +194,10 @@ router.delete('/:id', async (req, res) => {
     'slot-4': '09:30',
   };
   const startTimeStr = SLOT_TIMES[appointment.slot_id] || '00:00';
-  const appointmentDateTime = dayjs(`${appointment.appointment_date}T${startTimeStr}:00`);
+  // Parse using Vietnam timezone offset to avoid server-local timezone drift (e.g. UTC on cloud).
+  const appointmentDateTime = dayjs(
+    `${appointment.appointment_date}T${startTimeStr}:00+07:00`,
+  );
 
   if (appointmentDateTime.diff(dayjs(), 'hour') < 24) {
     return res.status(400).json({

@@ -3,7 +3,6 @@ import axios from "axios";
 import { env } from "@/lib/env";
 import { getErrorMessage } from "@/shared/utils/error-utils";
 import { useAuthStore } from "@/features/auth/store/auth-store";
-import { authApi } from "@/features/auth/api/auth-api";
 
 export const httpClient = axios.create({
   baseURL: env.VITE_API_BASE_URL,
@@ -31,6 +30,17 @@ type RetryableConfig = Parameters<(typeof httpClient.interceptors.response)["use
     : any
   : any;
 
+type RefreshResponse = {
+  success: boolean;
+  message?: string;
+  detail?: string;
+  session?: {
+    accessToken: string;
+    refreshToken?: string;
+    user: unknown;
+  };
+};
+
 let refreshPromise: Promise<string | null> | null = null;
 
 httpClient.interceptors.response.use(
@@ -46,10 +56,23 @@ httpClient.interceptors.response.use(
         if (refreshToken) {
           try {
             if (!refreshPromise) {
-              refreshPromise = authApi
-                .refresh(refreshToken)
-                .then((session) => {
-                  useAuthStore.getState().setSession(session);
+              // Use a plain axios call to avoid circular deps (httpClient <-> authApi).
+              const refreshClient = axios.create({
+                baseURL: env.VITE_API_BASE_URL,
+                timeout: 15000,
+                headers: { "Content-Type": "application/json" },
+              });
+
+              refreshPromise = refreshClient
+                .post<RefreshResponse>("/auth/refresh", { refreshToken })
+                .then((res) => {
+                  const session = res.data.session;
+                  if (!session?.accessToken) return null;
+                  useAuthStore.getState().setSession({
+                    accessToken: session.accessToken,
+                    refreshToken: session.refreshToken,
+                    user: useAuthStore.getState().user ?? (session.user as any),
+                  });
                   return session.accessToken;
                 })
                 .catch(() => null)

@@ -48,7 +48,13 @@ export function UpcomingAppointmentCard({
           <div className="flex items-center gap-3 mt-2">
             {appointment.qrCodeUrl && appointment.status === 'confirmed' ? (
               <Button asChild size="sm" variant="outline">
-                <a href={appointment.qrCodeUrl} rel="noreferrer" target="_blank">
+                <a
+                  href={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
+                    appointment.qrCodeUrl,
+                  )}`}
+                  rel="noreferrer"
+                  target="_blank"
+                >
                   <QrCode className="mr-2 h-4 w-4" />
                   Mở QR check-in
                 </a>
