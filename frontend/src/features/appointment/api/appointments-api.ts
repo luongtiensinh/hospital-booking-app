@@ -2,10 +2,11 @@ import type {
   AppointmentFilterValues,
   AppointmentSlot,
   AppointmentSummary,
+  CreateAppointmentPayload,
   CreatedAppointment,
-  DoctorAvailability,
   DoctorCalendarDay,
 } from '@/features/appointment/types/appointment.types';
+import type { DoctorAvailability } from '@/features/doctor/types/doctor.types';
 import { API_BASE_URL } from '../../../lib/api-base-url';
 
 function getAccessToken() {
@@ -43,55 +44,6 @@ function createAppointmentHeaders() {
   return {
     Authorization: `Bearer ${token}`,
   };
-}
-
-function buildMockCalendar(month: string): DoctorCalendarDay[] {
-  const fallbackMonth = month || '2026-05';
-
-  return [
-    { date: `${fallbackMonth}-21`, availableSlots: 5, status: 'available' },
-    { date: `${fallbackMonth}-22`, availableSlots: 2, status: 'limited' },
-    { date: `${fallbackMonth}-23`, availableSlots: 0, status: 'full' },
-    { date: `${fallbackMonth}-24`, availableSlots: 8, status: 'available' },
-    { date: `${fallbackMonth}-25`, availableSlots: 4, status: 'available' },
-  ];
-}
-
-function buildMockSlots(): AppointmentSlot[] {
-  return [
-    {
-      id: 'slot-1',
-      startAt: '08:00',
-      endAt: '08:30',
-      isBooked: false,
-      remainingCapacity: 1,
-      roomLabel: 'P.102',
-    },
-    {
-      id: 'slot-2',
-      startAt: '08:30',
-      endAt: '09:00',
-      isBooked: false,
-      remainingCapacity: 1,
-      roomLabel: 'P.102',
-    },
-    {
-      id: 'slot-3',
-      startAt: '09:00',
-      endAt: '09:30',
-      isBooked: true,
-      remainingCapacity: 0,
-      roomLabel: 'P.102',
-    },
-    {
-      id: 'slot-4',
-      startAt: '09:30',
-      endAt: '10:00',
-      isBooked: false,
-      remainingCapacity: 1,
-      roomLabel: 'P.102',
-    },
-  ];
 }
 
 export const appointmentsApi = {
@@ -139,7 +91,7 @@ export const appointmentsApi = {
     return data.slots || [];
   },
 
-  async createAppointment(payload: unknown): Promise<CreatedAppointment> {
+  async createAppointment(payload: CreateAppointmentPayload): Promise<CreatedAppointment> {
     const res = await fetch(buildUrl('/appointments'), {
       method: 'POST',
       headers: {

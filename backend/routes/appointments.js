@@ -170,7 +170,7 @@ router.delete('/:id', async (req, res) => {
   const { data: appointment, error: fetchError } = await getOwnedAppointment(
     req.params.id,
     req.user.id,
-    'appointment_date, status'
+    'appointment_date, status, slot_id'
   );
 
   if (fetchError || !appointment) {
@@ -187,7 +187,16 @@ router.delete('/:id', async (req, res) => {
     });
   }
 
-  if (dayjs(appointment.appointment_date).diff(dayjs(), 'hour') < 24) {
+  const SLOT_TIMES = {
+    'slot-1': '08:00',
+    'slot-2': '08:30',
+    'slot-3': '09:00',
+    'slot-4': '09:30',
+  };
+  const startTimeStr = SLOT_TIMES[appointment.slot_id] || '00:00';
+  const appointmentDateTime = dayjs(`${appointment.appointment_date}T${startTimeStr}:00`);
+
+  if (appointmentDateTime.diff(dayjs(), 'hour') < 24) {
     return res.status(400).json({
       success: false,
       message: 'Khong the huy trong vong 24h truoc gio kham.',

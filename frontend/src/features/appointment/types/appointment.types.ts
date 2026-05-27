@@ -1,55 +1,65 @@
-export interface AppointmentFilterValues {
-  specialty?: string;
-  search?: string;
-}
+export type AppointmentStatus =
+  | "confirmed"
+  | "checked-in"
+  | "completed"
+  | "cancelled";
 
-export interface AppointmentSlot {
-  id: string;
-  startAt: string; // e.g., "08:00"
-  endAt: string;   // e.g., "08:30"
-  isBooked: boolean;
-  remainingCapacity: number;
-  roomLabel?: string;
-}
-
-export interface AppointmentSummary {
+export type AppointmentSummary = {
   id: string;
   doctorName: string;
   specialty: string;
-  appointmentAt: string; // ISO datetime
+  appointmentAt: string;
   location: string;
-  status: string;
+  status: AppointmentStatus;
   statusLabel: string;
-  qrCodeUrl?: string;
-}
+  qrCodeUrl?: string | null;
+};
 
-export interface CreatedAppointment {
+export type AppointmentFilterValues = {
+  search: string;
+  specialty: string;
+  preferredDate: string;
+};
+
+export type CalendarAvailabilityStatus = "available" | "limited" | "full";
+
+export type DoctorCalendarDay = {
+  date: string;
+  availableSlots: number;
+  status: CalendarAvailabilityStatus;
+};
+
+export type AppointmentSlot = {
   id: string;
-  status: string;
+  startAt: string;
+  endAt: string;
+  isBooked: boolean;
+  remainingCapacity: number;
+  roomLabel: string;
+};
+
+export type BookingDraft = {
+  doctorId: string | null;
+  doctorName: string | null;
+  specialty: string | null;
+  appointmentDate: string | null;
+  slotId: string | null;
+  slotLabel: string | null;
+  location: string | null;
+};
+
+export type CreateAppointmentPayload = {
+  doctorId: string;
+  appointmentDate: string;
+  slotId: string;
+};
+
+export type CreatedAppointment = {
+  id: string;
+  status: AppointmentStatus;
   statusLabel: string;
   appointmentAt: string;
   doctorName: string;
   specialty: string;
   location: string;
-}
-
-export interface DoctorAvailability {
-  id: string;
-  fullName: string;
-  specialty: string;
-  yearsOfExperience: number;
-  clinicName: string;
-  avatarUrl?: string | null;
-  nextAvailableAt: string; // ISO datetime
-  bio?: string;
-}
-
-export interface DoctorCalendarDay {
-  date: string; // YYYY-MM-DD
-  availableSlots: number;
-  status: 'available' | 'limited' | 'full';
-}
-
-export interface CancelAppointmentResponse {
-  success: boolean;
-}
+};
