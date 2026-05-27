@@ -19,23 +19,28 @@ export function DoctorAvailabilityCard({
   isSelected,
   onSelect,
 }: DoctorAvailabilityCardProps) {
+  const safeName = (doctor.fullName || "Bác sĩ").trim();
+  const fallbackLetters = safeName.slice(0, 2).toUpperCase() || "BS";
+
   return (
     <Card className={cn("h-full", isSelected && "ring-4 ring-primary/15")}>
       <CardContent className="space-y-5">
         <div className="flex items-start gap-4">
           <Avatar
-            alt={doctor.fullName}
+            alt={safeName}
             className="h-14 w-14"
-            fallback={doctor.fullName.slice(0, 2).toUpperCase()}
+            fallback={fallbackLetters}
             src={doctor.avatarUrl}
           />
           <div className="min-w-0 space-y-2">
             <div className="space-y-1">
-              <h3 className="text-lg font-semibold">{doctor.fullName}</h3>
+              <h3 className="text-lg font-semibold">{safeName}</h3>
               <p className="text-sm text-muted-foreground">{doctor.specialty}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="info">{doctor.yearsOfExperience}+ nam kinh nghiem</Badge>
+              <Badge variant="info">
+                {doctor.yearsOfExperience ?? 0}+ nam kinh nghiem
+              </Badge>
               <Badge variant="neutral">Bac si kha dung</Badge>
             </div>
           </div>
