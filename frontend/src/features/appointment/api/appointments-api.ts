@@ -121,14 +121,22 @@ export const appointmentsApi = {
     return data.doctors || [];
   },
 
-  async getDoctorCalendar(_doctorId: string, month: string): Promise<DoctorCalendarDay[]> {
-    // Backend hien chua mount /api/calendar, tam dung mock de tranh 404 runtime.
-    return buildMockCalendar(month);
+  async getDoctorCalendar(doctorId: string, month: string): Promise<DoctorCalendarDay[]> {
+    const res = await fetch(
+      buildUrl('/calendar', { doctorId, month })
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Loi lay lich kham');
+    return data.calendar || [];
   },
 
-  async getDoctorSlots(_doctorId: string, _date: string): Promise<AppointmentSlot[]> {
-    // Backend hien chua mount /api/calendar/slots, tam dung mock de tranh 404 runtime.
-    return buildMockSlots();
+  async getDoctorSlots(doctorId: string, date: string): Promise<AppointmentSlot[]> {
+    const res = await fetch(
+      buildUrl('/calendar/slots', { doctorId, date })
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Loi lay danh sach slot');
+    return data.slots || [];
   },
 
   async createAppointment(payload: unknown): Promise<CreatedAppointment> {

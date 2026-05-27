@@ -1,5 +1,6 @@
 const express = require('express');
 const dayjs = require('dayjs');
+const crypto = require('crypto');
 const supabase = require('../utils/supabaseClient');
 const requireAuth = require('../middleware/requireAuth');
 
@@ -122,10 +123,14 @@ router.post('/', async (req, res) => {
     });
   }
 
+  const appointmentId = crypto.randomUUID();
+  const qrCode = `qr-${appointmentId}-${Date.now()}`;
+
   const { data: createdAppointment, error: insertError } = await supabase
     .from('appointments')
     .insert([
       {
+        id: appointmentId,
         doctor_id: doctorId,
         patient_id: req.user.id,
         appointment_date: appointmentDate,
@@ -134,37 +139,29 @@ router.post('/', async (req, res) => {
         specialty,
         location,
         status: 'confirmed',
+        qr_code: qrCode,
       },
     ])
     .select()
     .single();
 
-  if (insertError || !createdAppointment) {
+  if (insertError) {
+    if (insertError.code === '23505') {
+      return res.status(409).json({ success: false, message: 'Slot này đã được đặt. Vui lòng chọn giờ khác.' });
+    }
     return res
       .status(500)
-      .json({ success: false, message: insertError?.message || 'Khong the tao lich hen.' });
+      .json({ success: false, message: insertError.message || 'Khong the tao lich hen.' });
   }
 
-  const qrCode = `qr-${createdAppointment.id}-${Date.now()}`;
-  const { data: updatedAppointment, error: updateError } = await supabase
-    .from('appointments')
-    .update({ qr_code: qrCode })
-    .eq('id', createdAppointment.id)
-    .eq('patient_id', req.user.id)
-    .select()
-    .single();
-
-  if (updateError || !updatedAppointment) {
-    return res.status(500).json({
-      success: false,
-      message: updateError?.message || 'Khong the cap nhat QR code.',
-    });
+  if (!createdAppointment) {
+    return res.status(500).json({ success: false, message: 'Khong the tao lich hen.' });
   }
 
   return res.status(201).json({
     success: true,
     message: 'Dat lich thanh cong.',
-    appointment: toAppointmentSummary(updatedAppointment),
+    appointment: toAppointmentSummary(createdAppointment),
   });
 });
 
