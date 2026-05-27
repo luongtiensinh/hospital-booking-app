@@ -1,6 +1,28 @@
 const express = require("express");
 const router = express.Router();
 const supabase = require("../utils/supabaseClient");
+const requireAuth = require("../middleware/requireAuth");
+
+function toAuthUser(supabaseUser) {
+  const metadata = supabaseUser?.user_metadata || {};
+  return {
+    id: supabaseUser.id,
+    fullName: metadata.fullname || metadata.fullName || "",
+    email: supabaseUser.email || "",
+    phoneNumber: metadata.phone || metadata.phoneNumber || "",
+    role: "patient",
+    avatarUrl: metadata.avatarUrl ?? null,
+  };
+}
+
+function toAuthSession(authData) {
+  if (!authData?.session || !authData?.user) return null;
+  return {
+    accessToken: authData.session.access_token,
+    refreshToken: authData.session.refresh_token,
+    user: toAuthUser(authData.user),
+  };
+}
 
 // POST /api/auth/register
 router.post("/register", async (req, res, next) => {
@@ -73,11 +95,11 @@ router.post("/register", async (req, res, next) => {
         .json({ success: false, message: authError.message });
     }
 
+    const session = toAuthSession(authData);
     return res.status(201).json({
       success: true,
       message: "Đăng ký thành công!",
-      user: authData.user,
-      session: authData.session,
+      session,
     });
   } catch (err) {
     next(err);
@@ -114,15 +136,63 @@ router.post("/login", async (req, res, next) => {
       });
     }
 
+    const session = toAuthSession(authData);
+    if (!session) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Khong the tao phien dang nhap." });
+    }
+
     return res.status(200).json({
       success: true,
       message: "Đăng nhập thành công!",
-      user: authData.user,
-      session: authData.session,
+      session,
     });
   } catch (err) {
     next(err);
   }
+});
+
+// POST /api/auth/refresh
+router.post("/refresh", async (req, res) => {
+  const refreshToken = req.body?.refreshToken;
+  if (!refreshToken || typeof refreshToken !== "string") {
+    return res
+      .status(400)
+      .json({ success: false, message: "Thiếu refresh token." });
+  }
+
+  const { data, error } = await supabase.auth.refreshSession({
+    refresh_token: refreshToken,
+  });
+
+  if (error || !data?.session || !data?.user) {
+    return res.status(401).json({
+      success: false,
+      message: "Refresh token không hợp lệ hoặc đã hết hạn.",
+      detail: error?.message,
+    });
+  }
+
+  return res.json({
+    success: true,
+    session: {
+      accessToken: data.session.access_token,
+      refreshToken: data.session.refresh_token,
+      user: toAuthUser(data.user),
+    },
+  });
+});
+
+// GET /api/auth/profile
+router.get("/profile", requireAuth, async (req, res) => {
+  return res.json({ success: true, user: toAuthUser(req.user) });
+});
+
+// POST /api/auth/logout
+router.post("/logout", (_req, res) => {
+  // With stateless JWT, client can just drop tokens.
+  return res.status(204).send();
 });
 
 module.exports = router;

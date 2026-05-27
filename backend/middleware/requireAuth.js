@@ -23,9 +23,19 @@ async function requireAuth(req, res, next) {
     const { data, error } = await supabase.auth.getUser(token);
 
     if (error || !data?.user) {
+      if (error) {
+        // Keep this noisy logging only for local debugging.
+        // It helps identify mismatched Supabase URL/keys or malformed JWTs.
+        console.error('[requireAuth] supabase.auth.getUser error:', {
+          message: error.message,
+          status: error.status,
+          name: error.name,
+        });
+      }
       return res.status(401).json({
         success: false,
         message: 'Token không hợp lệ hoặc đã hết hạn.',
+        detail: error?.message,
       });
     }
 
