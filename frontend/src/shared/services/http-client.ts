@@ -26,8 +26,8 @@ type RetryableConfig = Parameters<(typeof httpClient.interceptors.response)["use
   error: infer E,
 ) => any
   ? E extends { config: infer C }
-    ? C & { _retry?: boolean }
-    : any
+  ? C & { _retry?: boolean }
+  : any
   : any;
 
 type RefreshResponse = {
@@ -62,6 +62,7 @@ httpClient.interceptors.response.use(
                 timeout: 15000,
                 headers: { "Content-Type": "application/json" },
               });
+
 
               refreshPromise = refreshClient
                 .post<RefreshResponse>("/auth/refresh", { refreshToken })

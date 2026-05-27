@@ -154,35 +154,40 @@ router.post("/login", async (req, res, next) => {
 });
 
 // POST /api/auth/refresh
-router.post("/refresh", async (req, res) => {
-  const refreshToken = req.body?.refreshToken;
-  if (!refreshToken || typeof refreshToken !== "string") {
-    return res
-      .status(400)
-      .json({ success: false, message: "Thiếu refresh token." });
-  }
+router.post("/refresh", async (req, res, next) => {
+  try {
+    const refreshToken = req.body?.refreshToken;
+    if (!refreshToken || typeof refreshToken !== "string") {
+      return res
+        .status(400)
+        .json({ success: false, message: "Thiếu refresh token." });
+    }
 
-  const { data, error } = await supabase.auth.refreshSession({
-    refresh_token: refreshToken,
-  });
-
-  if (error || !data?.session || !data?.user) {
-    return res.status(401).json({
-      success: false,
-      message: "Refresh token không hợp lệ hoặc đã hết hạn.",
-      detail: error?.message,
+    const { data, error } = await supabase.auth.refreshSession({
+      refresh_token: refreshToken,
     });
-  }
 
-  return res.json({
-    success: true,
-    session: {
-      accessToken: data.session.access_token,
-      refreshToken: data.session.refresh_token,
-      user: toAuthUser(data.user),
-    },
-  });
+    if (error || !data?.session || !data?.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Refresh token không hợp lệ hoặc đã hết hạn.",
+        detail: error?.message,
+      });
+    }
+
+    return res.json({
+      success: true,
+      session: {
+        accessToken: data.session.access_token,
+        refreshToken: data.session.refresh_token,
+        user: toAuthUser(data.user),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
 });
+
 
 // GET /api/auth/profile
 router.get("/profile", requireAuth, async (req, res) => {

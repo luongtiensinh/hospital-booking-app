@@ -8,31 +8,42 @@ const router = express.Router();
 
 router.use(requireAuth);
 
+const SLOT_TIMES = {
+  'slot-1': '08:00',
+  'slot-2': '08:30',
+  'slot-3': '09:00',
+  'slot-4': '09:30',
+};
+
 function getStatusLabel(status) {
   switch (status) {
     case 'confirmed':
-      return 'Da xac nhan';
+      return 'Đã xác nhận';
     case 'cancelled':
-      return 'Da huy';
+      return 'Đã hủy';
     case 'completed':
-      return 'Da kham';
+      return 'Đã khám';
     default:
-      return 'Dang xu ly';
+      return 'Đang xử lý';
   }
 }
 
 function toAppointmentSummary(appointment) {
+  const startTimeStr = SLOT_TIMES[appointment.slot_id] || '00:00';
+  const appointmentAt = `${appointment.appointment_date}T${startTimeStr}:00+07:00`;
+
   return {
     id: appointment.id,
     doctorName: appointment.doctor_name,
     specialty: appointment.specialty,
-    appointmentAt: appointment.appointment_date,
+    appointmentAt,
     location: appointment.location,
     status: appointment.status,
     statusLabel: getStatusLabel(appointment.status),
     qrCodeUrl: appointment.qr_code || undefined,
   };
 }
+
 
 async function getOwnedAppointment(id, patientId, columns = '*') {
   return supabase
@@ -54,8 +65,12 @@ router.get('/', async (req, res) => {
 
   if (status) query = query.eq('status', status);
   if (upcoming !== 'false') {
-    query = query.gte('appointment_date', dayjs().format('YYYY-MM-DD'));
+    const todayVN = new Date().toLocaleDateString('en-CA', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+    });
+    query = query.gte('appointment_date', todayVN);
   }
+
 
   const { data, error } = await query;
 
@@ -97,12 +112,26 @@ router.post('/', async (req, res) => {
     });
   }
 
-  if (dayjs(appointmentDate).isBefore(dayjs(), 'day')) {
+  const parsedDate = dayjs(appointmentDate);
+  if (!parsedDate.isValid()) {
     return res.status(400).json({
       success: false,
-      message: 'Ngay kham khong duoc trong qua khu.',
+      message: 'Định dạng ngày khám không hợp lệ.',
     });
   }
+
+  // Compare dates using Vietnam timezone to avoid server timezone drift (e.g. UTC).
+  const todayVN = new Date().toLocaleDateString('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+  });
+
+  if (parsedDate.isBefore(dayjs(todayVN), 'day')) {
+    return res.status(400).json({
+      success: false,
+      message: 'Ngày khám không được trong quá khứ.',
+    });
+  }
+
 
   const { data: existing, error: checkError } = await supabase
     .from('appointments')
@@ -187,17 +216,12 @@ router.delete('/:id', async (req, res) => {
     });
   }
 
-  const SLOT_TIMES = {
-    'slot-1': '08:00',
-    'slot-2': '08:30',
-    'slot-3': '09:00',
-    'slot-4': '09:30',
-  };
   const startTimeStr = SLOT_TIMES[appointment.slot_id] || '00:00';
   // Parse using Vietnam timezone offset to avoid server-local timezone drift (e.g. UTC on cloud).
   const appointmentDateTime = dayjs(
     `${appointment.appointment_date}T${startTimeStr}:00+07:00`,
   );
+
 
   if (appointmentDateTime.diff(dayjs(), 'hour') < 24) {
     return res.status(400).json({
