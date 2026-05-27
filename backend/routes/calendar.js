@@ -19,7 +19,7 @@ function getAvailabilityStatus(availableSlots, totalSlots) {
 // GET /api/calendar?doctorId=xxx&month=yyyy-MM
 router.get('/', async (req, res) => {
   const { doctorId, month } = req.query;
-  
+
   if (!doctorId || !month) {
     return res.status(400).json({ success: false, message: 'Missing parameters' });
   }
@@ -75,9 +75,14 @@ router.get('/', async (req, res) => {
 // GET /api/calendar/slots?doctorId=xxx&date=yyyy-MM-dd
 router.get('/slots', async (req, res) => {
   const { doctorId, date } = req.query;
-  
+
   if (!doctorId || !date) {
     return res.status(400).json({ success: false, message: 'Missing parameters' });
+  }
+
+  // Validate date before querying DB
+  if (!dayjs(date).isValid()) {
+    return res.status(400).json({ success: false, message: 'Invalid date format' });
   }
 
   // Lấy các slot đã được đặt trong ngày của bác sĩ (trừ các slot bị hủy)

@@ -39,9 +39,9 @@ export function DoctorAvailabilityCard({
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="info">
-                {doctor.yearsOfExperience ?? 0}+ nam kinh nghiem
+                {doctor.yearsOfExperience ?? 0}+ năm kinh nghiệm
               </Badge>
-              <Badge variant="neutral">Bac si kha dung</Badge>
+              <Badge variant="neutral">Bác sĩ khả dụng</Badge>
             </div>
           </div>
         </div>
