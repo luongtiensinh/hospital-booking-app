@@ -6,11 +6,7 @@ import type {
   DoctorAvailability,
   DoctorCalendarDay,
 } from '@/features/appointment/types/appointment.types';
-
-const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL ||
-  `${(import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '')}/api`
-).replace(/\/$/, '');
+import { API_BASE_URL } from '../../../lib/api-base-url';
 
 function getAccessToken() {
   if (typeof window === 'undefined') return null;
