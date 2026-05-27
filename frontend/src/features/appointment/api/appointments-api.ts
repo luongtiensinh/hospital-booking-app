@@ -146,45 +146,96 @@ import type {
   DoctorCalendarDay,
 } from '@/features/appointment/types/appointment.types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL ||
+  `${(import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '')}/api`
+).replace(/\/$/, '');
+
+function getAccessToken() {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const rawSession = window.localStorage.getItem('session');
+    if (!rawSession) return null;
+
+    const session = JSON.parse(rawSession);
+    return session?.access_token || null;
+  } catch {
+    return null;
+  }
+}
+
+function buildUrl(path: string, params?: Record<string, string | undefined>) {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value) searchParams.append(key, value);
+  });
+
+  const query = searchParams.toString();
+  return `${API_BASE_URL}${path}${query ? `?${query}` : ''}`;
+}
+
+function createAppointmentHeaders() {
+  const token = getAccessToken();
+
+  if (!token) {
+    throw new Error('Ban can dang nhap lai de thuc hien thao tac nay.');
+  }
+
+  return {
+    Authorization: `Bearer ${token}`,
+  };
+}
 
 export const appointmentsApi = {
   async getUpcomingAppointments(): Promise<AppointmentSummary[]> {
-    const res = await fetch(`${API_URL}/api/appointments`);
+    const res = await fetch(
+      buildUrl('/appointments', {
+        upcoming: 'true',
+      }),
+      {
+        headers: createAppointmentHeaders(),
+      },
+    );
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Lỗi lấy danh sách lịch hẹn');
     return data.appointments || [];
   },
 
   async getDoctors(filters: AppointmentFilterValues): Promise<DoctorAvailability[]> {
-    const params = new URLSearchParams();
-    if (filters.specialty) params.append('specialty', filters.specialty);
-    if (filters.search) params.append('search', filters.search);
-
-    const res = await fetch(`${API_URL}/api/doctors?${params.toString()}`);
+    const res = await fetch(
+      buildUrl('/doctors', {
+        specialty: filters.specialty,
+        search: filters.search,
+      }),
+    );
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Lỗi lấy danh sách bác sĩ');
     return data.doctors || [];
   },
 
   async getDoctorCalendar(doctorId: string, month: string) {
-    const res = await fetch(`${API_URL}/api/calendar?doctorId=${doctorId}&month=${month}`);
+    const res = await fetch(buildUrl('/calendar', { doctorId, month }));
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Lỗi lấy lịch bác sĩ');
     return data.calendar as DoctorCalendarDay[];
   },
 
   async getDoctorSlots(doctorId: string, date: string) {
-    const res = await fetch(`${API_URL}/api/calendar/slots?doctorId=${doctorId}&date=${date}`);
+    const res = await fetch(buildUrl('/calendar/slots', { doctorId, date }));
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Lỗi lấy slot trống');
     return data.slots as AppointmentSlot[];
   },
 
   async createAppointment(payload: any): Promise<CreatedAppointment> {
-    const res = await fetch(`${API_URL}/api/appointments`, {
+    const res = await fetch(buildUrl('/appointments'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...createAppointmentHeaders(),
+      },
       body: JSON.stringify(payload),
     });
     const data = await res.json();
@@ -193,8 +244,9 @@ export const appointmentsApi = {
   },
 
   async cancelAppointment(id: string): Promise<void> {
-    const res = await fetch(`${API_URL}/api/appointments/${id}`, {
+    const res = await fetch(buildUrl(`/appointments/${id}`), {
       method: 'DELETE',
+      headers: createAppointmentHeaders(),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Không thể hủy lịch');
