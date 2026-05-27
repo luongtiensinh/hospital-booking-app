@@ -120,20 +120,38 @@ router.post('/', async (req, res) => {
     });
   }
 
-  // Compare dates using Vietnam timezone to avoid server timezone drift (e.g. UTC).
-  const todayVN = new Date().toLocaleDateString('en-CA', {
-    timeZone: 'Asia/Ho_Chi_Minh',
-  });
-
-  if (parsedDate.isBefore(dayjs(todayVN), 'day')) {
+  // Validate both appointment date and the slot start time (Vietnam timezone) so we
+  // block booking slots that are already in the past on the current day.
+  const startTimeStr = SLOT_TIMES[slotId];
+  if (!startTimeStr) {
     return res.status(400).json({
       success: false,
-      message: 'Ngày khám không được trong quá khứ.',
+      message: 'Khung giờ khám không hợp lệ.',
     });
   }
 
+  // Combine date + slot time into a full datetime in Vietnam timezone (+07:00)
+  // and compare with the current time.
+  const appointmentDateTime = dayjs(
+    `${appointmentDate}T${startTimeStr}:00+07:00`,
+  );
+
+  if (!appointmentDateTime.isValid()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Thời gian khám không hợp lệ.',
+    });
+  }
+
+  if (appointmentDateTime.isBefore(dayjs())) {
+    return res.status(400).json({
+      success: false,
+      message: 'Thời gian khám không được ở trong quá khứ.',
+    });
+  }
 
   const { data: existing, error: checkError } = await supabase
+
     .from('appointments')
     .select('id')
     .eq('doctor_id', doctorId)
