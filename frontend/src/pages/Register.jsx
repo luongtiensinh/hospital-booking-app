@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { API_BASE_URL } from "../lib/api-base-url";
 import {
   Box,
   Button,
@@ -15,8 +16,6 @@ import {
   Alert,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -58,7 +57,7 @@ export default function Register() {
     setServerError("");
 
     try {
-      const res = await fetch(`${API_URL}/api/auth/register`, {
+      const res = await fetch(`${API_BASE_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),

@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useForm } from "@mantine/form";
 import { useAuth } from "../contexts/AuthContext";
+import { API_BASE_URL } from "../lib/api-base-url";
 import {
   Box,
   Button,
@@ -33,8 +34,6 @@ function IconCheck() {
   );
 }
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
 export default function Login() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -61,7 +60,7 @@ export default function Login() {
     setServerError("");
 
     try {
-      const res = await fetch(`${API_URL}/api/auth/login`, {
+      const res = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
