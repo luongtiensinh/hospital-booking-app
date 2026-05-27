@@ -233,6 +233,13 @@ router.delete('/:id', async (req, res) => {
       message: 'Lich da duoc huy.',
     });
   }
+  if (appointment.status !== 'confirmed') {
+    return res.status(400).json({
+      success: false,
+      message: 'Chỉ có thể hủy lịch hẹn ở trạng thái đã xác nhận.',
+    });
+  }
+
 
   const startTimeStr = SLOT_TIMES[appointment.slot_id] || '00:00';
   // Parse using Vietnam timezone offset to avoid server-local timezone drift (e.g. UTC on cloud).
