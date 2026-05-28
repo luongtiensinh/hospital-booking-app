@@ -101,7 +101,7 @@ router.get("/latest-qr", async (req, res) => {
     .gte("appointment_date", todayVN)
     .order("appointment_date", { ascending: true })
     .order("appointment_time", { ascending: true })
-    .limit(1);
+    .limit(10);
 
   if (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -111,7 +111,14 @@ router.get("/latest-qr", async (req, res) => {
     return res.json({ success: true, data: null });
   }
 
-  const appointment = data[0];
+  const nowDayjs = dayjs();
+  const appointment =
+    data.find((appt) => {
+      if (appt.status !== "confirmed") return false;
+      const slotTime = SLOT_TIMES[appt.slot_id] || appt.appointment_time || "00:00";
+      const apptAt = dayjs(`${appt.appointment_date}T${slotTime}:00+07:00`);
+      return nowDayjs.isBefore(apptAt);
+    }) || data[0];
   const startTimeStr =
     SLOT_TIMES[appointment.slot_id] || appointment.appointment_time || "00:00";
   const appointmentAt = `${appointment.appointment_date}T${startTimeStr}:00+07:00`;
@@ -259,7 +266,7 @@ router.post("/verify-qr", async (req, res) => {
   }
 
   const now = new Date().toISOString();
-  const { error: updateError, count: updatedCount } = await supabase
+  const { data: updatedData, error: updateError } = await supabase
     .from("appointments")
     .update({
       status: "checked-in",
@@ -278,7 +285,7 @@ router.post("/verify-qr", async (req, res) => {
     });
   }
 
-  if (updatedCount === 0) {
+  if (!updatedData || updatedData.length === 0) {
     return res.json({
       success: true,
       data: {
