@@ -42,7 +42,10 @@ export function AppHeader() {
             size="xs"
             fw={700}
             tt="uppercase"
-            style={{ letterSpacing: "0.22em", color: "var(--mantine-color-blue-6)" }}
+            style={{
+              letterSpacing: "0.22em",
+              color: "var(--mantine-color-blue-6)",
+            }}
           >
             MedCare Portal
           </Text>
@@ -85,10 +88,17 @@ export function AppHeader() {
                     {initials}
                   </Avatar>
                   <Box style={{ minWidth: 0 }}>
-                    <Text size="xs" fw={700} truncate>{displayName}</Text>
+                    <Text size="xs" fw={700} truncate>
+                      {displayName}
+                    </Text>
                     <Group gap={4}>
-                      <ShieldCheck size={11} color="var(--mantine-color-blue-6)" />
-                      <Badge size="xs" color="blue" variant="light">{roleLabel}</Badge>
+                      <ShieldCheck
+                        size={11}
+                        color="var(--mantine-color-blue-6)"
+                      />
+                      <Badge size="xs" color="blue" variant="light">
+                        {roleLabel}
+                      </Badge>
                     </Group>
                   </Box>
                 </Group>
