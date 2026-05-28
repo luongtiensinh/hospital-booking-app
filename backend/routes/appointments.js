@@ -97,7 +97,7 @@ router.get("/latest-qr", async (req, res) => {
     .from("appointments")
     .select("*")
     .eq("patient_id", req.user.id)
-    .eq("status", "confirmed")
+    .in("status", ["confirmed", "checked-in", "completed", "cancelled"])
     .gte("appointment_date", todayVN)
     .order("appointment_date", { ascending: true })
     .order("appointment_time", { ascending: true })
