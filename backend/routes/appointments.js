@@ -252,9 +252,10 @@ router.post("/verify-qr", async (req, res) => {
     });
   }
 
-  // Check if expired (QR expires after the appointment time)
+  // Check if expired (QR expires after the appointment time + 30 minutes grace period)
   const expiresAt = `${appointment.appointment_date}T${appointment.appointment_time || "00:00"}:00+07:00`;
-  if (dayjs().isAfter(dayjs(expiresAt))) {
+  const gracePeriodMinutes = 30;
+  if (dayjs().isAfter(dayjs(expiresAt).add(gracePeriodMinutes, "minute"))) {
     return res.json({
       success: true,
       data: {
