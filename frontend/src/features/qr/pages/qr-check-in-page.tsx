@@ -47,26 +47,32 @@ export function QrCheckInPage() {
   return (
     <PageContainer>
       <PageHeader
-        description="Trang QR gom patient dashboard card, camera scanner, verify result, duplicate handling và retry flow để phù hợp mobile-first check-in."
+        description=""
         eyebrow="QR Check-in"
         title="QR và scan camera"
       />
 
       {(latestQrQuery.isError || verifyQrMutation.isError) && (
         <Alert color="yellow" radius="md" variant="light">
-          QR module không thể tải hoặc verify dữ liệu. Bạn có thể retry để tiếp tục.
+          QR module không thể tải hoặc verify dữ liệu. Bạn có thể retry để tiếp
+          tục.
         </Alert>
       )}
 
-      <Grid gutter="md">
+      <Grid>
         {/* QR Card */}
         <Grid.Col span={{ base: 12, xl: 5 }}>
           <Stack gap="xs">
             <Group gap="sm">
               <QrCode size={18} color="var(--mantine-color-blue-6)" />
               <div>
-                <Text fw={700} size="md" c="dark.8">QR dashboard bệnh nhân</Text>
-                <Text size="xs" c="dimmed">Hiển thị QR gần nhất, lịch khám sắp tới và trạng thái appointment.</Text>
+                <Text fw={700} size="md" c="dark.8">
+                  QR dashboard bệnh nhân
+                </Text>
+                <Text size="xs" c="dimmed">
+                  Hiển thị QR gần nhất, lịch khám sắp tới và trạng thái
+                  appointment.
+                </Text>
               </div>
             </Group>
 
@@ -94,8 +100,12 @@ export function QrCheckInPage() {
             <Group gap="sm">
               <ShieldCheck size={18} color="var(--mantine-color-blue-6)" />
               <div>
-                <Text fw={700} size="md" c="dark.8">Scan QR</Text>
-                <Text size="xs" c="dimmed">Hỗ trợ camera permission, loading state và verify duplicate.</Text>
+                <Text fw={700} size="md" c="dark.8">
+                  Scan QR
+                </Text>
+                <Text size="xs" c="dimmed">
+                  Hỗ trợ camera permission, loading state và verify duplicate.
+                </Text>
               </div>
             </Group>
             <QrScannerPanel
@@ -115,8 +125,13 @@ export function QrCheckInPage() {
             <Group gap="sm">
               <ShieldCheck size={18} color="var(--mantine-color-blue-6)" />
               <div>
-                <Text fw={700} size="md" c="dark.8">Verify status</Text>
-                <Text size="xs" c="dimmed">Toast, retry button và fallback UI cho invalid hoặc duplicate QR.</Text>
+                <Text fw={700} size="md" c="dark.8">
+                  Verify status
+                </Text>
+                <Text size="xs" c="dimmed">
+                  Toast, retry button và fallback UI cho invalid hoặc duplicate
+                  QR.
+                </Text>
               </div>
             </Group>
             <QrVerifyResultCard

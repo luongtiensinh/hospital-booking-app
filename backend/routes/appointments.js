@@ -331,7 +331,57 @@ router.post("/verify-qr", async (req, res) => {
   });
 });
 
+// GET /api/appointments/overview — Dashboard aggregate data
+router.get("/overview", async (req, res) => {
+  const supabase = supabaseClient.getSupabaseClient(req);
+  const patientId = req.user.id;
+
+  const todayVN = new Date().toLocaleDateString("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+  });
+
+  // Fetch all appointments for this patient
+  const { data: allAppointments, error } = await supabase
+    .from("appointments")
+    .select("*")
+    .eq("patient_id", patientId)
+    .order("appointment_date", { ascending: true });
+
+  if (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+
+  const appointments = allAppointments || [];
+
+  // Upcoming = confirmed + today onwards
+  const upcoming = appointments.filter(
+    (a) =>
+      (a.status === "confirmed" || a.status === "checked-in") &&
+      a.appointment_date >= todayVN,
+  );
+
+  // Completed
+  const completed = appointments.filter((a) => a.status === "completed");
+
+  // Next appointment (soonest upcoming confirmed)
+  const nextRaw = upcoming.find((a) => a.status === "confirmed") ?? null;
+  const nextAppointment = nextRaw ? toAppointmentSummary(nextRaw) : null;
+
+  return res.json({
+    success: true,
+    overview: {
+      upcomingCount: upcoming.length,
+      completedCount: completed.length,
+      unreadResultsCount: 0, // extend when results feature is ready
+      billingOutstanding: 0, // extend when billing feature is ready
+      nextAppointment,
+      recentResults: [],
+    },
+  });
+});
+
 // GET /api/appointments/:id
+
 router.get("/:id", async (req, res) => {
   const supabase = supabaseClient.getSupabaseClient(req);
   const { data, error } = await getOwnedAppointment(

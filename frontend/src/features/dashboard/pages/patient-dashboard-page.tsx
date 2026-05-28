@@ -130,9 +130,6 @@ export function PatientDashboardPage() {
                 <Text fw={700} size="lg" c="dark.8">
                   Kết quả mới nhất
                 </Text>
-                <Text size="xs" c="dimmed">
-                  Các kết quả xét nghiệm vừa được bác sĩ cập nhật gần đây.
-                </Text>
               </div>
 
               {isLoading ? (

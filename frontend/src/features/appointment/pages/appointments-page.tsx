@@ -1,6 +1,8 @@
 import { CalendarPlus, ShieldCheck, Stethoscope } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { Alert, Grid, Group, Skeleton, Stack, Text } from "@mantine/core";
+
 import { PageContainer } from "@/app/layouts/page-container";
 import { PageHeader } from "@/app/layouts/page-header";
 import { AppointmentFiltersForm } from "@/features/appointment/components/appointment-filters-form";
@@ -18,9 +20,6 @@ import { useUpcomingAppointments } from "@/features/appointment/hooks/use-upcomi
 import { appointmentBookingSchema } from "@/features/appointment/schemas/appointment-booking-schema";
 import type { AppointmentFilterValues } from "@/features/appointment/types/appointment.types";
 import { EmptyState } from "@/shared/components/feedback/empty-state";
-import { Alert } from "@/shared/ui/alert";
-import { Card, CardContent } from "@/shared/ui/card";
-import { Skeleton } from "@/shared/ui/skeleton";
 
 const initialFilters: AppointmentFilterValues = {
   search: "",
@@ -61,11 +60,8 @@ export function AppointmentsPage() {
   const createAppointmentMutation = useCreateAppointment();
 
   const doctorCountLabel = useMemo(() => {
-    if (!doctorsQuery.data) {
-      return "Dang tai bac si...";
-    }
-
-    return `${doctorsQuery.data.length} bac si kha dung`;
+    if (!doctorsQuery.data) return "Đang tải danh sách bác sĩ...";
+    return `${doctorsQuery.data.length} bác sĩ khả dụng`;
   }, [doctorsQuery.data]);
 
   const handleConfirm = () => {
@@ -74,185 +70,174 @@ export function AppointmentsPage() {
       appointmentDate: draft.appointmentDate,
       slotId: draft.slotId,
     });
-
-    if (!parsed.success) {
-      return;
-    }
-
+    if (!parsed.success) return;
     createAppointmentMutation.mutate(parsed.data);
   };
+
+  const hasError =
+    doctorsQuery.isError ||
+    calendarQuery.isError ||
+    slotsQuery.isError ||
+    upcomingQuery.isError;
 
   return (
     <PageContainer>
       <PageHeader
         description=""
         eyebrow="Appointment Booking"
-        title="Dat lich kham"
+        title="Đặt lịch khám"
       />
 
-      <Card>
-        <CardContent className="space-y-5">
-          <div className="space-y-1">
-            <h2 className="text-xl font-semibold">Tim bac si va chuyen khoa</h2>
-          </div>
-          <AppointmentFiltersForm
-            defaultValues={filters}
-            onSubmit={(values) => setFilters(values)}
-          />
-        </CardContent>
-      </Card>
+      {/* Filter bar */}
+      <AppointmentFiltersForm
+        defaultValues={filters}
+        onSubmit={(values) => setFilters(values)}
+      />
 
-      {(doctorsQuery.isError ||
-        calendarQuery.isError ||
-        slotsQuery.isError ||
-        upcomingQuery.isError) && (
-        <Alert className="border-warning/20 bg-warning/5 text-warning">
-          Mot hoac nhieu endpoint booking chua tra ve dung contract. Frontend da
-          san sang cho doctor list, lich theo ngay, slot realtime va tao lich
-          hen.
+      {hasError && (
+        <Alert color="yellow" radius="md" variant="light">
+          Một hoặc nhiều dữ liệu chưa tải được. Vui lòng thử lại hoặc kiểm tra
+          kết nối.
         </Alert>
       )}
 
-      <section className="section-grid">
-        <div className="space-y-4 xl:col-span-5">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <Stethoscope className="h-5 w-5 text-primary" />
+      <Grid align="flex-start">
+        {/* Col 1 — Doctor list */}
+        <Grid.Col span={{ base: 12, xl: 5 }}>
+          <Stack gap="sm">
+            <Group gap="xs">
+              <Stethoscope size={17} color="var(--mantine-color-blue-6)" />
               <div>
-                <h2 className="text-xl font-semibold">Danh sach bac si</h2>
-                <p className="text-sm text-muted-foreground">
+                <Text fw={700} size="sm" c="dark.8">
+                  Danh sách bác sĩ
+                </Text>
+                <Text size="xs" c="dimmed">
                   {doctorCountLabel}
-                </p>
+                </Text>
               </div>
-            </div>
-            <div className="hidden rounded-full bg-secondary px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-secondary-foreground md:block">
-              Doctor picker
-            </div>
-          </div>
+            </Group>
 
-          {doctorsQuery.isLoading ? (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
-              <Skeleton className="h-72" />
-              <Skeleton className="h-72" />
-            </div>
-          ) : doctorsQuery.data && doctorsQuery.data.length > 0 ? (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
-              {doctorsQuery.data.map((doctor) => (
-                <DoctorAvailabilityCard
-                  doctor={doctor}
-                  isSelected={selectedDoctor?.id === doctor.id}
-                  key={doctor.id}
-                  onSelect={(value) => {
-                    selectDoctor(value);
-                    setVisibleMonth(new Date());
-                  }}
-                />
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              description="Khi backend doctor catalog san sang, danh sach theo chuyen khoa va ten tim kiem se hien thi tai day."
-              icon={Stethoscope}
-              title="Chua co bac si phu hop"
-            />
-          )}
-        </div>
-
-        <div className="space-y-4 xl:col-span-4">
-          <div className="flex items-center gap-3">
-            <CalendarPlus className="h-5 w-5 text-primary" />
-            <div>
-              <h2 className="text-xl font-semibold">Lich va slot kha dung</h2>
-              <p className="text-sm text-muted-foreground">
-                Chon bac si truoc, sau do chon ngay va gio kham.
-              </p>
-            </div>
-          </div>
-
-          {selectedDoctor ? (
-            <>
-              {calendarQuery.isLoading ? (
-                <Skeleton className="h-[440px]" />
-              ) : (
-                <BookingCalendar
-                  currentMonth={visibleMonth}
-                  days={calendarQuery.data ?? []}
-                  onChangeMonth={setVisibleMonth}
-                  onSelectDate={(date) => selectDate(date)}
-                  selectedDate={draft.appointmentDate}
-                />
-              )}
-
-              <SlotSelector
-                isLoading={slotsQuery.isLoading}
-                onSelectSlot={selectSlot}
-                selectedSlotId={draft.slotId}
-                slots={slotsQuery.data ?? []}
+            {doctorsQuery.isLoading ? (
+              <Stack gap="sm">
+                <Skeleton height={200} radius="lg" />
+                <Skeleton height={200} radius="lg" />
+              </Stack>
+            ) : doctorsQuery.data && doctorsQuery.data.length > 0 ? (
+              <Stack gap="sm">
+                {doctorsQuery.data.map((doctor) => (
+                  <DoctorAvailabilityCard
+                    doctor={doctor}
+                    isSelected={selectedDoctor?.id === doctor.id}
+                    key={doctor.id}
+                    onSelect={(value) => {
+                      selectDoctor(value);
+                      setVisibleMonth(new Date());
+                    }}
+                  />
+                ))}
+              </Stack>
+            ) : (
+              <EmptyState
+                description="Khi backend doctor catalog sẵn sàng, danh sách theo chuyên khoa và tên tìm kiếm sẽ hiển thị tại đây."
+                icon={Stethoscope}
+                title="Chưa có bác sĩ phù hợp"
               />
-            </>
-          ) : (
-            <EmptyState
-              description="Chon mot bac si trong danh sach de xem lich hoat dong va cac khung gio con cho."
-              icon={CalendarPlus}
-              title="Chua chon bac si"
-            />
-          )}
-        </div>
+            )}
+          </Stack>
+        </Grid.Col>
 
-        <div className="space-y-4 xl:col-span-3">
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="h-5 w-5 text-primary" />
-            <div>
-              <h2 className="text-xl font-semibold">
-                Xac nhan va lich cua ban
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Tong hop thong tin truoc khi gui API create appointment.
-              </p>
-            </div>
-          </div>
-
-          <BookingConfirmationCard
-            canConfirm={canConfirm}
-            draft={draft}
-            isPending={createAppointmentMutation.isPending}
-            onConfirm={handleConfirm}
-          />
-
-          <Card>
-            <CardContent className="space-y-4">
-              <div className="space-y-1">
-                <h3 className="text-lg font-semibold">Lich hen sap toi</h3>
-                <p className="text-sm text-muted-foreground">
-                  Theo doi cac lich da xac nhan va lien ket QR check-in.
-                </p>
+        {/* Col 2 — Calendar + Slots */}
+        <Grid.Col span={{ base: 12, xl: 4 }}>
+          <Stack gap="sm">
+            <Group gap="xs">
+              <CalendarPlus size={17} color="var(--mantine-color-blue-6)" />
+              <div>
+                <Text fw={700} size="sm" c="dark.8">
+                  Lịch và slot khả dụng
+                </Text>
               </div>
+            </Group>
 
-              {upcomingQuery.isLoading ? (
-                <div className="space-y-4">
-                  <Skeleton className="h-40" />
-                  <Skeleton className="h-40" />
-                </div>
-              ) : upcomingQuery.data && upcomingQuery.data.length > 0 ? (
-                <div className="space-y-4">
-                  {upcomingQuery.data.map((appointment) => (
-                    <UpcomingAppointmentCard
-                      appointment={appointment}
-                      key={appointment.id}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <EmptyState
-                  description="Sau khi dat lich thanh cong, thong tin lich hen se duoc hien thi o day."
-                  icon={ShieldCheck}
-                  title="Chua co lich hen nao"
+            {selectedDoctor ? (
+              <>
+                {calendarQuery.isLoading ? (
+                  <Skeleton height={400} radius="lg" />
+                ) : (
+                  <BookingCalendar
+                    currentMonth={visibleMonth}
+                    days={calendarQuery.data ?? []}
+                    onChangeMonth={setVisibleMonth}
+                    onSelectDate={(date) => selectDate(date)}
+                    selectedDate={draft.appointmentDate}
+                  />
+                )}
+                <SlotSelector
+                  isLoading={slotsQuery.isLoading}
+                  onSelectSlot={selectSlot}
+                  selectedSlotId={draft.slotId}
+                  slots={slotsQuery.data ?? []}
                 />
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+              </>
+            ) : (
+              <EmptyState
+                description="Chọn một bác sĩ trong danh sách để xem lịch hoạt động và các khung giờ còn chỗ."
+                icon={CalendarPlus}
+                title="Chưa chọn bác sĩ"
+              />
+            )}
+          </Stack>
+        </Grid.Col>
+
+        {/* Col 3 — Confirm + Upcoming */}
+        <Grid.Col span={{ base: 12, xl: 3 }}>
+          <Stack gap="sm">
+            <Group gap="xs">
+              <ShieldCheck size={17} color="var(--mantine-color-blue-6)" />
+              <div>
+                <Text fw={700} size="sm" c="dark.8">
+                  Xác nhận & Lịch của bạn
+                </Text>
+              </div>
+            </Group>
+
+            <BookingConfirmationCard
+              canConfirm={canConfirm}
+              draft={draft}
+              isPending={createAppointmentMutation.isPending}
+              onConfirm={handleConfirm}
+            />
+
+            {/* Upcoming appointments */}
+            <Group gap="xs" mt="xs">
+              <Text fw={700} size="sm" c="dark.8">
+                Lịch hẹn sắp tới
+              </Text>
+            </Group>
+
+            {upcomingQuery.isLoading ? (
+              <Stack gap="sm">
+                <Skeleton height={120} radius="lg" />
+                <Skeleton height={120} radius="lg" />
+              </Stack>
+            ) : upcomingQuery.data && upcomingQuery.data.length > 0 ? (
+              <Stack gap="sm">
+                {upcomingQuery.data.map((appointment) => (
+                  <UpcomingAppointmentCard
+                    appointment={appointment}
+                    key={appointment.id}
+                  />
+                ))}
+              </Stack>
+            ) : (
+              <EmptyState
+                description="Sau khi đặt lịch thành công, thông tin lịch hẹn sẽ được hiển thị ở đây."
+                icon={ShieldCheck}
+                title="Chưa có lịch hẹn nào"
+              />
+            )}
+          </Stack>
+        </Grid.Col>
+      </Grid>
     </PageContainer>
   );
 }

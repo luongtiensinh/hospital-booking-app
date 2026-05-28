@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Button, Group, TextInput } from "@mantine/core";
 import { CalendarSearch, Search } from "lucide-react";
 import { useForm } from "react-hook-form";
 
@@ -7,69 +8,57 @@ import {
   type AppointmentFiltersFormValues,
 } from "@/features/appointment/schemas/appointment-filters-schema";
 import type { AppointmentFilterValues } from "@/features/appointment/types/appointment.types";
-import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
-import { Label } from "@/shared/ui/label";
 
 type AppointmentFiltersFormProps = {
   defaultValues: AppointmentFilterValues;
   onSubmit: (values: AppointmentFilterValues) => void;
 };
 
-export function AppointmentFiltersForm({
-  defaultValues,
-  onSubmit,
-}: AppointmentFiltersFormProps) {
+export function AppointmentFiltersForm({ defaultValues, onSubmit }: AppointmentFiltersFormProps) {
   const form = useForm<AppointmentFiltersFormValues>({
     resolver: zodResolver(appointmentFiltersSchema),
     defaultValues,
   });
 
   return (
-    <form
-      className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1.2fr_1fr_auto]"
-      onSubmit={form.handleSubmit((values) => onSubmit(values))}
-    >
-      <div className="space-y-2">
-        <Label htmlFor="search">Ten bac si hoac chuyen khoa</Label>
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="search"
-            className="pl-11"
-            placeholder="Tim mach, noi tong quat..."
-            {...form.register("search")}
-          />
-        </div>
-      </div>
+    <form onSubmit={form.handleSubmit((values) => onSubmit(values))}>
+      <Group gap="sm" align="flex-end" wrap="wrap">
+        <TextInput
+          id="search"
+          label="Tên bác sĩ hoặc chuyên khoa"
+          placeholder="Tim mạch, nội tổng quát..."
+          size="sm"
+          radius="md"
+          leftSection={<Search size={14} />}
+          style={{ flex: "2 1 200px" }}
+          {...form.register("search")}
+        />
 
-      <div className="space-y-2">
-        <Label htmlFor="preferredDate">Ngay mong muon</Label>
-        <div className="relative">
-          <CalendarSearch className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="preferredDate"
-            className="pl-11"
-            type="date"
-            {...form.register("preferredDate")}
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2 md:col-span-2 xl:col-span-1">
-        <Label htmlFor="specialty">Chuyen khoa uu tien</Label>
-        <Input
+        <TextInput
           id="specialty"
-          placeholder="Nhap ten chuyen khoa"
+          label="Chuyên khoa ưu tiên"
+          placeholder="Nhập tên chuyên khoa"
+          size="sm"
+          radius="md"
+          style={{ flex: "1 1 160px" }}
           {...form.register("specialty")}
         />
-      </div>
 
-      <div className="md:col-span-2 xl:col-span-3">
-        <Button size="lg" type="submit">
-          Loc du lieu dat lich
+        <TextInput
+          id="preferredDate"
+          label="Ngày mong muốn"
+          type="date"
+          size="sm"
+          radius="md"
+          leftSection={<CalendarSearch size={14} />}
+          style={{ flex: "1 1 160px" }}
+          {...form.register("preferredDate")}
+        />
+
+        <Button size="sm" radius="md" type="submit" style={{ flexShrink: 0 }}>
+          Lọc
         </Button>
-      </div>
+      </Group>
     </form>
   );
 }

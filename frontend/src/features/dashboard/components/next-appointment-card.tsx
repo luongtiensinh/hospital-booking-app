@@ -52,9 +52,15 @@ export function NextAppointmentCard({ appointment }: NextAppointmentCardProps) {
         <Stack gap="md">
           <Group justify="space-between" align="flex-start" wrap="nowrap">
             <Box>
-              <Text size="xs" fw={500} c="dimmed">Lịch khám gần nhất</Text>
-              <Text fw={700} size="lg" c="dark.8">{appointment.doctorName}</Text>
-              <Text size="sm" c="dimmed">{appointment.specialty}</Text>
+              <Text size="m" fw={700} c="dark.8">
+                Lịch khám gần nhất
+              </Text>
+              <Text fw={700} size="lg" c="dark.8">
+                {appointment.doctorName}
+              </Text>
+              <Text size="sm" c="dimmed">
+                {appointment.specialty}
+              </Text>
             </Box>
             <Badge
               color={statusColorMap[appointment.status] ?? "blue"}
@@ -70,29 +76,43 @@ export function NextAppointmentCard({ appointment }: NextAppointmentCardProps) {
             <Paper
               radius="md"
               p="sm"
-              style={{ background: "var(--mantine-color-blue-0)", border: "1px solid var(--mantine-color-blue-1)" }}
+              style={{
+                background: "var(--mantine-color-blue-0)",
+                border: "1px solid var(--mantine-color-blue-1)",
+              }}
             >
               <Group gap="xs" mb={4}>
                 <ThemeIcon size="sm" color="blue" variant="light" radius="sm">
                   <CalendarRange size={13} />
                 </ThemeIcon>
-                <Text size="xs" fw={600} c="blue.7">Thời gian</Text>
+                <Text size="xs" fw={600} c="blue.7">
+                  Thời gian
+                </Text>
               </Group>
-              <Text size="xs" c="dimmed">{formatDateTime(appointment.appointmentAt)}</Text>
+              <Text size="xs" c="dimmed">
+                {formatDateTime(appointment.appointmentAt)}
+              </Text>
             </Paper>
 
             <Paper
               radius="md"
               p="sm"
-              style={{ background: "var(--mantine-color-teal-0)", border: "1px solid var(--mantine-color-teal-1)" }}
+              style={{
+                background: "var(--mantine-color-teal-0)",
+                border: "1px solid var(--mantine-color-teal-1)",
+              }}
             >
               <Group gap="xs" mb={4}>
                 <ThemeIcon size="sm" color="teal" variant="light" radius="sm">
                   <MapPin size={13} />
                 </ThemeIcon>
-                <Text size="xs" fw={600} c="teal.7">Địa điểm</Text>
+                <Text size="xs" fw={600} c="teal.7">
+                  Địa điểm
+                </Text>
               </Group>
-              <Text size="xs" c="dimmed">{appointment.location}</Text>
+              <Text size="xs" c="dimmed">
+                {appointment.location}
+              </Text>
             </Paper>
           </Group>
 
