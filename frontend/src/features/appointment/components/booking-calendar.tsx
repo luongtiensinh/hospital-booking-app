@@ -1,4 +1,11 @@
-import { ActionIcon, Card, Group, Stack, Text, UnstyledButton } from "@mantine/core";
+import {
+  ActionIcon,
+  Card,
+  Group,
+  Stack,
+  Text,
+  UnstyledButton,
+} from "@mantine/core";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo } from "react";
 
@@ -21,7 +28,10 @@ type CalendarCell = {
 };
 
 function getMonthLabel(date: Date) {
-  return new Intl.DateTimeFormat("vi-VN", { month: "long", year: "numeric" }).format(date);
+  return new Intl.DateTimeFormat("vi-VN", {
+    month: "long",
+    year: "numeric",
+  }).format(date);
 }
 
 function normalizeDate(date: Date) {
@@ -30,7 +40,17 @@ function normalizeDate(date: Date) {
   return d;
 }
 
-function buildCalendarCells(monthDate: Date, days: DoctorCalendarDay[]): CalendarCell[] {
+function formatDateLocal(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function buildCalendarCells(
+  monthDate: Date,
+  days: DoctorCalendarDay[],
+): CalendarCell[] {
   const firstDay = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
   const startDate = new Date(firstDay);
   startDate.setDate(firstDay.getDate() - ((firstDay.getDay() + 6) % 7));
@@ -42,7 +62,7 @@ function buildCalendarCells(monthDate: Date, days: DoctorCalendarDay[]): Calenda
     const current = new Date(startDate);
     current.setDate(startDate.getDate() + i);
     const normalized = normalizeDate(current);
-    const isoDate = normalized.toISOString().slice(0, 10);
+    const isoDate = formatDateLocal(normalized);
     cells.push({
       isoDate,
       dayOfMonth: current.getDate(),
@@ -63,24 +83,43 @@ export function BookingCalendar({
   onSelectDate,
   onChangeMonth,
 }: BookingCalendarProps) {
-  const calendarCells = useMemo(() => buildCalendarCells(currentMonth, days), [currentMonth, days]);
+  const calendarCells = useMemo(
+    () => buildCalendarCells(currentMonth, days),
+    [currentMonth, days],
+  );
   const hasAvailableDays = days.some((d) => d.availableSlots > 0);
 
   return (
-    <Card radius="lg" withBorder style={{ borderColor: "var(--mantine-color-gray-2)" }}>
+    <Card
+      radius="lg"
+      withBorder
+      style={{ borderColor: "var(--mantine-color-gray-2)" }}
+    >
       <Stack gap="sm">
         {/* Header */}
         <Group justify="space-between" align="center">
           <div>
-            <Text fw={700} size="sm" c="dark.8">Chọn ngày khám</Text>
-            <Text size="xs" c="dimmed">Ngày quá khứ bị khóa. Ngày còn slot được đánh dấu.</Text>
+            <Text fw={700} size="sm" c="dark.8">
+              Chọn ngày khám
+            </Text>
+            <Text size="xs" c="dimmed">
+              Ngày quá khứ bị khóa. Ngày còn slot được đánh dấu.
+            </Text>
           </div>
           <Group gap={4}>
             <ActionIcon
               variant="default"
               size="sm"
               radius="md"
-              onClick={() => onChangeMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
+              onClick={() =>
+                onChangeMonth(
+                  new Date(
+                    currentMonth.getFullYear(),
+                    currentMonth.getMonth() - 1,
+                    1,
+                  ),
+                )
+              }
             >
               <ChevronLeft size={14} />
             </ActionIcon>
@@ -88,7 +127,15 @@ export function BookingCalendar({
               variant="default"
               size="sm"
               radius="md"
-              onClick={() => onChangeMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
+              onClick={() =>
+                onChangeMonth(
+                  new Date(
+                    currentMonth.getFullYear(),
+                    currentMonth.getMonth() + 1,
+                    1,
+                  ),
+                )
+              }
             >
               <ChevronRight size={14} />
             </ActionIcon>
@@ -97,7 +144,9 @@ export function BookingCalendar({
 
         {/* Month label + legend */}
         <Group justify="space-between" align="center">
-          <Text size="sm" fw={600}>{getMonthLabel(currentMonth)}</Text>
+          <Text size="sm" fw={600}>
+            {getMonthLabel(currentMonth)}
+          </Text>
           <Group gap="sm">
             {[
               { color: "var(--mantine-color-blue-5)", label: "Còn slot" },
@@ -105,22 +154,46 @@ export function BookingCalendar({
               { color: "var(--mantine-color-gray-4)", label: "Hết slot" },
             ].map(({ color, label }) => (
               <Group key={label} gap={4}>
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: color }} />
-                <Text size="xs" c="dimmed">{label}</Text>
+                <div
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: color,
+                  }}
+                />
+                <Text size="xs" c="dimmed">
+                  {label}
+                </Text>
               </Group>
             ))}
           </Group>
         </Group>
 
         {/* Day headers */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, textAlign: "center" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(7, 1fr)",
+            gap: 4,
+            textAlign: "center",
+          }}
+        >
           {DAY_LABELS.map((label) => (
-            <Text key={label} size="xs" fw={600} c="dimmed" tt="uppercase">{label}</Text>
+            <Text key={label} size="xs" fw={600} c="dimmed" tt="uppercase">
+              {label}
+            </Text>
           ))}
         </div>
 
         {/* Calendar grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(7, 1fr)",
+            gap: 4,
+          }}
+        >
           {calendarCells.map((cell) => {
             const isDisabled =
               cell.isPast ||
@@ -133,20 +206,20 @@ export function BookingCalendar({
             const bgColor = isSelected
               ? "var(--mantine-color-blue-6)"
               : isDisabled
-              ? "var(--mantine-color-gray-0)"
-              : availStatus === "available"
-              ? "var(--mantine-color-blue-0)"
-              : availStatus === "limited"
-              ? "var(--mantine-color-orange-0)"
-              : "white";
+                ? "var(--mantine-color-gray-0)"
+                : availStatus === "available"
+                  ? "var(--mantine-color-blue-0)"
+                  : availStatus === "limited"
+                    ? "var(--mantine-color-orange-0)"
+                    : "white";
 
             const borderColor = isSelected
               ? "var(--mantine-color-blue-5)"
               : availStatus === "available" && !isDisabled
-              ? "var(--mantine-color-blue-2)"
-              : availStatus === "limited" && !isDisabled
-              ? "var(--mantine-color-orange-2)"
-              : "var(--mantine-color-gray-2)";
+                ? "var(--mantine-color-blue-2)"
+                : availStatus === "limited" && !isDisabled
+                  ? "var(--mantine-color-orange-2)"
+                  : "var(--mantine-color-gray-2)";
 
             return (
               <UnstyledButton
@@ -185,7 +258,9 @@ export function BookingCalendar({
                       : "var(--mantine-color-dimmed)",
                   }}
                 >
-                  {cell.availability ? `${cell.availability.availableSlots}s` : "--"}
+                  {cell.availability
+                    ? `${cell.availability.availableSlots}s`
+                    : "--"}
                 </Text>
               </UnstyledButton>
             );
@@ -193,7 +268,9 @@ export function BookingCalendar({
         </div>
 
         {!hasAvailableDays && (
-          <Text size="xs" c="dimmed">Tháng này chưa có slot khả dụng cho bác sĩ được chọn.</Text>
+          <Text size="xs" c="dimmed">
+            Tháng này chưa có slot khả dụng cho bác sĩ được chọn.
+          </Text>
         )}
       </Stack>
     </Card>
