@@ -122,7 +122,10 @@ router.get("/latest-qr", async (req, res) => {
   let status = "active";
   if (appointment.status === "cancelled") {
     status = "cancelled";
-  } else if (appointment.status === "checked-in" || appointment.status === "completed") {
+  } else if (
+    appointment.status === "checked-in" ||
+    appointment.status === "completed"
+  ) {
     status = "used";
   } else if (dayjs().isAfter(dayjs(expiresAt))) {
     status = "expired";
@@ -179,6 +182,20 @@ router.post("/verify-qr", async (req, res) => {
     });
   }
 
+  // Validate UUID format before querying to avoid DB syntax errors
+  // caused by tampered QR codes decrypted with a mismatched key.
+  const UUID_REGEX =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_REGEX.test(appointmentId)) {
+    return res.json({
+      success: true,
+      data: {
+        outcome: "invalid",
+        message: "Mã QR không hợp lệ hoặc đã bị thay đổi.",
+      },
+    });
+  }
+
   // Fetch appointment by decrypted ID
   const { data: appointment, error } = await supabase
     .from("appointments")
@@ -197,7 +214,11 @@ router.post("/verify-qr", async (req, res) => {
   }
 
   // Check if already checked in or completed
-  if (appointment.status === "checked-in" || appointment.status === "completed" || appointment.qr_scanned_at) {
+  if (
+    appointment.status === "checked-in" ||
+    appointment.status === "completed" ||
+    appointment.qr_scanned_at
+  ) {
     return res.json({
       success: true,
       data: {
@@ -231,27 +252,45 @@ router.post("/verify-qr", async (req, res) => {
       success: true,
       data: {
         outcome: "expired",
-        message: "Mã QR này đã quá thời hạn check-in (lịch hẹn đã quá giờ khám).",
+        message:
+          "Mã QR này đã quá thời hạn check-in (lịch hẹn đã quá giờ khám).",
       },
     });
   }
 
-  // Mark as checked-in (status = checked-in, qr_scanned_at = now)
   const now = new Date().toISOString();
-  const { error: updateError } = await supabase
+  const { error: updateError, count: updatedCount } = await supabase
     .from("appointments")
     .update({
       status: "checked-in",
       qr_scanned_at: now,
       updated_at: now,
     })
-    .eq("id", appointment.id);
+    .eq("id", appointment.id)
+    .eq("status", "confirmed")
+    .select();
 
   if (updateError) {
     return res.status(500).json({
       success: false,
       message: "Không thể cập nhật trạng thái check-in.",
       detail: updateError.message,
+    });
+  }
+
+  if (updatedCount === 0) {
+    return res.json({
+      success: true,
+      data: {
+        outcome: "duplicate",
+        message: "Mã QR này đã được sử dụng. Đã check-in rồi.",
+        appointmentId: appointment.id,
+        doctorName: appointment.doctor_name,
+        specialty: appointment.specialty,
+        location: appointment.location,
+        appointmentAt: `${appointment.appointment_date}T${appointment.appointment_time || "00:00"}:00+07:00`,
+        checkedInAt: appointment.qr_scanned_at || now,
+      },
     });
   }
 

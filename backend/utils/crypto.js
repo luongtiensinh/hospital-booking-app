@@ -1,11 +1,11 @@
-const crypto = require('crypto');
+const crypto = require("crypto");
 
-// The encryption key should be 32 bytes (256 bits).
-const ENCRYPTION_KEY = process.env.QR_ENCRYPTION_KEY
-  ? Buffer.from(process.env.QR_ENCRYPTION_KEY, 'utf-8')
-  : crypto.createHash('sha256').update('medcare-default-secret-key').digest();
+const ENCRYPTION_KEY = crypto
+  .createHash("sha256")
+  .update(process.env.QR_ENCRYPTION_KEY || "medcare-default-secret-key")
+  .digest();
 
-const ALGORITHM = 'aes-256-cbc';
+const ALGORITHM = "aes-256-cbc";
 const IV_LENGTH = 16;
 
 /**
@@ -17,12 +17,12 @@ function encrypt(text) {
   try {
     const iv = crypto.randomBytes(IV_LENGTH);
     const cipher = crypto.createCipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
-    let encrypted = cipher.update(text, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    return `${iv.toString('hex')}:${encrypted}`;
+    let encrypted = cipher.update(text, "utf8", "hex");
+    encrypted += cipher.final("hex");
+    return `${iv.toString("hex")}:${encrypted}`;
   } catch (error) {
-    console.error('Encryption failed:', error);
-    throw new Error('Could not encrypt data');
+    console.error("Encryption failed:", error);
+    throw new Error("Could not encrypt data");
   }
 }
 
@@ -33,18 +33,18 @@ function encrypt(text) {
  */
 function decrypt(encryptedText) {
   try {
-    const parts = encryptedText.split(':');
+    const parts = encryptedText.split(":");
     if (parts.length !== 2) return null;
 
-    const iv = Buffer.from(parts[0], 'hex');
-    const encrypted = Buffer.from(parts[1], 'hex');
+    const iv = Buffer.from(parts[0], "hex");
+    const encrypted = Buffer.from(parts[1], "hex");
 
     const decipher = crypto.createDecipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
+    let decrypted = decipher.update(encrypted, "hex", "utf8");
+    decrypted += decipher.final("utf8");
     return decrypted;
   } catch (error) {
-    console.error('Decryption failed:', error.message);
+    console.error("Decryption failed:", error.message);
     return null;
   }
 }
