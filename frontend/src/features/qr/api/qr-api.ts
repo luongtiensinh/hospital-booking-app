@@ -1,3 +1,4 @@
+import { httpClient } from "@/shared/services/http-client";
 import type {
   LatestAppointmentQr,
   VerifyQrPayload,
@@ -6,33 +7,18 @@ import type {
 
 export const qrApi = {
   async getLatestPatientQr(): Promise<LatestAppointmentQr | null> {
-    return {
-      appointmentId: "app-1",
-      qrValue: "mock-qr-value-1",
-      expiresAt: "2026-05-25T10:00:00.000Z",
-      status: "active",
-      statusLabel: "Còn hiệu lực",
-      doctorName: "BS. Nguyễn Thị Lan",
-      specialty: "Nội khoa",
-      appointmentAt: "2026-05-25T09:00:00.000Z",
-      location: "Phòng khám 102 - Tầng 1 - Khu A",
-      appointmentStatus: "confirmed",
-      appointmentStatusLabel: "Đã xác nhận",
-    };
+    const response = await httpClient.get<{
+      success: boolean;
+      data: LatestAppointmentQr | null;
+    }>("/appointments/latest-qr");
+    return response.data.data;
   },
 
   async verifyQr(payload: VerifyQrPayload): Promise<VerifyQrResponse> {
-    return {
-      outcome: "valid",
-      message: "Xác thực mã QR thành công. Đã check-in lịch khám.",
-      appointmentId: "app-1",
-      patientName: "Nguyễn Văn Bệnh Nhân",
-      doctorName: "BS. Nguyễn Thị Lan",
-      specialty: "Nội khoa",
-      location: "Phòng khám 102 - Tầng 1 - Khu A",
-      appointmentAt: "2026-05-25T09:00:00.000Z",
-      checkedInAt: new Date().toISOString(),
-    };
+    const response = await httpClient.post<{
+      success: boolean;
+      data: VerifyQrResponse;
+    }>("/appointments/verify-qr", payload);
+    return response.data.data;
   },
 };
-
