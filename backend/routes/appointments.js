@@ -345,7 +345,8 @@ router.get("/overview", async (req, res) => {
     .from("appointments")
     .select("*")
     .eq("patient_id", patientId)
-    .order("appointment_date", { ascending: true });
+    .order("appointment_date", { ascending: true })
+    .order("appointment_time", { ascending: true });
 
   if (error) {
     return res.status(500).json({ success: false, message: error.message });
