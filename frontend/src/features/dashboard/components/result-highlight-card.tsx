@@ -1,10 +1,15 @@
+import { Anchor, Badge, Box, Button, Card, Group, Stack, Text } from "@mantine/core";
 import { FileDown } from "lucide-react";
 
 import { formatDate } from "@/shared/utils/formatters";
 import type { ResultSummary } from "@/features/result/types/result.types";
-import { Button } from "@/shared/ui/button";
-import { Card, CardContent } from "@/shared/ui/card";
-import { StatusBadge } from "@/shared/ui/status-badge";
+
+const statusColorMap: Record<string, string> = {
+  new: "blue",
+  reviewed: "gray",
+  paid: "green",
+  overdue: "red",
+};
 
 type ResultHighlightCardProps = {
   item: ResultSummary;
@@ -12,34 +17,56 @@ type ResultHighlightCardProps = {
 
 export function ResultHighlightCard({ item }: ResultHighlightCardProps) {
   return (
-    <Card className="h-full">
-      <CardContent className="space-y-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <h3 className="text-base font-semibold">{item.examName}</h3>
-            <p className="text-sm text-muted-foreground">
-              Bác sĩ {item.doctorName}
-            </p>
-          </div>
-          <StatusBadge label={item.statusLabel} status={item.status} />
-        </div>
+    <Card
+      radius="lg"
+      withBorder
+      style={{ borderColor: "var(--mantine-color-gray-2)" }}
+    >
+      <Stack gap="sm">
+        <Group justify="space-between" align="flex-start" wrap="nowrap">
+          <Box>
+            <Text fw={600} size="sm" c="dark.8">{item.examName}</Text>
+            <Text size="xs" c="dimmed">Bác sĩ {item.doctorName}</Text>
+          </Box>
+          <Badge
+            color={statusColorMap[item.status] ?? "blue"}
+            variant="light"
+            radius="sm"
+            size="sm"
+            style={{ flexShrink: 0 }}
+          >
+            {item.statusLabel}
+          </Badge>
+        </Group>
 
-        <p className="text-sm leading-6 text-muted-foreground">{item.summary}</p>
+        <Text size="xs" c="dimmed" lh={1.6}>{item.summary}</Text>
 
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+        <Group justify="space-between" align="center">
+          <Text
+            size="xs"
+            fw={600}
+            tt="uppercase"
+            style={{ letterSpacing: "0.15em" }}
+            c="dimmed"
+          >
             {formatDate(item.reportedAt)}
-          </span>
+          </Text>
           {item.pdfUrl ? (
-            <Button asChild size="sm" variant="outline">
-              <a href={item.pdfUrl} rel="noreferrer" target="_blank">
-                <FileDown className="mr-2 h-4 w-4" />
-                PDF
-              </a>
+            <Button
+              component={Anchor}
+              href={item.pdfUrl}
+              target="_blank"
+              rel="noreferrer"
+              size="xs"
+              variant="outline"
+              radius="md"
+              leftSection={<FileDown size={13} />}
+            >
+              PDF
             </Button>
           ) : null}
-        </div>
-      </CardContent>
+        </Group>
+      </Stack>
     </Card>
   );
 }

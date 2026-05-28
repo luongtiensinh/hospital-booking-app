@@ -1,10 +1,15 @@
+import {
+  ActionIcon,
+  Card,
+  Group,
+  Stack,
+  Text,
+  UnstyledButton,
+} from "@mantine/core";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo } from "react";
 
-import { cn } from "@/lib/cn";
 import type { DoctorCalendarDay } from "@/features/appointment/types/appointment.types";
-import { Button } from "@/shared/ui/button";
-import { Card, CardContent } from "@/shared/ui/card";
 
 type BookingCalendarProps = {
   currentMonth: Date;
@@ -30,12 +35,22 @@ function getMonthLabel(date: Date) {
 }
 
 function normalizeDate(date: Date) {
-  const normalized = new Date(date);
-  normalized.setHours(0, 0, 0, 0);
-  return normalized;
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
 }
 
-function buildCalendarCells(monthDate: Date, days: DoctorCalendarDay[]) {
+function formatDateLocal(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function buildCalendarCells(
+  monthDate: Date,
+  days: DoctorCalendarDay[],
+): CalendarCell[] {
   const firstDay = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
   const startDate = new Date(firstDay);
   startDate.setDate(firstDay.getDate() - ((firstDay.getDay() + 6) % 7));
@@ -43,24 +58,23 @@ function buildCalendarCells(monthDate: Date, days: DoctorCalendarDay[]) {
   const map = new Map(days.map((item) => [item.date, item]));
   const cells: CalendarCell[] = [];
 
-  for (let index = 0; index < 42; index += 1) {
+  for (let i = 0; i < 42; i++) {
     const current = new Date(startDate);
-    current.setDate(startDate.getDate() + index);
+    current.setDate(startDate.getDate() + i);
     const normalized = normalizeDate(current);
-    const isoDate = normalized.toISOString().slice(0, 10);
-    const availability = map.get(isoDate) ?? null;
-
+    const isoDate = formatDateLocal(normalized);
     cells.push({
       isoDate,
       dayOfMonth: current.getDate(),
       isCurrentMonth: current.getMonth() === monthDate.getMonth(),
       isPast: normalized < today,
-      availability,
+      availability: map.get(isoDate) ?? null,
     });
   }
-
   return cells;
 }
+
+const DAY_LABELS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
 export function BookingCalendar({
   currentMonth,
@@ -73,72 +87,113 @@ export function BookingCalendar({
     () => buildCalendarCells(currentMonth, days),
     [currentMonth, days],
   );
-
-  const hasAvailableDays = days.some((day) => day.availableSlots > 0);
+  const hasAvailableDays = days.some((d) => d.availableSlots > 0);
 
   return (
-    <Card className="h-full">
-      <CardContent className="space-y-5">
-        <div className="flex items-center justify-between gap-3">
+    <Card
+      radius="lg"
+      withBorder
+      style={{ borderColor: "var(--mantine-color-gray-2)" }}
+    >
+      <Stack gap="sm">
+        {/* Header */}
+        <Group justify="space-between" align="center">
           <div>
-            <h3 className="text-lg font-semibold">Chon ngay kham</h3>
-            <p className="text-sm text-muted-foreground">
-              Ngay qua khu bi khoa. Ngay con slot duoc danh dau de de dat lich.
-            </p>
+            <Text fw={700} size="sm" c="dark.8">
+              Chọn ngày khám
+            </Text>
+            <Text size="xs" c="dimmed">
+              Ngày quá khứ bị khóa. Ngày còn slot được đánh dấu.
+            </Text>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              size="icon"
-              variant="outline"
+          <Group gap={4}>
+            <ActionIcon
+              variant="default"
+              size="sm"
+              radius="md"
               onClick={() =>
                 onChangeMonth(
-                  new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1),
+                  new Date(
+                    currentMonth.getFullYear(),
+                    currentMonth.getMonth() - 1,
+                    1,
+                  ),
                 )
               }
-              type="button"
             >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="outline"
+              <ChevronLeft size={14} />
+            </ActionIcon>
+            <ActionIcon
+              variant="default"
+              size="sm"
+              radius="md"
               onClick={() =>
                 onChangeMonth(
-                  new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1),
+                  new Date(
+                    currentMonth.getFullYear(),
+                    currentMonth.getMonth() + 1,
+                    1,
+                  ),
                 )
               }
-              type="button"
             >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+              <ChevronRight size={14} />
+            </ActionIcon>
+          </Group>
+        </Group>
 
-        <div className="flex items-center justify-between gap-3">
-          <h4 className="text-base font-semibold">{getMonthLabel(currentMonth)}</h4>
-          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-primary" />
-              Con slot
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-warning" />
-              Sap day
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-border" />
-              Het slot
-            </span>
-          </div>
-        </div>
+        {/* Month label + legend */}
+        <Group justify="space-between" align="center">
+          <Text size="sm" fw={600}>
+            {getMonthLabel(currentMonth)}
+          </Text>
+          <Group gap="sm">
+            {[
+              { color: "var(--mantine-color-blue-5)", label: "Còn slot" },
+              { color: "var(--mantine-color-orange-5)", label: "Sắp đầy" },
+              { color: "var(--mantine-color-gray-4)", label: "Hết slot" },
+            ].map(({ color, label }) => (
+              <Group key={label} gap={4}>
+                <div
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: color,
+                  }}
+                />
+                <Text size="xs" c="dimmed">
+                  {label}
+                </Text>
+              </Group>
+            ))}
+          </Group>
+        </Group>
 
-        <div className="grid grid-cols-7 gap-2 text-center text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          {["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((label) => (
-            <span key={label}>{label}</span>
+        {/* Day headers */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(7, 1fr)",
+            gap: 4,
+            textAlign: "center",
+          }}
+        >
+          {DAY_LABELS.map((label) => (
+            <Text key={label} size="xs" fw={600} c="dimmed" tt="uppercase">
+              {label}
+            </Text>
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-2">
+        {/* Calendar grid */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(7, 1fr)",
+            gap: 4,
+          }}
+        >
           {calendarCells.map((cell) => {
             const isDisabled =
               cell.isPast ||
@@ -146,43 +201,78 @@ export function BookingCalendar({
               !cell.availability ||
               cell.availability.availableSlots === 0;
             const isSelected = selectedDate === cell.isoDate;
-            const availabilityTone =
-              cell.availability?.status === "available"
-                ? "border-primary/30 bg-primary/10 text-primary"
-                : cell.availability?.status === "limited"
-                  ? "border-warning/40 bg-warning/10 text-warning"
-                  : "border-border bg-white text-muted-foreground";
+
+            const availStatus = cell.availability?.status;
+            const bgColor = isSelected
+              ? "var(--mantine-color-blue-6)"
+              : isDisabled
+                ? "var(--mantine-color-gray-0)"
+                : availStatus === "available"
+                  ? "var(--mantine-color-blue-0)"
+                  : availStatus === "limited"
+                    ? "var(--mantine-color-orange-0)"
+                    : "white";
+
+            const borderColor = isSelected
+              ? "var(--mantine-color-blue-5)"
+              : availStatus === "available" && !isDisabled
+                ? "var(--mantine-color-blue-2)"
+                : availStatus === "limited" && !isDisabled
+                  ? "var(--mantine-color-orange-2)"
+                  : "var(--mantine-color-gray-2)";
 
             return (
-              <button
-                className={cn(
-                  "flex min-h-16 flex-col rounded-2xl border px-2 py-3 text-left transition-all sm:min-h-20",
-                  cell.isCurrentMonth ? "opacity-100" : "opacity-35",
-                  isDisabled
-                    ? "cursor-not-allowed border-border bg-secondary/40 text-muted-foreground"
-                    : availabilityTone,
-                  isSelected && "ring-4 ring-primary/15",
-                )}
-                disabled={isDisabled}
+              <UnstyledButton
                 key={cell.isoDate}
+                disabled={isDisabled}
                 onClick={() => onSelectDate(cell.isoDate)}
-                type="button"
+                style={{
+                  borderRadius: 8,
+                  border: `1.5px solid ${borderColor}`,
+                  background: bgColor,
+                  padding: "6px 4px",
+                  opacity: !cell.isCurrentMonth ? 0.35 : 1,
+                  cursor: isDisabled ? "not-allowed" : "pointer",
+                  textAlign: "center",
+                  minHeight: 52,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "all 0.12s ease",
+                }}
               >
-                <span className="text-sm font-semibold">{cell.dayOfMonth}</span>
-                <span className="mt-1 text-[11px] leading-4">
-                  {cell.availability ? `${cell.availability.availableSlots} slot` : "--"}
-                </span>
-              </button>
+                <Text
+                  size="xs"
+                  fw={700}
+                  style={{ color: isSelected ? "white" : undefined }}
+                >
+                  {cell.dayOfMonth}
+                </Text>
+                <Text
+                  size="xs"
+                  style={{
+                    fontSize: 10,
+                    color: isSelected
+                      ? "rgba(255,255,255,0.8)"
+                      : "var(--mantine-color-dimmed)",
+                  }}
+                >
+                  {cell.availability
+                    ? `${cell.availability.availableSlots}s`
+                    : "--"}
+                </Text>
+              </UnstyledButton>
             );
           })}
         </div>
 
-        {!hasAvailableDays ? (
-          <p className="text-sm text-muted-foreground">
-            Thang nay hien chua co slot kha dung cho bac si duoc chon.
-          </p>
-        ) : null}
-      </CardContent>
+        {!hasAvailableDays && (
+          <Text size="xs" c="dimmed">
+            Tháng này chưa có slot khả dụng cho bác sĩ được chọn.
+          </Text>
+        )}
+      </Stack>
     </Card>
   );
 }

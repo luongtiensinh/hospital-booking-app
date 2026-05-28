@@ -19,32 +19,32 @@ export type NavigationItem = {
 
 export const navigationItems: NavigationItem[] = [
   {
-    title: "Tong quan",
-    description: "Dashboard benh nhan",
+    title: "Tổng quan",
+    description: "Dashboard bệnh nhân",
     href: APP_ROUTES.dashboard,
     icon: LayoutDashboard,
   },
   {
-    title: "Lich kham",
-    description: "Dat lich va theo doi lich hen",
+    title: "Lịch khám",
+    description: "Đặt lịch và theo dõi lịch hẹn",
     href: APP_ROUTES.appointments,
     icon: CalendarDays,
   },
   {
     title: "QR Check-in",
-    description: "QR gan nhat va trang scan camera",
+    description: "QR gần nhất và trang scan camera",
     href: APP_ROUTES.qr,
     icon: QrCode,
   },
   {
-    title: "Ket qua",
-    description: "Xem xet nghiem va ho so kham",
+    title: "Kết quả",
+    description: "Xem xét nghiệm và hồ sơ khám",
     href: APP_ROUTES.results,
     icon: FileText,
   },
   {
-    title: "Hoa don",
-    description: "Chi phi va PDF hoa don",
+    title: "Hóa đơn",
+    description: "Chi phí và PDF hóa đơn",
     href: APP_ROUTES.invoices,
     icon: ReceiptText,
   },

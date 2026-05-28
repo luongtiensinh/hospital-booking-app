@@ -1,8 +1,15 @@
+import {
+  Button,
+  Card,
+  Group,
+  Paper,
+  Stack,
+  Text,
+  ThemeIcon,
+} from "@mantine/core";
 import { CalendarCheck2, MapPin, Stethoscope } from "lucide-react";
 
 import { formatDate } from "@/shared/utils/formatters";
-import { Button } from "@/shared/ui/button";
-import { Card, CardContent } from "@/shared/ui/card";
 import type { BookingDraft } from "@/features/appointment/types/appointment.types";
 
 type BookingConfirmationCardProps = {
@@ -18,60 +25,81 @@ export function BookingConfirmationCard({
   isPending,
   onConfirm,
 }: BookingConfirmationCardProps) {
+  const rows = [
+    {
+      icon: Stethoscope,
+      color: "blue",
+      label: "Bác sĩ",
+      value: draft.doctorName ?? "Chưa chọn bác sĩ",
+    },
+    {
+      icon: CalendarCheck2,
+      color: "orange",
+      label: "Ngày & Giờ",
+      value: draft.appointmentDate
+        ? `${formatDate(draft.appointmentDate)}${draft.slotLabel ? ` • ${draft.slotLabel}` : ""}`
+        : "Chưa chọn ngày",
+    },
+    {
+      icon: MapPin,
+      color: "teal",
+      label: "Chuyên khoa & Địa điểm",
+      value: draft.specialty
+        ? `${draft.specialty}${draft.location ? ` • ${draft.location}` : ""}`
+        : "Chưa chọn chuyên khoa",
+    },
+  ];
+
   return (
-    <Card className="h-full">
-      <CardContent className="space-y-5">
-        <div className="space-y-1">
-          <h3 className="text-lg font-semibold">Xac nhan dat lich</h3>
-          <p className="text-sm text-muted-foreground">
-            Tong hop thong tin bac si, ngay, gio va chuyen khoa truoc khi gui request.
-          </p>
+    <Card
+      radius="lg"
+      withBorder
+      style={{ borderColor: "var(--mantine-color-gray-2)" }}
+    >
+      <Stack gap="sm">
+        <div>
+          <Text fw={700} size="sm" c="dark.8">
+            Xác nhận đặt lịch
+          </Text>
         </div>
 
-        <div className="grid gap-3">
-          <div className="rounded-2xl bg-secondary/70 p-4">
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-secondary-foreground">
-              <Stethoscope className="h-4 w-4" />
-              Bac si
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {draft.doctorName ?? "Chua chon bac si"}
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-secondary/70 p-4">
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-secondary-foreground">
-              <CalendarCheck2 className="h-4 w-4" />
-              Ngay va gio
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {draft.appointmentDate ? formatDate(draft.appointmentDate) : "Chua chon ngay"}
-              {draft.slotLabel ? ` • ${draft.slotLabel}` : ""}
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-secondary/70 p-4">
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-secondary-foreground">
-              <MapPin className="h-4 w-4" />
-              Chuyen khoa va dia diem
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {draft.specialty ?? "Chua chon chuyen khoa"}
-              {draft.location ? ` • ${draft.location}` : ""}
-            </p>
-          </div>
-        </div>
+        <Stack gap="xs">
+          {rows.map(({ icon: Icon, color, label, value }) => (
+            <Paper
+              key={label}
+              p="xs"
+              radius="md"
+              style={{ background: "var(--mantine-color-gray-0)" }}
+            >
+              <Group gap="xs" wrap="nowrap">
+                <ThemeIcon size="sm" color={color} variant="light" radius="sm">
+                  <Icon size={12} />
+                </ThemeIcon>
+                <div style={{ minWidth: 0 }}>
+                  <Text size="xs" c="dimmed" fw={500}>
+                    {label}
+                  </Text>
+                  <Text size="xs" fw={600} c="dark.7" truncate>
+                    {value}
+                  </Text>
+                </div>
+              </Group>
+            </Paper>
+          ))}
+        </Stack>
 
         <Button
-          className="w-full"
+          fullWidth
+          size="sm"
+          radius="md"
           disabled={!canConfirm || isPending}
+          loading={isPending}
           onClick={onConfirm}
-          size="lg"
           type="button"
         >
-          {isPending ? "Dang tao lich hen..." : "Xac nhan dat lich"}
+          {isPending ? "Đang tạo lịch hẹn..." : "Xác nhận đặt lịch"}
         </Button>
-      </CardContent>
+      </Stack>
     </Card>
   );
 }

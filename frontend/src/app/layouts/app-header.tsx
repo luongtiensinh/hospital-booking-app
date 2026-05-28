@@ -1,59 +1,136 @@
-import { Bell, ShieldCheck } from "lucide-react";
+import {
+  ActionIcon,
+  Avatar,
+  Badge,
+  Box,
+  Button,
+  Group,
+  Menu,
+  Stack,
+  Text,
+} from "@mantine/core";
+import { Bell, ChevronDown, LogOut, ShieldCheck } from "lucide-react";
 
 import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
 import { useLogout } from "@/features/auth/hooks/use-logout";
-import { Avatar } from "@/shared/ui/avatar";
-import { Badge } from "@/shared/ui/badge";
-import { Button } from "@/shared/ui/button";
 
 export function AppHeader() {
   const { displayName, initials, roleLabel } = useAuthSession();
   const { logout, isPending } = useLogout();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/60 bg-background/85 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-        <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
-            MedCare Portal
-          </p>
-          <h2 className="text-lg font-semibold md:text-xl">
-            Chăm sóc sức khỏe số cho bệnh nhân
-          </h2>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            aria-label="Thông báo"
-            className="hidden h-11 w-11 items-center justify-center rounded-2xl border border-border bg-card text-muted-foreground transition-colors hover:text-foreground md:inline-flex"
-            type="button"
+    <Box
+      component="header"
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 100,
+        borderBottom: "1px solid var(--mantine-color-gray-2)",
+        background: "rgba(244,248,251,0.92)",
+        backdropFilter: "blur(12px)",
+      }}
+    >
+      <Group
+        px={{ base: "md", sm: "xl" }}
+        py="sm"
+        justify="space-between"
+        wrap="nowrap"
+      >
+        {/* Left — Portal info */}
+        <Stack gap={2} visibleFrom="sm">
+          <Text
+            size="xs"
+            fw={700}
+            tt="uppercase"
+            style={{
+              letterSpacing: "0.22em",
+              color: "var(--mantine-color-blue-6)",
+            }}
           >
-            <Bell className="h-5 w-5" />
-          </button>
+            MedCare Portal
+          </Text>
+          <Text size="lg" fw={700} c="dark.8" lh={1.2}>
+            Chăm sóc sức khỏe số cho bệnh nhân
+          </Text>
+        </Stack>
 
-          <div className="hidden items-center gap-3 rounded-3xl border border-border bg-card px-3 py-2 md:flex">
-            <Avatar alt={displayName} fallback={initials} />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-foreground">
-                {displayName}
-              </p>
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-primary" />
-                <Badge variant="info">{roleLabel}</Badge>
-              </div>
-            </div>
-          </div>
+        {/* Mobile — just show logo text */}
+        <Text fw={700} size="md" c="blue" hiddenFrom="sm">
+          MedCare
+        </Text>
 
+        {/* Right — Actions */}
+        <Group gap="sm" wrap="nowrap">
+          {/* Bell */}
+          <ActionIcon
+            variant="default"
+            size="lg"
+            radius="md"
+            aria-label="Thông báo"
+            visibleFrom="md"
+          >
+            <Bell size={18} />
+          </ActionIcon>
+
+          {/* User menu */}
+          <Menu shadow="md" width={200} radius="md" withinPortal>
+            <Menu.Target>
+              <Button
+                variant="default"
+                radius="xl"
+                px="sm"
+                rightSection={<ChevronDown size={14} />}
+                visibleFrom="md"
+                styles={{ inner: { gap: 8 } }}
+              >
+                <Group gap="xs" wrap="nowrap">
+                  <Avatar color="blue" radius="xl" size="sm">
+                    {initials}
+                  </Avatar>
+                  <Box style={{ minWidth: 0 }}>
+                    <Text size="xs" fw={700} truncate>
+                      {displayName}
+                    </Text>
+                    <Group gap={4}>
+                      <ShieldCheck
+                        size={11}
+                        color="var(--mantine-color-blue-6)"
+                      />
+                      <Badge size="xs" color="blue" variant="light">
+                        {roleLabel}
+                      </Badge>
+                    </Group>
+                  </Box>
+                </Group>
+              </Button>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Label>{displayName}</Menu.Label>
+              <Menu.Item
+                leftSection={<LogOut size={14} />}
+                color="red"
+                disabled={isPending}
+                onClick={logout}
+              >
+                Đăng xuất
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+
+          {/* Mobile logout button */}
           <Button
-            size="sm"
-            variant="outline"
+            size="xs"
+            variant="light"
+            color="red"
+            radius="md"
             disabled={isPending}
             onClick={logout}
+            hiddenFrom="md"
           >
             Đăng xuất
           </Button>
-        </div>
-      </div>
-    </header>
+        </Group>
+      </Group>
+    </Box>
   );
 }

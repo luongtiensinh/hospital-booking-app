@@ -66,9 +66,6 @@ export function PatientQrCard({
                 <Text size="lg" fw={700} c="blue.9">
                   QR check-in gần nhất
                 </Text>
-                <Text size="xs" c="dimmed">
-                  Đưa mã này cho quầy tiếp nhận để check-in nhanh.
-                </Text>
               </div>
               <Group gap="xs" wrap="nowrap">
                 <Badge

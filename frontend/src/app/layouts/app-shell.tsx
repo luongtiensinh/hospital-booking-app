@@ -1,40 +1,91 @@
+import { AppShell, Box, ScrollArea, Stack, Text } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { Outlet } from "react-router-dom";
 
 import { AppHeader } from "@/app/layouts/app-header";
 import { LogoMark } from "@/app/layouts/logo-mark";
 import { SideNav } from "@/app/layouts/side-nav";
 
-export function AppShell() {
+export function AppShellLayout() {
+  const [mobileOpened] = useDisclosure();
   return (
-    <div className="min-h-screen">
-      <div className="mx-auto flex min-h-screen max-w-7xl flex-col lg:flex-row">
-        <aside className="hidden w-[300px] shrink-0 border-r border-white/50 px-5 py-6 lg:block">
-          <div className="surface-panel sticky top-6 flex min-h-[calc(100vh-3rem)] flex-col gap-8 p-6">
-            <div className="space-y-4">
-              <LogoMark />
-              <div className="space-y-2">
-                <h1 className="text-xl font-semibold">MedCare Portal</h1>
-                <p className="text-sm leading-6 text-muted-foreground">
-                  Hệ thống đặt lịch khám, check-in và theo dõi kết quả y tế theo
-                  chuẩn mobile-first.
-                </p>
-              </div>
-            </div>
+    <AppShell
+      header={{ height: 60 }}
+      navbar={{
+        width: 280,
+        breakpoint: "lg",
+        collapsed: { mobile: !mobileOpened },
+      }}
+      padding={0}
+      styles={{
+        root: { minHeight: "100vh" },
+        navbar: {
+          background: "rgba(255,255,255,0.85)",
+          backdropFilter: "blur(12px)",
+          borderRight: "1px solid rgba(215,228,240,0.6)",
+        },
+        main: {
+          background: "transparent",
+          paddingBottom: 80, // space for mobile bottom nav
+        },
+      }}
+    >
+      {/* Header — replaced by AppHeader component inline due to positioning */}
+      <AppShell.Header
+        style={{
+          background: "rgba(244,248,251,0)",
+          border: "none",
+          padding: 0,
+        }}
+      >
+        <AppHeader />
+      </AppShell.Header>
 
-            <SideNav />
-          </div>
-        </aside>
+      {/* Sidebar — desktop */}
+      <AppShell.Navbar p="md">
+        <AppShell.Section>
+          <Box mb="lg">
+            <Stack gap={6} align="flex-start">
+              <LogoMark size={44} />
+              <Box>
+                <Text fw={700} size="md" c="dark.8">
+                  MedCare Portal
+                </Text>
+              </Box>
+            </Stack>
+          </Box>
+        </AppShell.Section>
 
-        <div className="flex min-h-screen flex-1 flex-col">
-          <AppHeader />
-          <main className="flex-1 px-4 py-6 pb-28 sm:px-6 lg:px-8 lg:pb-8">
-            <Outlet />
-          </main>
-          <div className="fixed inset-x-0 bottom-0 border-t border-white/60 bg-background/95 px-4 py-3 backdrop-blur lg:hidden">
-            <SideNav compact />
-          </div>
-        </div>
-      </div>
-    </div>
+        <AppShell.Section grow component={ScrollArea}>
+          <SideNav />
+        </AppShell.Section>
+      </AppShell.Navbar>
+
+      {/* Main content */}
+      <AppShell.Main>
+        <Box px={{ base: "md", sm: "xl", lg: "xl" }} py="lg">
+          <Outlet />
+        </Box>
+      </AppShell.Main>
+
+      {/* Bottom navigation — mobile only */}
+      <Box
+        hiddenFrom="lg"
+        style={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 200,
+          background: "rgba(244,248,251,0.96)",
+          backdropFilter: "blur(16px)",
+          borderTop: "1px solid rgba(215,228,240,0.7)",
+          padding: "8px 12px",
+          paddingBottom: "max(8px, env(safe-area-inset-bottom))",
+        }}
+      >
+        <SideNav compact />
+      </Box>
+    </AppShell>
   );
 }

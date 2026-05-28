@@ -1,6 +1,8 @@
 import { QrCode, ShieldCheck } from "lucide-react";
 import { useCallback } from "react";
 
+import { Alert, Grid, Group, Stack, Text } from "@mantine/core";
+
 import { PageContainer } from "@/app/layouts/page-container";
 import { PageHeader } from "@/app/layouts/page-header";
 import { PatientQrCard } from "@/features/qr/components/patient-qr-card";
@@ -11,8 +13,7 @@ import { useQrScanSession } from "@/features/qr/hooks/use-qr-scan-session";
 import { useQrScanner } from "@/features/qr/hooks/use-qr-scanner";
 import { useVerifyQr } from "@/features/qr/hooks/use-verify-qr";
 import { EmptyState } from "@/shared/components/feedback/empty-state";
-import { Alert } from "@/shared/ui/alert";
-import { Skeleton } from "@/shared/ui/skeleton";
+import { Skeleton } from "@mantine/core";
 
 const scannerElementId = "qr-checkin-scanner";
 
@@ -27,7 +28,6 @@ export function QrCheckInPage() {
       if (value === lastProcessedValue) {
         return;
       }
-
       verifyQrMutation.mutate({ value });
     },
     [lastProcessedValue, verifyQrMutation],
@@ -47,85 +47,101 @@ export function QrCheckInPage() {
   return (
     <PageContainer>
       <PageHeader
-        description="Trang QR gom patient dashboard card, camera scanner, verify result, duplicate handling va retry flow de phu hop mobile-first check-in."
+        description=""
         eyebrow="QR Check-in"
-        title="QR va scan camera"
+        title="QR và scan camera"
       />
 
       {(latestQrQuery.isError || verifyQrMutation.isError) && (
-        <Alert className="border-warning/20 bg-warning/5 text-warning">
-          QR module khong the tai hoac verify du lieu. Ban co the retry de tiep tuc.
+        <Alert color="yellow" radius="md" variant="light">
+          QR module không thể tải hoặc verify dữ liệu. Bạn có thể retry để tiếp
+          tục.
         </Alert>
       )}
 
-      <section className="section-grid">
-        <div className="space-y-4 xl:col-span-5">
-          <div className="flex items-center gap-3">
-            <QrCode className="h-5 w-5 text-primary" />
-            <div>
-              <h2 className="text-xl font-semibold">QR dashboard benh nhan</h2>
-              <p className="text-sm text-muted-foreground">
-                Hien thi QR gan nhat, lich kham sap toi va trang thai appointment.
-              </p>
-            </div>
-          </div>
+      <Grid>
+        {/* QR Card */}
+        <Grid.Col span={{ base: 12, xl: 5 }}>
+          <Stack gap="xs">
+            <Group gap="sm">
+              <QrCode size={18} color="var(--mantine-color-blue-6)" />
+              <div>
+                <Text fw={700} size="md" c="dark.8">
+                  QR dashboard bệnh nhân
+                </Text>
+                <Text size="xs" c="dimmed">
+                  Hiển thị QR gần nhất, lịch khám sắp tới và trạng thái
+                  appointment.
+                </Text>
+              </div>
+            </Group>
 
-          {latestQrQuery.isLoading ? (
-            <Skeleton className="h-[420px]" />
-          ) : latestQrQuery.data ? (
-            <PatientQrCard
-              isRefreshing={latestQrQuery.isFetching}
-              onRefresh={() => void latestQrQuery.refetch()}
-              qr={latestQrQuery.data}
+            {latestQrQuery.isLoading ? (
+              <Skeleton height={420} radius="lg" />
+            ) : latestQrQuery.data ? (
+              <PatientQrCard
+                isRefreshing={latestQrQuery.isFetching}
+                onRefresh={() => void latestQrQuery.refetch()}
+                qr={latestQrQuery.data}
+              />
+            ) : (
+              <EmptyState
+                description="Khi có lịch khám đã xác nhận, QR check-in gần nhất sẽ được hiển thị tại đây."
+                icon={QrCode}
+                title="Chưa có QR khả dụng"
+              />
+            )}
+          </Stack>
+        </Grid.Col>
+
+        {/* Scanner */}
+        <Grid.Col span={{ base: 12, xl: 4 }}>
+          <Stack gap="xs">
+            <Group gap="sm">
+              <ShieldCheck size={18} color="var(--mantine-color-blue-6)" />
+              <div>
+                <Text fw={700} size="md" c="dark.8">
+                  Scan QR
+                </Text>
+                <Text size="xs" c="dimmed">
+                  Hỗ trợ camera permission, loading state và verify duplicate.
+                </Text>
+              </div>
+            </Group>
+            <QrScannerPanel
+              containerId={scannerElementId}
+              isActive={isActive}
+              onRetry={handleRetry}
+              onStart={() => void startScanner()}
+              permission={permission}
+              status={status}
             />
-          ) : (
-            <EmptyState
-              description="Khi co lich kham da xac nhan, QR check-in gan nhat se duoc hien thi tai day."
-              icon={QrCode}
-              title="Chua co QR kha dung"
+          </Stack>
+        </Grid.Col>
+
+        {/* Verify result */}
+        <Grid.Col span={{ base: 12, xl: 3 }}>
+          <Stack gap="xs">
+            <Group gap="sm">
+              <ShieldCheck size={18} color="var(--mantine-color-blue-6)" />
+              <div>
+                <Text fw={700} size="md" c="dark.8">
+                  Verify status
+                </Text>
+                <Text size="xs" c="dimmed">
+                  Toast, retry button và fallback UI cho invalid hoặc duplicate
+                  QR.
+                </Text>
+              </div>
+            </Group>
+            <QrVerifyResultCard
+              onRetry={handleRetry}
+              result={lastResult}
+              status={status}
             />
-          )}
-        </div>
-
-        <div className="space-y-4 xl:col-span-4">
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="h-5 w-5 text-primary" />
-            <div>
-              <h2 className="text-xl font-semibold">Scan QR</h2>
-              <p className="text-sm text-muted-foreground">
-                Ho tro camera permission, loading state va verify duplicate.
-              </p>
-            </div>
-          </div>
-
-          <QrScannerPanel
-            containerId={scannerElementId}
-            isActive={isActive}
-            onRetry={handleRetry}
-            onStart={() => void startScanner()}
-            permission={permission}
-            status={status}
-          />
-        </div>
-
-        <div className="space-y-4 xl:col-span-3">
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="h-5 w-5 text-primary" />
-            <div>
-              <h2 className="text-xl font-semibold">Verify status</h2>
-              <p className="text-sm text-muted-foreground">
-                Toast, retry button va fallback UI cho invalid hoac duplicate QR.
-              </p>
-            </div>
-          </div>
-
-          <QrVerifyResultCard
-            onRetry={handleRetry}
-            result={lastResult}
-            status={status}
-          />
-        </div>
-      </section>
+          </Stack>
+        </Grid.Col>
+      </Grid>
     </PageContainer>
   );
 }

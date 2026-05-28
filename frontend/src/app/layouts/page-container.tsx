@@ -1,11 +1,15 @@
 import type { PropsWithChildren } from "react";
 
-import { cn } from "@/lib/cn";
+import { Box } from "@mantine/core";
 
 type PageContainerProps = PropsWithChildren<{
   className?: string;
 }>;
 
-export function PageContainer({ children, className }: PageContainerProps) {
-  return <section className={cn("space-y-6", className)}>{children}</section>;
+export function PageContainer({ children }: PageContainerProps) {
+  return (
+    <Box style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {children}
+    </Box>
+  );
 }

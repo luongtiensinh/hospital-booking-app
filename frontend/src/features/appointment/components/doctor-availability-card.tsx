@@ -1,12 +1,8 @@
+import { Avatar, Badge, Button, Card, Group, Paper, Stack, Text, ThemeIcon } from "@mantine/core";
 import { CalendarDays, Clock3, Hospital, Stethoscope } from "lucide-react";
 
 import { formatDateTime } from "@/shared/utils/formatters";
 import type { DoctorAvailability } from "@/features/doctor/types/doctor.types";
-import { Avatar } from "@/shared/ui/avatar";
-import { Badge } from "@/shared/ui/badge";
-import { Button } from "@/shared/ui/button";
-import { Card, CardContent } from "@/shared/ui/card";
-import { cn } from "@/lib/cn";
 
 type DoctorAvailabilityCardProps = {
   doctor: DoctorAvailability;
@@ -14,78 +10,88 @@ type DoctorAvailabilityCardProps = {
   onSelect: (doctor: DoctorAvailability) => void;
 };
 
-export function DoctorAvailabilityCard({
-  doctor,
-  isSelected,
-  onSelect,
-}: DoctorAvailabilityCardProps) {
+export function DoctorAvailabilityCard({ doctor, isSelected, onSelect }: DoctorAvailabilityCardProps) {
   const safeName = (doctor.fullName || "Bác sĩ").trim();
-  const fallbackLetters = safeName.slice(0, 2).toUpperCase() || "BS";
+  const initials = safeName.slice(0, 2).toUpperCase() || "BS";
 
   return (
-    <Card className={cn("h-full", isSelected && "ring-4 ring-primary/15")}>
-      <CardContent className="space-y-5">
-        <div className="flex items-start gap-4">
+    <Card
+      radius="lg"
+      withBorder
+      style={{
+        borderColor: isSelected ? "var(--mantine-color-blue-5)" : "var(--mantine-color-gray-2)",
+        boxShadow: isSelected ? "0 0 0 3px var(--mantine-color-blue-1)" : undefined,
+        transition: "all 0.15s ease",
+      }}
+    >
+      <Stack gap="sm">
+        <Group gap="sm" align="flex-start" wrap="nowrap">
           <Avatar
+            src={doctor.avatarUrl ?? undefined}
             alt={safeName}
-            className="h-14 w-14"
-            fallback={fallbackLetters}
-            src={doctor.avatarUrl}
-          />
-          <div className="min-w-0 space-y-2">
-            <div className="space-y-1">
-              <h3 className="text-lg font-semibold">{safeName}</h3>
-              <p className="text-sm text-muted-foreground">{doctor.specialty}</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="info">
-                {doctor.yearsOfExperience ?? 0}+ năm kinh nghiệm
+            size="md"
+            radius="md"
+            color="blue"
+          >
+            {initials}
+          </Avatar>
+          <div style={{ minWidth: 0 }}>
+            <Text fw={700} size="sm" c="dark.8" truncate>{safeName}</Text>
+            <Text size="xs" c="dimmed">{doctor.specialty}</Text>
+            <Group gap={4} mt={4}>
+              <Badge size="xs" color="blue" variant="light">
+                {doctor.yearsOfExperience ?? 0}+ năm KN
               </Badge>
-              <Badge variant="neutral">Bác sĩ khả dụng</Badge>
-            </div>
+              <Badge size="xs" color="green" variant="light">Khả dụng</Badge>
+            </Group>
           </div>
-        </div>
+        </Group>
 
-        {doctor.bio ? (
-          <div className="rounded-2xl bg-secondary/70 p-4 text-sm leading-6 text-muted-foreground">
-            <div className="mb-2 flex items-center gap-2 font-medium text-secondary-foreground">
-              <Stethoscope className="h-4 w-4" />
-              Gioi thieu nhanh
-            </div>
-            {doctor.bio}
-          </div>
-        ) : null}
+        {doctor.bio && (
+          <Paper p="xs" radius="md" style={{ background: "var(--mantine-color-gray-0)" }}>
+            <Group gap={6} mb={4}>
+              <ThemeIcon size="xs" color="blue" variant="light" radius="sm">
+                <Stethoscope size={10} />
+              </ThemeIcon>
+              <Text size="xs" fw={600} c="dimmed">Giới thiệu</Text>
+            </Group>
+            <Text size="xs" c="dimmed" lh={1.5} lineClamp={2}>{doctor.bio}</Text>
+          </Paper>
+        )}
 
-        <div className="grid gap-3">
-          <div className="rounded-2xl bg-secondary/70 p-4 text-sm text-muted-foreground">
-            <div className="mb-2 flex items-center gap-2 font-medium text-secondary-foreground">
-              <Hospital className="h-4 w-4" />
-              Co so kham
-            </div>
-            {doctor.clinicName}
-          </div>
+        <Group gap="xs" grow>
+          <Paper p="xs" radius="md" style={{ background: "var(--mantine-color-gray-0)" }}>
+            <Group gap={5} mb={2}>
+              <Hospital size={11} color="var(--mantine-color-gray-6)" />
+              <Text size="xs" fw={600} c="dimmed">Cơ sở</Text>
+            </Group>
+            <Text size="xs" c="dark.6" truncate>{doctor.clinicName}</Text>
+          </Paper>
 
-          <div className="rounded-2xl bg-secondary/70 p-4 text-sm text-muted-foreground">
-            <div className="mb-2 flex items-center gap-2 font-medium text-secondary-foreground">
-              <Clock3 className="h-4 w-4" />
-              Slot gan nhat
-            </div>
-            {doctor.nextAvailableAt
-              ? formatDateTime(doctor.nextAvailableAt)
-              : "Dang cap nhat"}
-          </div>
-        </div>
+          <Paper p="xs" radius="md" style={{ background: "var(--mantine-color-gray-0)" }}>
+            <Group gap={5} mb={2}>
+              <Clock3 size={11} color="var(--mantine-color-gray-6)" />
+              <Text size="xs" fw={600} c="dimmed">Slot gần nhất</Text>
+            </Group>
+            <Text size="xs" c="dark.6">
+              {doctor.nextAvailableAt ? formatDateTime(doctor.nextAvailableAt) : "Đang cập nhật"}
+            </Text>
+          </Paper>
+        </Group>
 
         <Button
-          className="w-full"
+          fullWidth
+          size="sm"
+          radius="md"
+          variant={isSelected ? "filled" : "light"}
+          color="blue"
+          leftSection={<CalendarDays size={14} />}
           onClick={() => onSelect(doctor)}
           type="button"
-          variant={isSelected ? "default" : "outline"}
         >
-          <CalendarDays className="mr-2 h-4 w-4" />
-          {isSelected ? "Dang duoc chon" : "Chon bac si nay"}
+          {isSelected ? "Đang được chọn" : "Chọn bác sĩ này"}
         </Button>
-      </CardContent>
+      </Stack>
     </Card>
   );
 }

@@ -1,15 +1,2 @@
-import type { HTMLAttributes } from "react";
-
-import { cn } from "@/lib/cn";
-
-export function Skeleton({
-  className,
-  ...props
-}: HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      className={cn("animate-pulse rounded-2xl bg-secondary/80", className)}
-      {...props}
-    />
-  );
-}
+// Thin wrapper — re-exports Mantine Skeleton for backward compatibility
+export { Skeleton } from "@mantine/core";

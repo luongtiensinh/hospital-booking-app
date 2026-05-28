@@ -5,7 +5,7 @@ import { RegisterForm } from "@/features/auth/components/register-form";
 export function RegisterPage() {
   return (
     <AuthShell
-      description="Tạo tài khoản bệnh nhân để đặt lịch khám trực tuyến, nhận QR check-in và xem kết quả y tế ngay trên điện thoại."
+      description=""
       footerActionHref={APP_ROUTES.login}
       footerActionLabel="Đăng nhập ngay"
       footerText="Đã có tài khoản?"

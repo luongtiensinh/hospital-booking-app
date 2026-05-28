@@ -1,9 +1,7 @@
+import { Card, Group, Skeleton, Stack, Text, UnstyledButton } from "@mantine/core";
 import { Clock3 } from "lucide-react";
 
 import type { AppointmentSlot } from "@/features/appointment/types/appointment.types";
-import { Card, CardContent } from "@/shared/ui/card";
-import { Skeleton } from "@/shared/ui/skeleton";
-import { cn } from "@/lib/cn";
 
 type SlotSelectorProps = {
   slots: AppointmentSlot[];
@@ -12,70 +10,71 @@ type SlotSelectorProps = {
   onSelectSlot: (slot: AppointmentSlot) => void;
 };
 
-export function SlotSelector({
-  slots,
-  selectedSlotId,
-  isLoading,
-  onSelectSlot,
-}: SlotSelectorProps) {
+export function SlotSelector({ slots, selectedSlotId, isLoading, onSelectSlot }: SlotSelectorProps) {
   return (
-    <Card className="h-full">
-      <CardContent className="space-y-5">
-        <div className="space-y-1">
-          <h3 className="text-lg font-semibold">Chon gio kham</h3>
-          <p className="text-sm text-muted-foreground">
-            Slot da duoc dat se bi vo hieu hoa. Du lieu tu dong refetch theo chu ky.
-          </p>
+    <Card radius="lg" withBorder style={{ borderColor: "var(--mantine-color-gray-2)" }}>
+      <Stack gap="sm">
+        <div>
+          <Text fw={700} size="sm" c="dark.8">Chọn giờ khám</Text>
+          <Text size="xs" c="dimmed">Slot đã đặt sẽ bị vô hiệu hóa. Dữ liệu tự động cập nhật.</Text>
         </div>
 
         {isLoading ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <Skeleton className="h-20" key={index} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} height={64} radius="md" />
             ))}
           </div>
         ) : slots.length > 0 ? (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             {slots.map((slot) => {
               const slotLabel = `${slot.startAt.slice(11, 16)} - ${slot.endAt.slice(11, 16)}`;
               const isSelected = selectedSlotId === slot.id;
 
               return (
-                <button
-                  className={cn(
-                    "rounded-2xl border p-4 text-left transition-all",
-                    slot.isBooked
-                      ? "cursor-not-allowed border-border bg-secondary/40 text-muted-foreground"
-                      : "border-border bg-white hover:border-primary/40 hover:bg-primary/5",
-                    isSelected && "border-primary bg-primary/10 ring-4 ring-primary/15",
-                  )}
-                  disabled={slot.isBooked}
+                <UnstyledButton
                   key={slot.id}
+                  disabled={slot.isBooked}
                   onClick={() => onSelectSlot(slot)}
-                  type="button"
+                  style={{
+                    borderRadius: 10,
+                    border: `1.5px solid ${
+                      isSelected
+                        ? "var(--mantine-color-blue-5)"
+                        : slot.isBooked
+                        ? "var(--mantine-color-gray-3)"
+                        : "var(--mantine-color-gray-2)"
+                    }`,
+                    background: isSelected
+                      ? "var(--mantine-color-blue-0)"
+                      : slot.isBooked
+                      ? "var(--mantine-color-gray-0)"
+                      : "white",
+                    padding: "8px 10px",
+                    opacity: slot.isBooked ? 0.5 : 1,
+                    cursor: slot.isBooked ? "not-allowed" : "pointer",
+                    boxShadow: isSelected ? "0 0 0 2px var(--mantine-color-blue-2)" : undefined,
+                    transition: "all 0.12s ease",
+                  }}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Clock3 className="h-4 w-4" />
-                        <span className="font-semibold">{slotLabel}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{slot.roomLabel}</p>
-                    </div>
-                    <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                      {slot.isBooked ? "Da dat" : `${slot.remainingCapacity} cho`}
-                    </span>
-                  </div>
-                </button>
+                  <Group gap={6} mb={2}>
+                    <Clock3 size={11} color="var(--mantine-color-blue-6)" />
+                    <Text size="xs" fw={700} c={isSelected ? "blue.7" : "dark.7"}>{slotLabel}</Text>
+                  </Group>
+                  <Group justify="space-between">
+                    <Text size="xs" c="dimmed" truncate>{slot.roomLabel}</Text>
+                    <Text size="xs" fw={600} c={slot.isBooked ? "dimmed" : "teal.6"}>
+                      {slot.isBooked ? "Đã đặt" : `${slot.remainingCapacity} chỗ`}
+                    </Text>
+                  </Group>
+                </UnstyledButton>
               );
             })}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            Vui long chon ngay co slot de xem lich kha dung.
-          </p>
+          <Text size="xs" c="dimmed">Vui lòng chọn ngày có slot để xem lịch khả dụng.</Text>
         )}
-      </CardContent>
+      </Stack>
     </Card>
   );
 }

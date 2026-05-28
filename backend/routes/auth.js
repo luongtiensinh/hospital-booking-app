@@ -44,11 +44,11 @@ router.post("/register", async (req, res, next) => {
       errors.fullname = "Họ tên không được để trống.";
     }
 
-    if (emailStr.trim().length === 0) {
-      errors.email = "Email không được để trống.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr)) {
-      errors.email = "Email không hợp lệ.";
-    }
+    // if (emailStr.trim().length === 0) {
+    //   errors.email = "Email không được để trống.";
+    // } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr)) {
+    //   errors.email = "Email không hợp lệ.";
+    // }
 
     if (phoneStr.trim().length === 0) {
       errors.phone = "Số điện thoại không được để trống.";
@@ -187,7 +187,6 @@ router.post("/refresh", async (req, res, next) => {
     next(err);
   }
 });
-
 
 // GET /api/auth/profile
 router.get("/profile", requireAuth, async (req, res) => {

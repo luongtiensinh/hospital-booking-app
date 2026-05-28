@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 
-import { Card, CardContent } from "@/shared/ui/card";
+import { Box, Card, Stack, Text, ThemeIcon } from "@mantine/core";
 
 type StatCardProps = {
   icon: LucideIcon;
@@ -9,24 +9,33 @@ type StatCardProps = {
   helper: string;
 };
 
-export function StatCard({
-  icon: Icon,
-  label,
-  value,
-  helper,
-}: StatCardProps) {
+export function StatCard({ icon: Icon, label, value, helper }: StatCardProps) {
   return (
-    <Card className="h-full">
-      <CardContent className="space-y-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <Icon className="h-5 w-5" />
-        </div>
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-muted-foreground">{label}</p>
-          <p className="text-3xl font-semibold">{value}</p>
-        </div>
-        <p className="text-sm text-muted-foreground">{helper}</p>
-      </CardContent>
+    <Card
+      radius="lg"
+      withBorder
+      h="100%"
+      style={{ borderColor: "var(--mantine-color-gray-2)" }}
+    >
+      <Stack gap="md">
+        <ThemeIcon
+          size={48}
+          radius="md"
+          variant="light"
+          color="blue"
+        >
+          <Icon size={22} />
+        </ThemeIcon>
+
+        <Box>
+          <Text size="sm" fw={500} c="dimmed">{label}</Text>
+          <Text fw={800} style={{ fontSize: "1.75rem", lineHeight: 1.1 }} c="dark.8">
+            {value}
+          </Text>
+        </Box>
+
+        <Text size="xs" c="dimmed" lh={1.5}>{helper}</Text>
+      </Stack>
     </Card>
   );
 }

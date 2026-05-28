@@ -1,22 +1,31 @@
-import { Badge } from "@/shared/ui/badge";
+import { Badge } from "@mantine/core";
 
-const statusVariantMap = {
-  confirmed: "info",
-  "checked-in": "success",
-  completed: "success",
-  cancelled: "danger",
-  pending: "warning",
-  paid: "success",
-  overdue: "danger",
-  new: "info",
-  reviewed: "neutral",
-} as const;
+const statusColorMap: Record<string, string> = {
+  confirmed: "blue",
+  "checked-in": "green",
+  completed: "green",
+  cancelled: "red",
+  pending: "yellow",
+  paid: "green",
+  overdue: "red",
+  new: "blue",
+  reviewed: "gray",
+};
 
 type StatusBadgeProps = {
-  status: keyof typeof statusVariantMap;
+  status: string;
   label: string;
 };
 
 export function StatusBadge({ status, label }: StatusBadgeProps) {
-  return <Badge variant={statusVariantMap[status]}>{label}</Badge>;
+  return (
+    <Badge
+      color={statusColorMap[status] ?? "blue"}
+      variant="light"
+      radius="sm"
+      size="sm"
+    >
+      {label}
+    </Badge>
+  );
 }

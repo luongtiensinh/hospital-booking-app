@@ -5,7 +5,7 @@ import { LoginForm } from "@/features/auth/components/login-form";
 export function LoginPage() {
   return (
     <AuthShell
-      description="Đăng nhập để quản lý lịch khám, theo dõi QR check-in và xem hồ sơ kết quả xét nghiệm của bạn."
+      description=""
       footerActionHref={APP_ROUTES.register}
       footerActionLabel="Tạo tài khoản mới"
       footerText="Chưa có tài khoản?"
