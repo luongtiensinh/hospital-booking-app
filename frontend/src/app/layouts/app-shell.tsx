@@ -7,7 +7,6 @@ import { LogoMark } from "@/app/layouts/logo-mark";
 import { SideNav } from "@/app/layouts/side-nav";
 
 export function AppShellLayout() {
-  const [mobileOpened, { toggle: toggleMobile }] = useDisclosure();
 
   return (
     <AppShell
