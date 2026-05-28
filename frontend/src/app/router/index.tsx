@@ -2,7 +2,7 @@ import { lazy, Suspense } from "react";
 import { LoaderCircle } from "lucide-react";
 import { createBrowserRouter } from "react-router-dom";
 
-import { AppShell } from "@/app/layouts/app-shell";
+import { AppShellLayout } from "@/app/layouts/app-shell";
 import { FullscreenState } from "@/shared/components/feedback/fullscreen-state";
 import { APP_ROUTES } from "@/shared/constants/routes";
 import { ForbiddenPage } from "@/pages/forbidden-page";
@@ -52,9 +52,9 @@ function withSuspense(page: React.ReactNode) {
     <Suspense
       fallback={
         <FullscreenState
-          description="Dang tai module phu hop voi route hien tai."
+          description="Đang tải module phù hợp với route hiện tại."
           icon={LoaderCircle}
-          title="Dang tai giao dien"
+          title="Đang tải giao diện"
         />
       }
     >
@@ -91,7 +91,7 @@ export const router = createBrowserRouter([
     path: APP_ROUTES.dashboard,
     element: (
       <ProtectedRoute allowedRoles={["patient", "doctor", "admin"]}>
-        <AppShell />
+        <AppShellLayout />
       </ProtectedRoute>
     ),
     errorElement: <RouterErrorPage />,

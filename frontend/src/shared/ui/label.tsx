@@ -1,15 +1,11 @@
-import type { LabelHTMLAttributes } from "react";
+// Thin wrapper — no-op label, use Mantine's built-in label props in form components
+import type { PropsWithChildren } from "react";
+import { Text } from "@mantine/core";
 
-import { cn } from "@/lib/cn";
-
-export function Label({
-  className,
-  ...props
-}: LabelHTMLAttributes<HTMLLabelElement>) {
+export function Label({ children, htmlFor }: PropsWithChildren<{ htmlFor?: string }>) {
   return (
-    <label
-      className={cn("text-sm font-medium text-foreground", className)}
-      {...props}
-    />
+    <Text component="label" htmlFor={htmlFor} size="sm" fw={500}>
+      {children}
+    </Text>
   );
 }

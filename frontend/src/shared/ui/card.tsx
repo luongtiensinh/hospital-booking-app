@@ -1,14 +1,21 @@
-import type { HTMLAttributes } from "react";
+// Thin wrappers — re-export Mantine Card and sub-components for backward compatibility
+import type { PropsWithChildren } from "react";
+import { Card as MantineCard, Box } from "@mantine/core";
 
-import { cn } from "@/lib/cn";
-
-export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("surface-panel", className)} {...props} />;
+export function Card({
+  children,
+  className,
+}: PropsWithChildren<{ className?: string }>) {
+  return (
+    <MantineCard radius="lg" withBorder h="100%" style={{ borderColor: "var(--mantine-color-gray-2)" }}>
+      {children}
+    </MantineCard>
+  );
 }
 
 export function CardContent({
+  children,
   className,
-  ...props
-}: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("p-6", className)} {...props} />;
+}: PropsWithChildren<{ className?: string }>) {
+  return <Box style={{ display: "flex", flexDirection: "column", gap: 16 }}>{children}</Box>;
 }

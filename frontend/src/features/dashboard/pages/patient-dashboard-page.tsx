@@ -6,6 +6,16 @@ import {
   QrCode,
 } from "lucide-react";
 
+import {
+  Alert,
+  Card,
+  Grid,
+  SimpleGrid,
+  Skeleton,
+  Stack,
+  Text,
+} from "@mantine/core";
+
 import { PageContainer } from "@/app/layouts/page-container";
 import { PageHeader } from "@/app/layouts/page-header";
 import { NextAppointmentCard } from "@/features/dashboard/components/next-appointment-card";
@@ -15,80 +25,83 @@ import { useDashboardOverview } from "@/features/dashboard/hooks/use-dashboard-o
 import { PatientQrCard } from "@/features/qr/components/patient-qr-card";
 import { useLatestPatientQr } from "@/features/qr/hooks/use-latest-patient-qr";
 import { EmptyState } from "@/shared/components/feedback/empty-state";
-import { Alert } from "@/shared/ui/alert";
-import { Card, CardContent } from "@/shared/ui/card";
-import { Skeleton } from "@/shared/ui/skeleton";
 import { formatCurrency } from "@/shared/utils/formatters";
 
 export function PatientDashboardPage() {
   const { data, isLoading, isError } = useDashboardOverview();
   const latestQrQuery = useLatestPatientQr();
 
+  const stats = data
+    ? [
+        {
+          icon: CalendarClock,
+          label: "Lịch khám sắp tới",
+          value: String(data.upcomingCount),
+        },
+        {
+          icon: Activity,
+          label: "Lượt khám hoàn tất",
+          value: String(data.completedCount),
+        },
+        {
+          icon: FlaskConical,
+          label: "Kết quả chưa đọc",
+          value: String(data.unreadResultsCount),
+          helper: "",
+        },
+        {
+          icon: CircleDollarSign,
+          label: "Chi phí chờ xử lý",
+          value: formatCurrency(data.billingOutstanding),
+        },
+      ]
+    : [];
+
   return (
     <PageContainer>
       <PageHeader
-        description="Theo doi nhanh lich kham sap toi, QR gan nhat, ket qua xet nghiem va chi phi can luu y trong cung mot dashboard."
+        description=""
         eyebrow="Patient Overview"
-        title="Tong quan cham soc y te"
+        title="Tổng quan chăm sóc y tế"
       />
 
       {isError ? (
-        <Alert className="border-danger/20 bg-danger/5 text-danger">
-          Khong the tai dashboard tu API. Hay kiem tra backend hoac dang nhap lai neu phien da het han.
+        <Alert color="red" radius="md" variant="light">
+          Không thể tải dashboard từ API. Hãy kiểm tra backend hoặc đăng nhập
+          lại nếu phiên đã hết hạn.
         </Alert>
       ) : null}
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {/* Stat Cards */}
+      <SimpleGrid cols={{ base: 1, sm: 2, xl: 4 }} spacing="md">
         {isLoading || !data
-          ? Array.from({ length: 4 }).map((_, index) => (
-              <Skeleton className="h-40" key={index} />
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} height={160} radius="lg" />
             ))
-          : [
-              {
-                icon: CalendarClock,
-                label: "Lich kham sap toi",
-                value: String(data.upcomingCount),
-                helper: "Bao gom cac lich da xac nhan va chua check-in.",
-              },
-              {
-                icon: Activity,
-                label: "Luot kham hoan tat",
-                value: String(data.completedCount),
-                helper: "Dung de theo doi tien trinh dieu tri theo tung giai doan.",
-              },
-              {
-                icon: FlaskConical,
-                label: "Ket qua chua doc",
-                value: String(data.unreadResultsCount),
-                helper: "Nhung xet nghiem moi co the can ban xem lai ngay.",
-              },
-              {
-                icon: CircleDollarSign,
-                label: "Chi phi cho xu ly",
-                value: formatCurrency(data.billingOutstanding),
-                helper: "Tong hoa don dang o trang thai pending hoac overdue.",
-              },
-            ].map((stat) => <StatCard key={stat.label} {...stat} />)}
-      </section>
+          : stats.map((stat) => <StatCard key={stat.label} {...stat} />)}
+      </SimpleGrid>
 
-      <section className="section-grid">
-        <div className="xl:col-span-5">
+      {/* Main content grid */}
+      <Grid gutter="md">
+        {/* Next appointment */}
+        <Grid.Col span={{ base: 12, xl: 5 }}>
           {isLoading ? (
-            <Skeleton className="h-[280px]" />
+            <Skeleton height={280} radius="lg" />
           ) : data?.nextAppointment ? (
             <NextAppointmentCard appointment={data.nextAppointment} />
           ) : (
             <EmptyState
-              description="Khi co lich hen moi, ban se thay thong tin bac si, thoi gian va dia diem hien thi tai day."
+              description="Khi có lịch hẹn mới, bạn sẽ thấy thông tin bác sĩ, thời gian và địa điểm hiển thị tại đây."
               icon={CalendarClock}
-              title="Chua co lich kham sap toi"
+              title="Chưa có lịch khám sắp tới"
             />
           )}
-        </div>
+        </Grid.Col>
 
-        <div className="xl:col-span-3">
+        {/* Latest QR */}
+        <Grid.Col span={{ base: 12, xl: 3 }}>
           {latestQrQuery.isLoading ? (
-            <Skeleton className="h-[280px]" />
+            <Skeleton height={280} radius="lg" />
           ) : latestQrQuery.data ? (
             <PatientQrCard
               isRefreshing={latestQrQuery.isFetching}
@@ -97,45 +110,53 @@ export function PatientDashboardPage() {
             />
           ) : (
             <EmptyState
-              description="Khi co lich kham da xac nhan, QR gan nhat se duoc hien thi tai day."
+              description="Khi có lịch khám đã xác nhận, QR gần nhất sẽ được hiển thị tại đây."
               icon={QrCode}
-              title="Chua co QR gan nhat"
+              title="Chưa có QR gần nhất"
             />
           )}
-        </div>
+        </Grid.Col>
 
-        <div className="xl:col-span-4">
-          <Card className="h-full">
-            <CardContent className="space-y-4">
-              <div className="space-y-1">
-                <h2 className="text-xl font-semibold">Ket qua moi nhat</h2>
-                <p className="text-sm text-muted-foreground">
-                  Cac ket qua xet nghiem vua duoc bac si cap nhat gan day.
-                </p>
+        {/* Recent results */}
+        <Grid.Col span={{ base: 12, xl: 4 }}>
+          <Card
+            radius="lg"
+            withBorder
+            h="100%"
+            style={{ borderColor: "var(--mantine-color-gray-2)" }}
+          >
+            <Stack gap="md">
+              <div>
+                <Text fw={700} size="lg" c="dark.8">
+                  Kết quả mới nhất
+                </Text>
+                <Text size="xs" c="dimmed">
+                  Các kết quả xét nghiệm vừa được bác sĩ cập nhật gần đây.
+                </Text>
               </div>
 
               {isLoading ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-28" />
-                  <Skeleton className="h-28" />
-                </div>
+                <Stack gap="sm">
+                  <Skeleton height={112} radius="md" />
+                  <Skeleton height={112} radius="md" />
+                </Stack>
               ) : data && data.recentResults.length > 0 ? (
-                <div className="grid gap-4">
+                <Stack gap="sm">
                   {data.recentResults.map((result) => (
                     <ResultHighlightCard item={result} key={result.id} />
                   ))}
-                </div>
+                </Stack>
               ) : (
                 <EmptyState
-                  description="Ket qua xet nghiem moi se xuat hien tai day ngay khi bac si xac nhan va phat hanh."
+                  description="Kết quả xét nghiệm mới sẽ xuất hiện tại đây ngay khi bác sĩ xác nhận và phát hành."
                   icon={FlaskConical}
-                  title="Chua co ket qua de hien thi"
+                  title="Chưa có kết quả để hiển thị"
                 />
               )}
-            </CardContent>
+            </Stack>
           </Card>
-        </div>
-      </section>
+        </Grid.Col>
+      </Grid>
     </PageContainer>
   );
 }

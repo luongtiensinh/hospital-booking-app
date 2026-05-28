@@ -1,13 +1,12 @@
 import type { LucideIcon } from "lucide-react";
 
-import { cn } from "@/lib/cn";
+import { Box, Card, Stack, Text, ThemeIcon } from "@mantine/core";
 
 type EmptyStateProps = {
   title: string;
   description: string;
   icon: LucideIcon;
   action?: React.ReactNode;
-  className?: string;
 };
 
 export function EmptyState({
@@ -15,23 +14,24 @@ export function EmptyState({
   description,
   icon: Icon,
   action,
-  className,
 }: EmptyStateProps) {
   return (
-    <div
-      className={cn(
-        "surface-panel flex flex-col items-start gap-4 p-6 text-left",
-        className,
-      )}
-    >
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-secondary-foreground">
-        <Icon className="h-6 w-6" />
-      </div>
-      <div className="space-y-2">
-        <h3 className="text-lg font-semibold">{title}</h3>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </div>
-      {action}
-    </div>
+    <Card radius="lg" withBorder h="100%" style={{ borderColor: "var(--mantine-color-gray-2)" }}>
+      <Stack gap="md" align="flex-start">
+        <ThemeIcon
+          size={48}
+          radius="md"
+          variant="light"
+          color="blue"
+        >
+          <Icon size={22} />
+        </ThemeIcon>
+        <Box>
+          <Text fw={700} size="md" c="dark.8">{title}</Text>
+          <Text size="sm" c="dimmed" lh={1.6}>{description}</Text>
+        </Box>
+        {action}
+      </Stack>
+    </Card>
   );
 }

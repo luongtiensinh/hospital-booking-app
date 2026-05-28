@@ -1,10 +1,2 @@
-import type { HTMLAttributes } from "react";
-
-import { cn } from "@/lib/cn";
-
-export function Separator({
-  className,
-  ...props
-}: HTMLAttributes<HTMLHRElement>) {
-  return <hr className={cn("border-border", className)} {...props} />;
-}
+// Thin wrapper — re-exports Mantine Divider as Separator for backward compatibility
+export { Divider as Separator } from "@mantine/core";

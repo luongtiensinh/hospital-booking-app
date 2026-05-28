@@ -35,7 +35,8 @@ function getMonthKey(date: Date) {
 }
 
 export function AppointmentsPage() {
-  const [filters, setFilters] = useState<AppointmentFilterValues>(initialFilters);
+  const [filters, setFilters] =
+    useState<AppointmentFilterValues>(initialFilters);
   const [visibleMonth, setVisibleMonth] = useState(() => new Date());
 
   const {
@@ -84,7 +85,7 @@ export function AppointmentsPage() {
   return (
     <PageContainer>
       <PageHeader
-        description="Luong dat lich gom danh sach bac si, lich theo ngay, slot theo thoi gian thuc va the xac nhan rieng de benh nhan thao tac ro rang tren mobile."
+        description=""
         eyebrow="Appointment Booking"
         title="Dat lich kham"
       />
@@ -93,10 +94,6 @@ export function AppointmentsPage() {
         <CardContent className="space-y-5">
           <div className="space-y-1">
             <h2 className="text-xl font-semibold">Tim bac si va chuyen khoa</h2>
-            <p className="text-sm text-muted-foreground">
-              Filter duoc validate bang Zod va doctor catalog chi consume du lieu tu
-              service layer.
-            </p>
           </div>
           <AppointmentFiltersForm
             defaultValues={filters}
@@ -111,7 +108,8 @@ export function AppointmentsPage() {
         upcomingQuery.isError) && (
         <Alert className="border-warning/20 bg-warning/5 text-warning">
           Mot hoac nhieu endpoint booking chua tra ve dung contract. Frontend da
-          san sang cho doctor list, lich theo ngay, slot realtime va tao lich hen.
+          san sang cho doctor list, lich theo ngay, slot realtime va tao lich
+          hen.
         </Alert>
       )}
 
@@ -122,7 +120,9 @@ export function AppointmentsPage() {
               <Stethoscope className="h-5 w-5 text-primary" />
               <div>
                 <h2 className="text-xl font-semibold">Danh sach bac si</h2>
-                <p className="text-sm text-muted-foreground">{doctorCountLabel}</p>
+                <p className="text-sm text-muted-foreground">
+                  {doctorCountLabel}
+                </p>
               </div>
             </div>
             <div className="hidden rounded-full bg-secondary px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-secondary-foreground md:block">
@@ -203,7 +203,9 @@ export function AppointmentsPage() {
           <div className="flex items-center gap-3">
             <ShieldCheck className="h-5 w-5 text-primary" />
             <div>
-              <h2 className="text-xl font-semibold">Xac nhan va lich cua ban</h2>
+              <h2 className="text-xl font-semibold">
+                Xac nhan va lich cua ban
+              </h2>
               <p className="text-sm text-muted-foreground">
                 Tong hop thong tin truoc khi gui API create appointment.
               </p>

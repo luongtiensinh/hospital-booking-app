@@ -1,10 +1,52 @@
-export function LogoMark() {
+import { Box, ThemeIcon } from "@mantine/core";
+
+export function LogoMark({ size = 48 }: { size?: number }) {
   return (
-    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-      <span className="relative block h-5 w-5">
-        <span className="absolute left-1/2 top-0 h-full w-1 -translate-x-1/2 rounded-full bg-white" />
-        <span className="absolute left-0 top-1/2 h-1 w-full -translate-y-1/2 rounded-full bg-white" />
-      </span>
-    </div>
+    <ThemeIcon
+      size={size}
+      radius="md"
+      variant="filled"
+      color="blue"
+      style={{
+        boxShadow: "0 8px 24px -6px rgba(15,111,236,0.4)",
+        flexShrink: 0,
+      }}
+    >
+      <Box
+        style={{
+          position: "relative",
+          width: size * 0.42,
+          height: size * 0.42,
+          flexShrink: 0,
+        }}
+      >
+        {/* Vertical bar */}
+        <Box
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: 0,
+            height: "100%",
+            width: "20%",
+            transform: "translateX(-50%)",
+            borderRadius: 99,
+            background: "white",
+          }}
+        />
+        {/* Horizontal bar */}
+        <Box
+          style={{
+            position: "absolute",
+            left: 0,
+            top: "50%",
+            height: "20%",
+            width: "100%",
+            transform: "translateY(-50%)",
+            borderRadius: 99,
+            background: "white",
+          }}
+        />
+      </Box>
+    </ThemeIcon>
   );
 }

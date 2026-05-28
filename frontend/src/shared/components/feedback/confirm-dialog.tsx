@@ -1,5 +1,5 @@
+import { Button, Group, Modal, Stack, Text, ThemeIcon } from "@mantine/core";
 import { AlertTriangle } from "lucide-react";
-import { Button } from "@/shared/ui/button";
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -22,44 +22,46 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div 
-        className="fixed inset-0" 
-        onClick={isConfirming ? undefined : onCancel}
-      />
-      <div className="relative w-full max-w-md p-6 bg-card border shadow-lg rounded-xl animate-in zoom-in-95 duration-200">
-        <div className="flex items-start gap-4">
-          <div className="p-2 bg-destructive/10 text-destructive rounded-full shrink-0">
-            <AlertTriangle className="w-6 h-6" />
-          </div>
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold tracking-tight">{title}</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {description}
-            </p>
-          </div>
-        </div>
-        
-        <div className="flex items-center justify-end gap-3 mt-6">
-          <Button 
-            variant="outline" 
+    <Modal
+      opened={isOpen}
+      onClose={isConfirming ? () => {} : onCancel}
+      title={
+        <Group gap="sm">
+          <ThemeIcon color="red" variant="light" size="md" radius="md">
+            <AlertTriangle size={16} />
+          </ThemeIcon>
+          <Text fw={700} size="md">{title}</Text>
+        </Group>
+      }
+      centered
+      radius="lg"
+      padding="xl"
+      size="sm"
+      withCloseButton={!isConfirming}
+      transitionProps={{ transition: "pop", duration: 200 }}
+    >
+      <Stack gap="xl">
+        <Text size="sm" c="dimmed" lh={1.6}>{description}</Text>
+        <Group justify="flex-end" gap="sm">
+          <Button
+            variant="default"
+            radius="md"
             onClick={onCancel}
             disabled={isConfirming}
           >
             {cancelText}
           </Button>
-          <Button 
-            variant="danger" 
+          <Button
+            color="red"
+            radius="md"
+            loading={isConfirming}
             onClick={onConfirm}
-            disabled={isConfirming}
           >
             {isConfirming ? "Đang xử lý..." : confirmText}
           </Button>
-        </div>
-      </div>
-    </div>
+        </Group>
+      </Stack>
+    </Modal>
   );
 }

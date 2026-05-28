@@ -1,3 +1,5 @@
+import { Box, Group, Stack, Text } from "@mantine/core";
+
 type PageHeaderProps = {
   eyebrow: string;
   title: string;
@@ -12,19 +14,33 @@ export function PageHeader({
   actions,
 }: PageHeaderProps) {
   return (
-    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-      <div className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+    <Group justify="space-between" align="flex-end" wrap="nowrap" mb="lg">
+      <Stack gap={4}>
+        <Text
+          size="xs"
+          fw={700}
+          tt="uppercase"
+          style={{ letterSpacing: "0.22em", color: "var(--mantine-color-blue-6)" }}
+        >
           {eyebrow}
-        </span>
-        <div className="space-y-2">
-          <h1 className="text-3xl font-semibold md:text-4xl">{title}</h1>
-          <p className="max-w-3xl text-sm leading-6 text-muted-foreground md:text-base">
-            {description}
-          </p>
-        </div>
-      </div>
-      {actions ? <div className="flex items-center gap-3">{actions}</div> : null}
-    </div>
+        </Text>
+        <Text
+          component="h1"
+          fw={700}
+          style={{ fontSize: "clamp(1.5rem, 3vw, 2rem)", lineHeight: 1.2, margin: 0 }}
+          c="dark.8"
+        >
+          {title}
+        </Text>
+        <Text size="sm" c="dimmed" lh={1.6} maw={640}>
+          {description}
+        </Text>
+      </Stack>
+      {actions ? (
+        <Group gap="sm" wrap="nowrap" style={{ flexShrink: 0 }}>
+          {actions}
+        </Group>
+      ) : null}
+    </Group>
   );
 }
