@@ -5,8 +5,8 @@ import type {
   CreateAppointmentPayload,
   CreatedAppointment,
   DoctorCalendarDay,
+  Counter
 } from '@/features/appointment/types/appointment.types';
-import type { DoctorAvailability } from '@/features/doctor/types/doctor.types';
 import { httpClient } from '@/shared/services/http-client';
 
 type ApiResponse<T> = {
@@ -16,6 +16,11 @@ type ApiResponse<T> = {
 } & T;
 
 export const appointmentsApi = {
+  async getCounters(): Promise<Counter[]> {
+    const { data } = await httpClient.get<ApiResponse<{ counters?: Counter[] }>>('/counters');
+    return data.counters ?? [];
+  },
+
   async getUpcomingAppointments(): Promise<AppointmentSummary[]> {
     const { data } = await httpClient.get<ApiResponse<{ appointments?: AppointmentSummary[] }>>(
       '/appointments',
@@ -24,31 +29,26 @@ export const appointmentsApi = {
     return data.appointments ?? [];
   },
 
-  async getDoctors(filters: AppointmentFilterValues): Promise<DoctorAvailability[]> {
-    const { data } = await httpClient.get<ApiResponse<{ doctors?: DoctorAvailability[] }>>(
-      '/doctors',
-      {
-        params: {
-          specialty: filters.specialty || undefined,
-          search: filters.search || undefined,
-        },
-      },
+  async getAppointmentHistory(filters?: AppointmentFilterValues): Promise<AppointmentSummary[]> {
+    const { data } = await httpClient.get<ApiResponse<{ appointments?: AppointmentSummary[] }>>(
+      '/appointments/history',
+      { params: filters },
     );
-    return data.doctors ?? [];
+    return data.appointments ?? [];
   },
 
-  async getDoctorCalendar(doctorId: string, month: string): Promise<DoctorCalendarDay[]> {
+  async getCalendar(counterId: string, month: string): Promise<DoctorCalendarDay[]> {
     const { data } = await httpClient.get<ApiResponse<{ calendar?: DoctorCalendarDay[] }>>(
       '/calendar',
-      { params: { doctorId, month } },
+      { params: { counterId, month } },
     );
     return data.calendar ?? [];
   },
 
-  async getDoctorSlots(doctorId: string, date: string): Promise<AppointmentSlot[]> {
+  async getSlots(counterId: string, date: string): Promise<AppointmentSlot[]> {
     const { data } = await httpClient.get<ApiResponse<{ slots?: AppointmentSlot[] }>>(
       '/calendar/slots',
-      { params: { doctorId, date } },
+      { params: { counterId, date } },
     );
     return data.slots ?? [];
   },
@@ -60,7 +60,9 @@ export const appointmentsApi = {
     return data.appointment;
   },
 
-  async cancelAppointment(id: string): Promise<void> {
-    await httpClient.delete(`/appointments/${id}`);
+  async cancelAppointment(id: string, reason?: string): Promise<void> {
+    await httpClient.delete(`/appointments/${id}`, {
+      data: { reason }
+    });
   },
 };

@@ -6,8 +6,9 @@ import {
   Stack,
   Text,
   ThemeIcon,
+  Alert
 } from "@mantine/core";
-import { CalendarCheck2, MapPin, Stethoscope } from "lucide-react";
+import { CalendarCheck2, MapPin, Activity, Info } from "lucide-react";
 
 import { formatDate } from "@/shared/utils/formatters";
 import type { BookingDraft } from "@/features/appointment/types/appointment.types";
@@ -27,10 +28,16 @@ export function BookingConfirmationCard({
 }: BookingConfirmationCardProps) {
   const rows = [
     {
-      icon: Stethoscope,
-      color: "blue",
-      label: "Bác sĩ",
-      value: draft.doctorName ?? "Chưa chọn bác sĩ",
+      icon: Activity,
+      color: "sky",
+      label: "Quầy tiếp nhận",
+      value: draft.counterName ?? "Chưa chọn quầy",
+    },
+    {
+      icon: MapPin,
+      color: "teal",
+      label: "Phòng",
+      value: draft.counterRoom ?? "---",
     },
     {
       icon: CalendarCheck2,
@@ -40,14 +47,6 @@ export function BookingConfirmationCard({
         ? `${formatDate(draft.appointmentDate)}${draft.slotLabel ? ` • ${draft.slotLabel}` : ""}`
         : "Chưa chọn ngày",
     },
-    {
-      icon: MapPin,
-      color: "teal",
-      label: "Chuyên khoa & Địa điểm",
-      value: draft.specialty
-        ? `${draft.specialty}${draft.location ? ` • ${draft.location}` : ""}`
-        : "Chưa chọn chuyên khoa",
-    },
   ];
 
   return (
@@ -56,9 +55,9 @@ export function BookingConfirmationCard({
       withBorder
       style={{ borderColor: "var(--mantine-color-gray-2)" }}
     >
-      <Stack gap="sm">
+      <Stack gap="md">
         <div>
-          <Text fw={700} size="sm" c="dark.8">
+          <Text fw={700} size="md" c="dark.8">
             Xác nhận đặt lịch
           </Text>
         </div>
@@ -72,14 +71,14 @@ export function BookingConfirmationCard({
               style={{ background: "var(--mantine-color-gray-0)" }}
             >
               <Group gap="xs" wrap="nowrap">
-                <ThemeIcon size="sm" color={color} variant="light" radius="sm">
-                  <Icon size={12} />
+                <ThemeIcon size="md" color={color} variant="light" radius="md">
+                  <Icon size={16} />
                 </ThemeIcon>
                 <div style={{ minWidth: 0 }}>
                   <Text size="xs" c="dimmed" fw={500}>
                     {label}
                   </Text>
-                  <Text size="xs" fw={600} c="dark.7" truncate>
+                  <Text size="sm" fw={600} c="dark.9" truncate>
                     {value}
                   </Text>
                 </div>
@@ -88,10 +87,17 @@ export function BookingConfirmationCard({
           ))}
         </Stack>
 
+        <Alert variant="light" color="blue" title="Thông tin" icon={<Info size={16} />}>
+          <Text size="xs">
+            Sau khi xác nhận đặt lịch thành công, bạn sẽ nhận được một mã QR Code dùng để check-in tại bệnh viện.
+          </Text>
+        </Alert>
+
         <Button
           fullWidth
-          size="sm"
+          size="md"
           radius="md"
+          color="sky"
           disabled={!canConfirm || isPending}
           loading={isPending}
           onClick={onConfirm}
