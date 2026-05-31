@@ -31,6 +31,11 @@ const AppointmentsPage = lazy(() =>
     default: module.AppointmentsPage,
   })),
 );
+const AppointmentHistoryPage = lazy(() =>
+  import("@/features/appointment/pages/appointment-history-page").then((module) => ({
+    default: module.AppointmentHistoryPage,
+  })),
+);
 const QrCheckInPage = lazy(() =>
   import("@/features/qr/pages/qr-check-in-page").then((module) => ({
     default: module.QrCheckInPage,
@@ -103,6 +108,10 @@ export const router = createBrowserRouter([
       {
         path: APP_ROUTES.appointments.slice(1),
         element: withSuspense(<AppointmentsPage />),
+      },
+      {
+        path: APP_ROUTES.appointmentHistory.slice(1),
+        element: withSuspense(<AppointmentHistoryPage />),
       },
       {
         path: APP_ROUTES.qr.slice(1),

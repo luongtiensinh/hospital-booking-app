@@ -31,6 +31,12 @@ export const navigationItems: NavigationItem[] = [
     icon: CalendarDays,
   },
   {
+    title: "Lịch sử khám",
+    description: "Tra cứu lịch sử đặt lịch",
+    href: APP_ROUTES.appointmentHistory,
+    icon: CalendarDays,
+  },
+  {
     title: "QR Check-in",
     description: "QR gần nhất và trang scan camera",
     href: APP_ROUTES.qr,
