@@ -1,3 +1,4 @@
+
 import { CalendarPlus, ShieldCheck, Activity } from "lucide-react";
 import { useState } from "react";
 
@@ -50,7 +51,8 @@ export function AppointmentsPage() {
   const createAppointmentMutation = useCreateAppointment();
 
   const handleConfirm = () => {
-    if (!canConfirm) return;
+    if (!canConfirm || createAppointmentMutation.isPending) return;
+
     createAppointmentMutation.mutate(
       {
         counterId: draft.counterId!,
@@ -60,7 +62,7 @@ export function AppointmentsPage() {
       {
         onSuccess: () => {
           setActiveStep(0);
-        }
+        },
       }
     );
   };
@@ -88,7 +90,14 @@ export function AppointmentsPage() {
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
         <div className="xl:col-span-8">
           <Box p="md" bg="white" style={{ borderRadius: 'var(--mantine-radius-lg)', border: '1px solid var(--mantine-color-gray-2)' }}>
-            <Stepper active={activeStep} onStepClick={setActiveStep} color="sky" allowNextStepsSelect={false} size="sm">
+            <Stepper
+              active={activeStep}
+              onStepClick={setActiveStep}
+              color="sky"
+              allowNextStepsSelect
+              size="sm"
+            >
+
               <Stepper.Step label="Chọn quầy" description="Quầy tiếp nhận" icon={<Activity size={18} />}>
                 <Box mt="xl" mih={300}>
                   <CounterSelector />
@@ -158,19 +167,23 @@ export function AppointmentsPage() {
             </Stepper>
 
             <Group justify="space-between" mt="xl">
-              <Button variant="default" onClick={prevStep} disabled={activeStep === 0 || activeStep === 3}>
+              <Button
+                variant="default"
+                onClick={prevStep}
+                disabled={activeStep === 0 || activeStep === 3}
+              >
                 Quay lại
               </Button>
-              <Button
-                onClick={nextStep}
-                color="sky"
-                disabled={
-                  (activeStep === 0 && !selectedCounter) ||
-                  (activeStep === 1 && (!draft.appointmentDate || !draft.slotId))
-                }
-              >
-                Tiếp theo
-              </Button>
+
+              {activeStep < 2 && (
+                <Button
+                  variant="default"
+                  onClick={nextStep}
+                  disabled={activeStep === 3}
+                >
+                  Tiếp theo
+                </Button>
+              )}
             </Group>
           </Box>
         </div>
@@ -210,6 +223,6 @@ export function AppointmentsPage() {
           </Stack>
         </div>
       </div>
-    </PageContainer>
+    </PageContainer >
   );
 }

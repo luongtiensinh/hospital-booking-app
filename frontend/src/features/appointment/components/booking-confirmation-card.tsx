@@ -102,6 +102,23 @@ export function BookingConfirmationCard({
           loading={isPending}
           onClick={onConfirm}
           type="button"
+          variant="default"
+          style={{
+            boxShadow: canConfirm && !isPending ? '0 10px 25px rgba(15,111,236,0.25)' : undefined,
+            transition: 'all 150ms ease',
+          }}
+          onMouseEnter={(e) => {
+            if (!canConfirm || isPending) return;
+            const el = e.currentTarget;
+            el.style.boxShadow = '0 14px 35px rgba(15,111,236,0.35)';
+            el.style.transform = 'translateY(-1px)';
+          }}
+          onMouseLeave={(e) => {
+            if (!canConfirm || isPending) return;
+            const el = e.currentTarget;
+            el.style.boxShadow = '0 10px 25px rgba(15,111,236,0.25)';
+            el.style.transform = 'translateY(0)';
+          }}
         >
           {isPending ? "Đang tạo lịch hẹn..." : "Xác nhận đặt lịch"}
         </Button>
