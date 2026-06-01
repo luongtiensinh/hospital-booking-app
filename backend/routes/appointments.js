@@ -504,9 +504,9 @@ router.post("/verify-qr", async (req, res) => {
   }
 
   let patientName = "Bệnh nhân";
-  const { data: patientProfile } = await supabase.from("profiles").select("fullname").eq("id", appointment.patient_id).single();
+  const { data: patientProfile } = await supabase.from("profiles").select("full_name").eq("id", appointment.patient_id).single();
   if (patientProfile) {
-    patientName = patientProfile.fullname || "Bệnh nhân";
+    patientName = patientProfile.full_name || "Bệnh nhân";
   }
 
   return res.json({
