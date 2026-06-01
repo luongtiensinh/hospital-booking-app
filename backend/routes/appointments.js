@@ -232,7 +232,7 @@ router.post("/", async (req, res) => {
   if (dayOfWeek === 0) {
     return res.status(400).json({ success: false, message: "Bệnh viện không làm việc ngày Chủ nhật." });
   }
-  if (dayOfWeek === 6 && !counter.name?.toLowerCase().includes("tổng quát")) {
+  if (dayOfWeek === 6 && !(counter.name || "").toLowerCase().includes("tổng quát")) {
     return res.status(400).json({ success: false, message: "Thứ 7 chỉ mở cho Quầy Khám tổng quát." });
   }
 

@@ -6,6 +6,7 @@ const supabaseClient = require("../utils/supabaseClient");
 
 dayjs.extend(utc);
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CAPACITY_PER_SLOT = 10;
 
 // Tạo 48 slot/ngày: 08:00 - 11:50, 13:00 - 16:50
@@ -70,6 +71,10 @@ router.get("/", async (req, res) => {
     return res.status(400).json({ success: false, message: "Missing parameters" });
   }
 
+  if (!UUID_REGEX.test(counterId)) {
+    return res.status(400).json({ success: false, message: "Invalid counter ID" });
+  }
+
   const monthStart = dayjs(`${month}-01`).startOf("month");
   if (!monthStart.isValid()) {
     return res.status(400).json({ success: false, message: "Invalid month format. Expect yyyy-MM" });
@@ -115,7 +120,7 @@ router.get("/", async (req, res) => {
     }
 
     // Thứ 7 chỉ mở cho "Khám tổng quát" (Quầy 1 - giả sử là "Quầy 1" có trong tên)
-    if (dayOfWeek === 6 && !counter.name?.toLowerCase().includes("tổng quát")) {
+    if (dayOfWeek === 6 && !(counter.name || "").toLowerCase().includes("tổng quát")) {
       return { date, availableCapacity: 0, status: "closed" };
     }
 
@@ -141,6 +146,10 @@ router.get("/slots", async (req, res) => {
     return res.status(400).json({ success: false, message: "Missing parameters" });
   }
 
+  if (!UUID_REGEX.test(counterId)) {
+    return res.status(400).json({ success: false, message: "Invalid counter ID" });
+  }
+
   if (!dayjs(date).isValid()) {
     return res.status(400).json({ success: false, message: "Invalid date format" });
   }
@@ -154,7 +163,7 @@ router.get("/slots", async (req, res) => {
   const dateObj = dayjs(date);
   const dayOfWeek = dateObj.day();
   
-  if (dayOfWeek === 0 || (dayOfWeek === 6 && !counter.name?.toLowerCase().includes("tổng quát"))) {
+  if (dayOfWeek === 0 || (dayOfWeek === 6 && !(counter.name || "").toLowerCase().includes("tổng quát"))) {
     return res.json({ success: true, slots: [] }); // No slots available
   }
 
