@@ -1,7 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const dayjs = require("dayjs");
+const utc = require("dayjs/plugin/utc");
 const supabaseClient = require("../utils/supabaseClient");
+
+dayjs.extend(utc);
 
 const CAPACITY_PER_SLOT = 10;
 
@@ -112,7 +115,7 @@ router.get("/", async (req, res) => {
     }
 
     // Thứ 7 chỉ mở cho "Khám tổng quát" (Quầy 1 - giả sử là "Quầy 1" có trong tên)
-    if (dayOfWeek === 6 && !counter.name.toLowerCase().includes("tổng quát")) {
+    if (dayOfWeek === 6 && !counter.name?.toLowerCase().includes("tổng quát")) {
       return { date, availableCapacity: 0, status: "closed" };
     }
 
@@ -151,7 +154,7 @@ router.get("/slots", async (req, res) => {
   const dateObj = dayjs(date);
   const dayOfWeek = dateObj.day();
   
-  if (dayOfWeek === 0 || (dayOfWeek === 6 && !counter.name.toLowerCase().includes("tổng quát"))) {
+  if (dayOfWeek === 0 || (dayOfWeek === 6 && !counter.name?.toLowerCase().includes("tổng quát"))) {
     return res.json({ success: true, slots: [] }); // No slots available
   }
 
@@ -174,7 +177,7 @@ router.get("/slots", async (req, res) => {
     bookedBySlotId.set(sId, bookedBySlotId.get(sId) + 1);
   });
 
-  const now = dayjs();
+  const now = dayjs().utcOffset(7);
   const isToday = dateObj.format("YYYY-MM-DD") === now.format("YYYY-MM-DD");
 
   const slots = DAILY_SLOTS.map((s) => {

@@ -1,13 +1,21 @@
 const express = require("express");
 const dayjs = require("dayjs");
+const utc = require("dayjs/plugin/utc");
 const crypto = require("crypto");
 const supabaseClient = require("../utils/supabaseClient");
 const cryptoHelper = require("../utils/crypto");
 const requireAuth = require("../middleware/requireAuth");
 
+dayjs.extend(utc);
+
 const router = express.Router();
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 router.use(requireAuth);
+
+function getTodayVN() {
+  return dayjs().utcOffset(7).format("YYYY-MM-DD");
+}
 
 function getStatusLabel(status) {
   switch (status) {
@@ -66,7 +74,7 @@ router.get("/", async (req, res) => {
 
   if (status) query = query.eq("status", status);
   if (upcoming !== "false") {
-    const todayVN = dayjs().format("YYYY-MM-DD");
+    const todayVN = getTodayVN();
     query = query.gte("appointment_date", todayVN);
   }
 
@@ -108,7 +116,7 @@ router.get("/overview", async (req, res) => {
   const supabase = supabaseClient.getSupabaseClient(req);
   const patientId = req.user.id;
 
-  const todayVN = dayjs().format("YYYY-MM-DD");
+  const todayVN = getTodayVN();
 
   const { data: allAppointments, error } = await supabase
     .from("appointments")
@@ -182,6 +190,13 @@ router.post("/", async (req, res) => {
     });
   }
 
+  if (!UUID_REGEX.test(counterId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Mã quầy không hợp lệ.",
+    });
+  }
+
   const parsedDate = dayjs(appointmentDate);
   if (!parsedDate.isValid()) {
     return res.status(400).json({
@@ -217,7 +232,7 @@ router.post("/", async (req, res) => {
   if (dayOfWeek === 0) {
     return res.status(400).json({ success: false, message: "Bệnh viện không làm việc ngày Chủ nhật." });
   }
-  if (dayOfWeek === 6 && !counter.name.toLowerCase().includes("tổng quát")) {
+  if (dayOfWeek === 6 && !counter.name?.toLowerCase().includes("tổng quát")) {
     return res.status(400).json({ success: false, message: "Thứ 7 chỉ mở cho Quầy Khám tổng quát." });
   }
 
@@ -229,6 +244,12 @@ router.post("/", async (req, res) => {
     .eq("appointment_date", appointmentDate)
     .eq("slot_id", slotId)
     .neq("status", "cancelled");
+
+  if (checkPatientError) {
+    return res
+      .status(500)
+      .json({ success: false, message: checkPatientError.message });
+  }
 
   if (existingForPatient && existingForPatient.length > 0) {
     return res.status(409).json({
@@ -332,6 +353,10 @@ router.delete("/:id", async (req, res) => {
     .eq("patient_id", req.user.id)
     .gte("cancelled_at", sevenDaysAgo);
 
+  if (countError) {
+    return res.status(500).json({ success: false, message: countError.message });
+  }
+
   if (recentCancellations && recentCancellations.length >= 3) {
     return res.status(400).json({
       success: false,
@@ -373,7 +398,7 @@ router.delete("/:id", async (req, res) => {
 // GET /api/appointments/latest-qr
 router.get("/latest-qr", async (req, res) => {
   const supabase = supabaseClient.getSupabaseClient(req);
-  const todayVN = dayjs().format("YYYY-MM-DD");
+  const todayVN = getTodayVN();
 
   const { data, error } = await supabase
     .from("appointments")
@@ -451,7 +476,6 @@ router.post("/verify-qr", async (req, res) => {
     return res.json({ success: true, data: { outcome: "invalid", message: "Mã QR không hợp lệ hoặc đã bị thay đổi." } });
   }
 
-  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!UUID_REGEX.test(appointmentId)) {
     return res.json({ success: true, data: { outcome: "invalid", message: "Mã QR không hợp lệ hoặc đã bị thay đổi." } });
   }
