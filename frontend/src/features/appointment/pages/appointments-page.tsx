@@ -36,17 +36,17 @@ export function AppointmentsPage() {
   } = useBookingFlow();
 
   const upcomingQuery = useUpcomingAppointments();
-  
+
   const calendarQuery = useCounterCalendar({
     counterId: selectedCounter?.id ?? null,
     month: getMonthKey(visibleMonth),
   });
-  
+
   const slotsQuery = useCounterSlots({
     counterId: selectedCounter?.id ?? null,
     date: draft.appointmentDate,
   });
-  
+
   const createAppointmentMutation = useCreateAppointment();
 
   const handleConfirm = () => {
@@ -95,9 +95,9 @@ export function AppointmentsPage() {
                 </Box>
               </Stepper.Step>
 
-              <Stepper.Step 
-                label="Thời gian" 
-                description="Ngày & Giờ khám" 
+              <Stepper.Step
+                label="Thời gian"
+                description="Ngày & Giờ khám"
                 icon={<CalendarPlus size={18} />}
                 allowStepSelect={activeStep > 1 || selectedCounter !== null}
               >
@@ -132,9 +132,9 @@ export function AppointmentsPage() {
                 </Box>
               </Stepper.Step>
 
-              <Stepper.Step 
-                label="Xác nhận" 
-                description="Hoàn tất đặt lịch" 
+              <Stepper.Step
+                label="Xác nhận"
+                description="Hoàn tất đặt lịch"
                 icon={<ShieldCheck size={18} />}
                 allowStepSelect={canConfirm}
               >
@@ -161,18 +161,16 @@ export function AppointmentsPage() {
               <Button variant="default" onClick={prevStep} disabled={activeStep === 0 || activeStep === 3}>
                 Quay lại
               </Button>
-              {activeStep < 2 && (
-                <Button 
-                  onClick={nextStep} 
-                  color="sky"
-                  disabled={
-                    (activeStep === 0 && !selectedCounter) || 
-                    (activeStep === 1 && (!draft.appointmentDate || !draft.slotId))
-                  }
-                >
-                  Tiếp theo
-                </Button>
-              )}
+              <Button
+                onClick={nextStep}
+                color="sky"
+                disabled={
+                  (activeStep === 0 && !selectedCounter) ||
+                  (activeStep === 1 && (!draft.appointmentDate || !draft.slotId))
+                }
+              >
+                Tiếp theo
+              </Button>
             </Group>
           </Box>
         </div>

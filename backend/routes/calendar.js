@@ -7,6 +7,7 @@ const supabaseClient = require("../utils/supabaseClient");
 dayjs.extend(utc);
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const GENERAL_COUNTER_KEYWORD = "tổng quát".normalize("NFC");
 const CAPACITY_PER_SLOT = 10;
 
 // Tạo 48 slot/ngày: 08:00 - 11:50, 13:00 - 16:50
@@ -57,6 +58,10 @@ function getAvailabilityStatus(availableCapacity, totalCapacity, dateStr) {
 }
 
 // Lấy thông tin quầy
+function isGeneralCounter(counterName) {
+  return (counterName || "").normalize("NFC").toLowerCase().includes(GENERAL_COUNTER_KEYWORD);
+}
+
 async function getCounterInfo(supabase, counterId) {
   const { data } = await supabase.from("counters").select("*").eq("id", counterId).single();
   return data;
@@ -120,7 +125,7 @@ router.get("/", async (req, res) => {
     }
 
     // Thứ 7 chỉ mở cho "Khám tổng quát" (Quầy 1 - giả sử là "Quầy 1" có trong tên)
-    if (dayOfWeek === 6 && !(counter.name || "").toLowerCase().includes("tổng quát")) {
+    if (dayOfWeek === 6 && !isGeneralCounter(counter.name)) {
       return { date, availableCapacity: 0, status: "closed" };
     }
 
@@ -163,7 +168,7 @@ router.get("/slots", async (req, res) => {
   const dateObj = dayjs(date);
   const dayOfWeek = dateObj.day();
   
-  if (dayOfWeek === 0 || (dayOfWeek === 6 && !(counter.name || "").toLowerCase().includes("tổng quát"))) {
+  if (dayOfWeek === 0 || (dayOfWeek === 6 && !isGeneralCounter(counter.name))) {
     return res.json({ success: true, slots: [] }); // No slots available
   }
 

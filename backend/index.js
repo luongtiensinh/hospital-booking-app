@@ -2,6 +2,22 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 
+// Global crash logging to know why server exits
+process.on('uncaughtException', (err) => {
+    console.error('[uncaughtException]', err);
+});
+process.on('unhandledRejection', (reason) => {
+    console.error('[unhandledRejection]', reason);
+});
+process.on('SIGINT', () => {
+    console.error('[SIGINT] Server is shutting down');
+    process.exit(0);
+});
+process.on('SIGTERM', () => {
+    console.error('[SIGTERM] Server is shutting down');
+    process.exit(0);
+});
+
 const app = express();
 app.set('etag', false);
 app.use(cors());
@@ -22,3 +38,4 @@ app.use('/api/counters', countersRouter);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server đang chạy tại http://localhost:${PORT}`));
+

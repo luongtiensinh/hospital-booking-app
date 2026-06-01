@@ -10,6 +10,8 @@ dayjs.extend(utc);
 
 const router = express.Router();
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const CAPACITY_PER_SLOT = 10;
+const GENERAL_COUNTER_KEYWORD = "tổng quát".normalize("NFC");
 
 router.use(requireAuth);
 
@@ -30,6 +32,10 @@ function getStatusLabel(status) {
     default:
       return "Đang xử lý";
   }
+}
+
+function isGeneralCounter(counterName) {
+  return (counterName || "").normalize("NFC").toLowerCase().includes(GENERAL_COUNTER_KEYWORD);
 }
 
 function normalizeAppointmentTime(value) {
@@ -257,7 +263,7 @@ router.post("/", async (req, res) => {
   if (dayOfWeek === 0) {
     return res.status(400).json({ success: false, message: "Bệnh viện không làm việc ngày Chủ nhật." });
   }
-  if (dayOfWeek === 6 && !(counter.name || "").toLowerCase().includes("tổng quát")) {
+  if (dayOfWeek === 6 && !isGeneralCounter(counter.name)) {
     return res.status(400).json({ success: false, message: "Thứ 7 chỉ mở cho Quầy Khám tổng quát." });
   }
 
@@ -296,7 +302,7 @@ router.post("/", async (req, res) => {
     return res.status(500).json({ success: false, message: checkSlotsError.message });
   }
 
-  if (existingSlots && existingSlots.length >= 10) {
+  if (existingSlots && existingSlots.length >= CAPACITY_PER_SLOT) {
     return res.status(409).json({
       success: false,
       message: "Slot này đã đầy. Vui lòng chọn giờ khác.",
@@ -389,12 +395,14 @@ router.delete("/:id", async (req, res) => {
     });
   }
 
+  const cancelledAt = new Date().toISOString();
+
   // Transaction-like updates
   const { error: updateError } = await supabase
     .from("appointments")
     .update({ 
       status: "cancelled", 
-      cancelled_at: new Date().toISOString(),
+      cancelled_at: cancelledAt,
       cancellation_reason: reason
     })
     .eq("id", req.params.id)
@@ -411,6 +419,7 @@ router.delete("/:id", async (req, res) => {
       patient_id: req.user.id,
       reason: reason || "",
       cancelled_by: req.user.id,
+      cancelled_at: cancelledAt,
     }
   ]);
 
