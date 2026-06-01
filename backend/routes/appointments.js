@@ -32,14 +32,35 @@ function getStatusLabel(status) {
   }
 }
 
+function normalizeAppointmentTime(value) {
+  if (typeof value !== "string") return null;
+
+  const trimmedValue = value.trim();
+  if (/^\d{2}:\d{2}$/.test(trimmedValue)) return trimmedValue;
+  if (/^\d{2}:\d{2}:\d{2}$/.test(trimmedValue)) return trimmedValue.slice(0, 5);
+
+  return null;
+}
+
+function getAppointmentStartTime(appointment) {
+  return normalizeAppointmentTime(appointment.appointment_time)
+    || normalizeAppointmentTime(appointment.slot_id)
+    || "00:00";
+}
+
+function buildAppointmentDateTime(date, timeValue) {
+  const startTimeStr = normalizeAppointmentTime(timeValue) || "00:00";
+  return `${date}T${startTimeStr}:00+07:00`;
+}
+
 async function getCounterInfo(supabase, counterId) {
   const { data } = await supabase.from("counters").select("*").eq("id", counterId).single();
   return data;
 }
 
 function toAppointmentSummary(appointment, counter) {
-  const startTimeStr = appointment.slot_id || appointment.appointment_time || "00:00";
-  const appointmentAt = `${appointment.appointment_date}T${startTimeStr}:00+07:00`;
+  const startTimeStr = getAppointmentStartTime(appointment);
+  const appointmentAt = buildAppointmentDateTime(appointment.appointment_date, startTimeStr);
 
   return {
     id: appointment.id,
@@ -156,7 +177,11 @@ router.get("/overview", async (req, res) => {
 });
 
 // GET /api/appointments/:id
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req, res, next) => {
+  if (!UUID_REGEX.test(req.params.id)) {
+    return next();
+  }
+
   const supabase = supabaseClient.getSupabaseClient(req);
   const { data, error } = await supabase
     .from("appointments")
@@ -206,7 +231,7 @@ router.post("/", async (req, res) => {
   }
 
   // Combine date + slot time into a full datetime in Vietnam timezone (+07:00)
-  const appointmentDateTime = dayjs(`${appointmentDate}T${slotId}:00+07:00`);
+  const appointmentDateTime = dayjs(buildAppointmentDateTime(appointmentDate, slotId));
 
   if (!appointmentDateTime.isValid()) {
     return res.status(400).json({
@@ -335,8 +360,8 @@ router.delete("/:id", async (req, res) => {
     return res.status(400).json({ success: false, message: "Chỉ có thể hủy lịch hẹn ở trạng thái đã xác nhận." });
   }
 
-  const startTimeStr = appointment.slot_id || "00:00";
-  const appointmentDateTime = dayjs(`${appointment.appointment_date}T${startTimeStr}:00+07:00`);
+  const startTimeStr = getAppointmentStartTime(appointment);
+  const appointmentDateTime = dayjs(buildAppointmentDateTime(appointment.appointment_date, startTimeStr));
 
   if (appointmentDateTime.diff(dayjs(), "hour") < 24) {
     return res.status(400).json({
@@ -397,6 +422,12 @@ router.delete("/:id", async (req, res) => {
 
 // GET /api/appointments/latest-qr
 router.get("/latest-qr", async (req, res) => {
+  res.set({
+    "Cache-Control": "no-store, no-cache, must-revalidate, private",
+    Pragma: "no-cache",
+    Expires: "0",
+  });
+
   const supabase = supabaseClient.getSupabaseClient(req);
   const todayVN = getTodayVN();
 
@@ -421,13 +452,13 @@ router.get("/latest-qr", async (req, res) => {
   const nowDayjs = dayjs();
   const appointment = data.find((appt) => {
     if (appt.status !== "confirmed") return false;
-    const slotTime = appt.slot_id || "00:00";
-    const apptAt = dayjs(`${appt.appointment_date}T${slotTime}:00+07:00`);
+    const slotTime = getAppointmentStartTime(appt);
+    const apptAt = dayjs(buildAppointmentDateTime(appt.appointment_date, slotTime));
     return nowDayjs.isBefore(apptAt);
   }) || data[0];
 
-  const startTimeStr = appointment.slot_id || "00:00";
-  const appointmentAt = `${appointment.appointment_date}T${startTimeStr}:00+07:00`;
+  const startTimeStr = getAppointmentStartTime(appointment);
+  const appointmentAt = buildAppointmentDateTime(appointment.appointment_date, startTimeStr);
   const expiresAt = appointmentAt;
 
   let status = "active";
@@ -499,7 +530,7 @@ router.post("/verify-qr", async (req, res) => {
         appointmentId: appointment.id,
         counterName: appointment.counters?.name,
         counterRoom: appointment.counters?.room,
-        appointmentAt: `${appointment.appointment_date}T${appointment.slot_id || "00:00"}:00+07:00`,
+        appointmentAt: buildAppointmentDateTime(appointment.appointment_date, getAppointmentStartTime(appointment)),
         checkedInAt: appointment.qr_scanned_at || new Date().toISOString(),
       },
     });
@@ -509,7 +540,7 @@ router.post("/verify-qr", async (req, res) => {
     return res.json({ success: true, data: { outcome: "invalid", message: "Lịch khám này đã bị hủy bỏ trước đó." } });
   }
 
-  const expiresAt = `${appointment.appointment_date}T${appointment.slot_id || "00:00"}:00+07:00`;
+  const expiresAt = buildAppointmentDateTime(appointment.appointment_date, getAppointmentStartTime(appointment));
   const gracePeriodMinutes = 30;
   if (dayjs().isAfter(dayjs(expiresAt).add(gracePeriodMinutes, "minute"))) {
     return res.json({ success: true, data: { outcome: "expired", message: "Mã QR này đã quá thời hạn check-in." } });
@@ -542,7 +573,7 @@ router.post("/verify-qr", async (req, res) => {
       patientName,
       counterName: appointment.counters?.name,
       counterRoom: appointment.counters?.room,
-      appointmentAt: `${appointment.appointment_date}T${appointment.slot_id || "00:00"}:00+07:00`,
+      appointmentAt: buildAppointmentDateTime(appointment.appointment_date, getAppointmentStartTime(appointment)),
       checkedInAt: now,
     },
   });
