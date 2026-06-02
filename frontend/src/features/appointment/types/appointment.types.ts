@@ -4,28 +4,39 @@ export type AppointmentStatus =
   | "completed"
   | "cancelled";
 
+export type Counter = {
+  id: string;
+  name: string;
+  description: string;
+  room: string;
+  is_active: boolean;
+  sort_order: number;
+};
+
 export type AppointmentSummary = {
   id: string;
-  doctorName: string;
-  specialty: string;
+  counterName: string;
+  counterRoom: string;
   appointmentAt: string;
-  location: string;
   status: AppointmentStatus;
   statusLabel: string;
   qrCodeUrl?: string | null;
 };
 
-export type AppointmentFilterValues = {
-  search: string;
-  specialty: string;
-  preferredDate: string;
+export type AppointmentHistory = AppointmentSummary & {
+  // Add additional fields for history if needed
 };
 
-export type CalendarAvailabilityStatus = "available" | "limited" | "full";
+export type AppointmentFilterValues = {
+  status?: AppointmentStatus | "all";
+  upcoming?: boolean;
+};
+
+export type CalendarAvailabilityStatus = "available" | "limited" | "full" | "closed";
 
 export type DoctorCalendarDay = {
   date: string;
-  availableSlots: number;
+  availableCapacity: number;
   status: CalendarAvailabilityStatus;
 };
 
@@ -33,23 +44,24 @@ export type AppointmentSlot = {
   id: string;
   startAt: string;
   endAt: string;
-  isBooked: boolean;
+  session: "morning" | "afternoon";
+  capacity: number;
   remainingCapacity: number;
-  roomLabel: string;
+  isBooked: boolean;
+  isPast?: boolean;
 };
 
 export type BookingDraft = {
-  doctorId: string | null;
-  doctorName: string | null;
-  specialty: string | null;
+  counterId: string | null;
+  counterName: string | null;
+  counterRoom: string | null;
   appointmentDate: string | null;
   slotId: string | null;
   slotLabel: string | null;
-  location: string | null;
 };
 
 export type CreateAppointmentPayload = {
-  doctorId: string;
+  counterId: string;
   appointmentDate: string;
   slotId: string;
 };
@@ -59,7 +71,6 @@ export type CreatedAppointment = {
   status: AppointmentStatus;
   statusLabel: string;
   appointmentAt: string;
-  doctorName: string;
-  specialty: string;
-  location: string;
+  counterName: string;
+  counterRoom: string;
 };

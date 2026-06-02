@@ -1,31 +1,22 @@
-import { CalendarPlus, ShieldCheck, Stethoscope } from "lucide-react";
-import { useMemo, useState } from "react";
 
-import { Alert, Grid, Group, Skeleton, Stack, Text } from "@mantine/core";
+import { CalendarPlus, ShieldCheck, Activity } from "lucide-react";
+import { useState } from "react";
+
+import { Alert, Stepper, Group, Button, Skeleton, Stack, Text, Box } from "@mantine/core";
 
 import { PageContainer } from "@/app/layouts/page-container";
 import { PageHeader } from "@/app/layouts/page-header";
-import { AppointmentFiltersForm } from "@/features/appointment/components/appointment-filters-form";
 import { BookingCalendar } from "@/features/appointment/components/booking-calendar";
 import { BookingConfirmationCard } from "@/features/appointment/components/booking-confirmation-card";
-import { DoctorAvailabilityCard } from "@/features/appointment/components/doctor-availability-card";
+import { CounterSelector } from "@/features/appointment/components/counter-selector";
 import { SlotSelector } from "@/features/appointment/components/slot-selector";
 import { UpcomingAppointmentCard } from "@/features/appointment/components/upcoming-appointment-card";
 import { useBookingFlow } from "@/features/appointment/hooks/use-booking-flow";
 import { useCreateAppointment } from "@/features/appointment/hooks/use-create-appointment";
-import { useDoctorCalendar } from "@/features/appointment/hooks/use-doctor-calendar";
-import { useDoctorCatalog } from "@/features/appointment/hooks/use-doctor-catalog";
-import { useDoctorSlots } from "@/features/appointment/hooks/use-doctor-slots";
+import { useCounterCalendar } from "@/features/appointment/hooks/use-counter-calendar";
+import { useCounterSlots } from "@/features/appointment/hooks/use-counter-slots";
 import { useUpcomingAppointments } from "@/features/appointment/hooks/use-upcoming-appointments";
-import { appointmentBookingSchema } from "@/features/appointment/schemas/appointment-booking-schema";
-import type { AppointmentFilterValues } from "@/features/appointment/types/appointment.types";
 import { EmptyState } from "@/shared/components/feedback/empty-state";
-
-const initialFilters: AppointmentFilterValues = {
-  search: "",
-  specialty: "",
-  preferredDate: "",
-};
 
 function getMonthKey(date: Date) {
   const year = date.getFullYear();
@@ -34,190 +25,184 @@ function getMonthKey(date: Date) {
 }
 
 export function AppointmentsPage() {
-  const [filters, setFilters] =
-    useState<AppointmentFilterValues>(initialFilters);
+  const [activeStep, setActiveStep] = useState(0);
   const [visibleMonth, setVisibleMonth] = useState(() => new Date());
 
   const {
     draft,
-    selectedDoctor,
-    selectDoctor,
+    selectedCounter,
     selectDate,
     selectSlot,
     canConfirm,
   } = useBookingFlow();
 
   const upcomingQuery = useUpcomingAppointments();
-  const doctorsQuery = useDoctorCatalog(filters);
-  const calendarQuery = useDoctorCalendar({
-    doctorId: selectedDoctor?.id ?? null,
+
+  const calendarQuery = useCounterCalendar({
+    counterId: selectedCounter?.id ?? null,
     month: getMonthKey(visibleMonth),
   });
-  const slotsQuery = useDoctorSlots({
-    doctorId: selectedDoctor?.id ?? null,
+
+  const slotsQuery = useCounterSlots({
+    counterId: selectedCounter?.id ?? null,
     date: draft.appointmentDate,
   });
+
   const createAppointmentMutation = useCreateAppointment();
 
-  const doctorCountLabel = useMemo(() => {
-    if (!doctorsQuery.data) return "Đang tải danh sách bác sĩ...";
-    return `${doctorsQuery.data.length} bác sĩ khả dụng`;
-  }, [doctorsQuery.data]);
-
   const handleConfirm = () => {
-    const parsed = appointmentBookingSchema.safeParse({
-      doctorId: draft.doctorId,
-      appointmentDate: draft.appointmentDate,
-      slotId: draft.slotId,
-    });
-    if (!parsed.success) return;
-    createAppointmentMutation.mutate(parsed.data);
+    if (!canConfirm || createAppointmentMutation.isPending) return;
+
+    createAppointmentMutation.mutate(
+      {
+        counterId: draft.counterId!,
+        appointmentDate: draft.appointmentDate!,
+        slotId: draft.slotId!,
+      },
+      {
+        onSuccess: () => {
+          setActiveStep(0);
+        },
+      }
+    );
   };
 
-  const hasError =
-    doctorsQuery.isError ||
-    calendarQuery.isError ||
-    slotsQuery.isError ||
-    upcomingQuery.isError;
+  const nextStep = () => setActiveStep((current) => (current < 2 ? current + 1 : current));
+  const prevStep = () => setActiveStep((current) => (current > 0 ? current - 1 : current));
+
+  const hasError = calendarQuery.isError || slotsQuery.isError || upcomingQuery.isError;
 
   return (
     <PageContainer>
       <PageHeader
-        description=""
-        eyebrow="Appointment Booking"
+        description="Đăng ký lịch khám chữa bệnh trực tuyến nhanh chóng, tiện lợi."
+        eyebrow="Booking"
         title="Đặt lịch khám"
       />
 
-      {/* Filter bar */}
-      <AppointmentFiltersForm
-        defaultValues={filters}
-        onSubmit={(values) => setFilters(values)}
-      />
-
       {hasError && (
-        <Alert color="yellow" radius="md" variant="light">
+        <Alert color="yellow" mb="lg" radius="md" variant="light">
           Một hoặc nhiều dữ liệu chưa tải được. Vui lòng thử lại hoặc kiểm tra
           kết nối.
         </Alert>
       )}
 
-      <Grid align="flex-start">
-        {/* Col 1 — Doctor list */}
-        <Grid.Col span={{ base: 12, xl: 5 }}>
-          <Stack gap="sm">
-            <Group gap="xs">
-              <Stethoscope size={17} color="var(--mantine-color-blue-6)" />
-              <div>
-                <Text fw={700} size="sm" c="dark.8">
-                  Danh sách bác sĩ
-                </Text>
-                <Text size="xs" c="dimmed">
-                  {doctorCountLabel}
-                </Text>
-              </div>
-            </Group>
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+        <div className="xl:col-span-8">
+          <Box p="md" bg="white" style={{ borderRadius: 'var(--mantine-radius-lg)', border: '1px solid var(--mantine-color-gray-2)' }}>
+            <Stepper
+              active={activeStep}
+              onStepClick={setActiveStep}
+              color="sky"
+              allowNextStepsSelect
+              size="sm"
+            >
 
-            {doctorsQuery.isLoading ? (
-              <Stack gap="sm">
-                <Skeleton height={200} radius="lg" />
-                <Skeleton height={200} radius="lg" />
-              </Stack>
-            ) : doctorsQuery.data && doctorsQuery.data.length > 0 ? (
-              <Stack gap="sm">
-                {doctorsQuery.data.map((doctor) => (
-                  <DoctorAvailabilityCard
-                    doctor={doctor}
-                    isSelected={selectedDoctor?.id === doctor.id}
-                    key={doctor.id}
-                    onSelect={(value) => {
-                      selectDoctor(value);
-                      setVisibleMonth(new Date());
-                    }}
+              <Stepper.Step label="Chọn quầy" description="Quầy tiếp nhận" icon={<Activity size={18} />}>
+                <Box mt="xl" mih={300}>
+                  <CounterSelector />
+                </Box>
+              </Stepper.Step>
+
+              <Stepper.Step
+                label="Thời gian"
+                description="Ngày & Giờ khám"
+                icon={<CalendarPlus size={18} />}
+                allowStepSelect={activeStep > 1 || selectedCounter !== null}
+              >
+                <Box mt="xl">
+                  {selectedCounter ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {calendarQuery.isLoading ? (
+                        <Skeleton height={400} radius="lg" />
+                      ) : (
+                        <BookingCalendar
+                          currentMonth={visibleMonth}
+                          days={calendarQuery.data ?? []}
+                          onChangeMonth={setVisibleMonth}
+                          onSelectDate={(date) => selectDate(date)}
+                          selectedDate={draft.appointmentDate}
+                        />
+                      )}
+                      <SlotSelector
+                        isLoading={slotsQuery.isLoading}
+                        onSelectSlot={selectSlot}
+                        selectedSlotId={draft.slotId}
+                        slots={slotsQuery.data ?? []}
+                      />
+                    </div>
+                  ) : (
+                    <EmptyState
+                      description="Vui lòng quay lại bước 1 để chọn quầy tiếp nhận trước khi chọn thời gian."
+                      icon={CalendarPlus}
+                      title="Chưa chọn quầy"
+                    />
+                  )}
+                </Box>
+              </Stepper.Step>
+
+              <Stepper.Step
+                label="Xác nhận"
+                description="Hoàn tất đặt lịch"
+                icon={<ShieldCheck size={18} />}
+                allowStepSelect={canConfirm}
+              >
+                <Box mt="xl" maw={500} mx="auto">
+                  <BookingConfirmationCard
+                    canConfirm={canConfirm}
+                    draft={draft}
+                    isPending={createAppointmentMutation.isPending}
+                    onConfirm={handleConfirm}
                   />
-                ))}
-              </Stack>
-            ) : (
-              <EmptyState
-                description="Khi backend doctor catalog sẵn sàng, danh sách theo chuyên khoa và tên tìm kiếm sẽ hiển thị tại đây."
-                icon={Stethoscope}
-                title="Chưa có bác sĩ phù hợp"
-              />
-            )}
-          </Stack>
-        </Grid.Col>
+                </Box>
+              </Stepper.Step>
 
-        {/* Col 2 — Calendar + Slots */}
-        <Grid.Col span={{ base: 12, xl: 4 }}>
-          <Stack gap="sm">
-            <Group gap="xs">
-              <CalendarPlus size={17} color="var(--mantine-color-blue-6)" />
-              <div>
-                <Text fw={700} size="sm" c="dark.8">
-                  Lịch và slot khả dụng
-                </Text>
-              </div>
-            </Group>
-
-            {selectedDoctor ? (
-              <>
-                {calendarQuery.isLoading ? (
-                  <Skeleton height={400} radius="lg" />
-                ) : (
-                  <BookingCalendar
-                    currentMonth={visibleMonth}
-                    days={calendarQuery.data ?? []}
-                    onChangeMonth={setVisibleMonth}
-                    onSelectDate={(date) => selectDate(date)}
-                    selectedDate={draft.appointmentDate}
-                  />
-                )}
-                <SlotSelector
-                  isLoading={slotsQuery.isLoading}
-                  onSelectSlot={selectSlot}
-                  selectedSlotId={draft.slotId}
-                  slots={slotsQuery.data ?? []}
+              <Stepper.Completed>
+                <EmptyState
+                  description="Quá trình đặt lịch đã hoàn tất. Bạn có thể xem mã QR Code ở danh sách bên cạnh."
+                  icon={ShieldCheck}
+                  title="Hoàn thành"
                 />
-              </>
-            ) : (
-              <EmptyState
-                description="Chọn một bác sĩ trong danh sách để xem lịch hoạt động và các khung giờ còn chỗ."
-                icon={CalendarPlus}
-                title="Chưa chọn bác sĩ"
-              />
-            )}
-          </Stack>
-        </Grid.Col>
+              </Stepper.Completed>
+            </Stepper>
 
-        {/* Col 3 — Confirm + Upcoming */}
-        <Grid.Col span={{ base: 12, xl: 3 }}>
-          <Stack gap="sm">
+            <Group justify="space-between" mt="xl">
+              <Button
+                variant="default"
+                onClick={prevStep}
+                disabled={activeStep === 0 || activeStep === 3}
+              >
+                Quay lại
+              </Button>
+
+              {activeStep < 2 && (
+                <Button
+                  variant="default"
+                  onClick={nextStep}
+                  disabled={activeStep === 3}
+                >
+                  Tiếp theo
+                </Button>
+              )}
+            </Group>
+          </Box>
+        </div>
+
+        <div className="xl:col-span-4">
+          <Stack gap="md">
             <Group gap="xs">
-              <ShieldCheck size={17} color="var(--mantine-color-blue-6)" />
+              <ShieldCheck size={20} color="var(--mantine-color-sky-6)" />
               <div>
-                <Text fw={700} size="sm" c="dark.8">
-                  Xác nhận & Lịch của bạn
+                <Text fw={700} size="md" c="dark.8">
+                  Lịch hẹn sắp tới
                 </Text>
               </div>
-            </Group>
-
-            <BookingConfirmationCard
-              canConfirm={canConfirm}
-              draft={draft}
-              isPending={createAppointmentMutation.isPending}
-              onConfirm={handleConfirm}
-            />
-
-            {/* Upcoming appointments */}
-            <Group gap="xs" mt="xs">
-              <Text fw={700} size="sm" c="dark.8">
-                Lịch hẹn sắp tới
-              </Text>
             </Group>
 
             {upcomingQuery.isLoading ? (
               <Stack gap="sm">
-                <Skeleton height={120} radius="lg" />
-                <Skeleton height={120} radius="lg" />
+                <Skeleton height={140} radius="lg" />
+                <Skeleton height={140} radius="lg" />
               </Stack>
             ) : upcomingQuery.data && upcomingQuery.data.length > 0 ? (
               <Stack gap="sm">
@@ -230,14 +215,14 @@ export function AppointmentsPage() {
               </Stack>
             ) : (
               <EmptyState
-                description="Sau khi đặt lịch thành công, thông tin lịch hẹn sẽ được hiển thị ở đây."
+                description="Bạn chưa có lịch khám nào sắp tới. Lịch khám sẽ hiển thị ở đây sau khi đặt thành công."
                 icon={ShieldCheck}
                 title="Chưa có lịch hẹn nào"
               />
             )}
           </Stack>
-        </Grid.Col>
-      </Grid>
-    </PageContainer>
+        </div>
+      </div>
+    </PageContainer >
   );
 }

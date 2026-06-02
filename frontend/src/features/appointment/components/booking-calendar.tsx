@@ -87,7 +87,7 @@ export function BookingCalendar({
     () => buildCalendarCells(currentMonth, days),
     [currentMonth, days],
   );
-  const hasAvailableDays = days.some((d) => d.availableSlots > 0);
+  const hasAvailableDays = days.some((d) => d.availableCapacity > 0);
 
   return (
     <Card
@@ -103,7 +103,7 @@ export function BookingCalendar({
               Chọn ngày khám
             </Text>
             <Text size="xs" c="dimmed">
-              Ngày quá khứ bị khóa. Ngày còn slot được đánh dấu.
+              Lưu ý: Chủ nhật bệnh viện không làm việc
             </Text>
           </div>
           <Group gap={4}>
@@ -149,9 +149,9 @@ export function BookingCalendar({
           </Text>
           <Group gap="sm">
             {[
-              { color: "var(--mantine-color-blue-5)", label: "Còn slot" },
-              { color: "var(--mantine-color-orange-5)", label: "Sắp đầy" },
-              { color: "var(--mantine-color-gray-4)", label: "Hết slot" },
+              { color: "var(--mantine-color-teal-5)", label: "Còn chỗ" },
+              { color: "var(--mantine-color-orange-5)", label: "Gần đầy" },
+              { color: "var(--mantine-color-red-5)", label: "Kín chỗ" },
             ].map(({ color, label }) => (
               <Group key={label} gap={4}>
                 <div
@@ -180,7 +180,7 @@ export function BookingCalendar({
           }}
         >
           {DAY_LABELS.map((label) => (
-            <Text key={label} size="xs" fw={600} c="dimmed" tt="uppercase">
+            <Text key={label} size="xs" fw={600} c={label === "CN" ? "red.6" : "dimmed"} tt="uppercase">
               {label}
             </Text>
           ))}
@@ -195,31 +195,34 @@ export function BookingCalendar({
           }}
         >
           {calendarCells.map((cell) => {
+            const availStatus = cell.availability?.status;
+            const isClosed = availStatus === "closed";
+            const isFull = availStatus === "full";
+            
             const isDisabled =
               cell.isPast ||
               !cell.isCurrentMonth ||
               !cell.availability ||
-              cell.availability.availableSlots === 0;
+              isClosed ||
+              isFull;
+              
             const isSelected = selectedDate === cell.isoDate;
 
-            const availStatus = cell.availability?.status;
-            const bgColor = isSelected
-              ? "var(--mantine-color-blue-6)"
-              : isDisabled
-                ? "var(--mantine-color-gray-0)"
-                : availStatus === "available"
-                  ? "var(--mantine-color-blue-0)"
-                  : availStatus === "limited"
-                    ? "var(--mantine-color-orange-0)"
-                    : "white";
+            let bgColor = "white";
+            let borderColor = "var(--mantine-color-gray-2)";
 
-            const borderColor = isSelected
-              ? "var(--mantine-color-blue-5)"
-              : availStatus === "available" && !isDisabled
-                ? "var(--mantine-color-blue-2)"
-                : availStatus === "limited" && !isDisabled
-                  ? "var(--mantine-color-orange-2)"
-                  : "var(--mantine-color-gray-2)";
+            if (isSelected) {
+              bgColor = "var(--mantine-color-sky-5)";
+              borderColor = "var(--mantine-color-sky-6)";
+            } else if (isDisabled) {
+              bgColor = "var(--mantine-color-gray-0)";
+            } else if (availStatus === "available") {
+              bgColor = "var(--mantine-color-teal-0)";
+              borderColor = "var(--mantine-color-teal-3)";
+            } else if (availStatus === "limited") {
+              bgColor = "var(--mantine-color-orange-0)";
+              borderColor = "var(--mantine-color-orange-3)";
+            }
 
             return (
               <UnstyledButton
@@ -245,7 +248,7 @@ export function BookingCalendar({
                 <Text
                   size="xs"
                   fw={700}
-                  style={{ color: isSelected ? "white" : undefined }}
+                  style={{ color: isSelected ? "white" : isClosed ? "var(--mantine-color-red-5)" : undefined }}
                 >
                   {cell.dayOfMonth}
                 </Text>
@@ -258,8 +261,8 @@ export function BookingCalendar({
                       : "var(--mantine-color-dimmed)",
                   }}
                 >
-                  {cell.availability
-                    ? `${cell.availability.availableSlots}s`
+                  {cell.availability && !isClosed
+                    ? `${cell.availability.availableCapacity}c`
                     : "--"}
                 </Text>
               </UnstyledButton>
@@ -269,7 +272,7 @@ export function BookingCalendar({
 
         {!hasAvailableDays && (
           <Text size="xs" c="dimmed">
-            Tháng này chưa có slot khả dụng cho bác sĩ được chọn.
+            Tháng này chưa có lịch khám khả dụng cho quầy được chọn.
           </Text>
         )}
       </Stack>

@@ -1,16 +1,16 @@
 import { useState } from "react";
-import { Badge, Button, Card, Group, Stack, Text } from "@mantine/core";
+import { Badge, Button, Card, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { QrCode, XCircle } from "lucide-react";
+import dayjs from "dayjs";
 
 import { formatDateTime } from "@/shared/utils/formatters";
 import type { AppointmentSummary } from "@/features/appointment/types/appointment.types";
-import { useCancelAppointment } from "@/features/appointment/hooks/use-cancel-appointment";
-import { ConfirmDialog } from "@/shared/components/feedback/confirm-dialog";
+import { CancelAppointmentDialog } from "./cancel-appointment-dialog";
 
 const statusColorMap: Record<string, string> = {
   confirmed: "blue",
   "checked-in": "green",
-  completed: "green",
+  completed: "teal",
   cancelled: "red",
   pending: "yellow",
 };
@@ -21,13 +21,11 @@ type UpcomingAppointmentCardProps = {
 
 export function UpcomingAppointmentCard({ appointment }: UpcomingAppointmentCardProps) {
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
-  const cancelMutation = useCancelAppointment();
 
-  const handleCancel = () => {
-    cancelMutation.mutate(appointment.id, {
-      onSuccess: () => setIsCancelDialogOpen(false),
-    });
-  };
+  const isConfirmed = appointment.status === "confirmed";
+  
+  // Calculate if it's eligible for cancellation (must be > 24h away)
+  const isEligibleForCancel = isConfirmed && dayjs(appointment.appointmentAt).diff(dayjs(), "hour") >= 24;
 
   return (
     <>
@@ -35,8 +33,8 @@ export function UpcomingAppointmentCard({ appointment }: UpcomingAppointmentCard
         <Stack gap="sm">
           <Group justify="space-between" align="flex-start" wrap="nowrap">
             <div>
-              <Text fw={700} size="sm" c="dark.8">{appointment.doctorName}</Text>
-              <Text size="xs" c="dimmed">{appointment.specialty} • {appointment.location}</Text>
+              <Text fw={700} size="sm" c="dark.8">{appointment.counterName}</Text>
+              <Text size="xs" c="dimmed">Phòng: {appointment.counterRoom}</Text>
             </div>
             <Badge
               color={statusColorMap[appointment.status] ?? "blue"}
@@ -49,10 +47,10 @@ export function UpcomingAppointmentCard({ appointment }: UpcomingAppointmentCard
             </Badge>
           </Group>
 
-          <Text size="xs" c="dimmed">{formatDateTime(appointment.appointmentAt)}</Text>
+          <Text size="sm" fw={500} c="dark.7">{formatDateTime(appointment.appointmentAt)}</Text>
 
-          {appointment.status === "confirmed" && (
-            <Group gap="xs">
+          {isConfirmed && (
+            <Group gap="xs" mt="sm">
               {appointment.qrCodeUrl && (
                 <Button
                   component="a"
@@ -68,31 +66,39 @@ export function UpcomingAppointmentCard({ appointment }: UpcomingAppointmentCard
                   QR Check-in
                 </Button>
               )}
-              <Button
-                size="xs"
-                variant="light"
-                color="red"
-                radius="md"
-                leftSection={<XCircle size={13} />}
-                onClick={() => setIsCancelDialogOpen(true)}
+              
+              <Tooltip
+                label={!isEligibleForCancel ? "Chỉ được phép hủy trước 24 giờ so với giờ khám" : ""}
+                disabled={isEligibleForCancel}
               >
-                Hủy lịch
-              </Button>
+                <div>
+                  <Button
+                    size="xs"
+                    variant="light"
+                    color="red"
+                    radius="md"
+                    leftSection={<XCircle size={13} />}
+                    onClick={() => setIsCancelDialogOpen(true)}
+                    disabled={!isEligibleForCancel}
+                  >
+                    Hủy lịch
+                  </Button>
+                </div>
+              </Tooltip>
             </Group>
           )}
         </Stack>
       </Card>
 
-      <ConfirmDialog
-        isOpen={isCancelDialogOpen}
-        title="Hủy lịch khám"
-        description="Bạn có chắc chắn muốn hủy lịch khám này không? Thao tác này sẽ giải phóng khung giờ cho bệnh nhân khác và không thể hoàn tác."
-        confirmText="Đồng ý hủy"
-        cancelText="Đóng"
-        isConfirming={cancelMutation.isPending}
-        onConfirm={handleCancel}
-        onCancel={() => setIsCancelDialogOpen(false)}
-      />
+      {isCancelDialogOpen && (
+        <CancelAppointmentDialog
+          isOpen={isCancelDialogOpen}
+          onClose={() => setIsCancelDialogOpen(false)}
+          appointmentId={appointment.id}
+          counterName={appointment.counterName}
+          appointmentAt={appointment.appointmentAt}
+        />
+      )}
     </>
   );
 }

@@ -31,6 +31,11 @@ const AppointmentsPage = lazy(() =>
     default: module.AppointmentsPage,
   })),
 );
+const AppointmentHistoryPage = lazy(() =>
+  import("@/features/appointment/pages/appointment-history-page").then((module) => ({
+    default: module.AppointmentHistoryPage,
+  })),
+);
 const QrCheckInPage = lazy(() =>
   import("@/features/qr/pages/qr-check-in-page").then((module) => ({
     default: module.QrCheckInPage,
@@ -39,11 +44,6 @@ const QrCheckInPage = lazy(() =>
 const MedicalResultsPage = lazy(() =>
   import("@/features/result/pages/medical-results-page").then((module) => ({
     default: module.MedicalResultsPage,
-  })),
-);
-const InvoicesPage = lazy(() =>
-  import("@/features/invoice/pages/invoices-page").then((module) => ({
-    default: module.InvoicesPage,
   })),
 );
 
@@ -105,6 +105,10 @@ export const router = createBrowserRouter([
         element: withSuspense(<AppointmentsPage />),
       },
       {
+        path: APP_ROUTES.appointmentHistory.slice(1),
+        element: withSuspense(<AppointmentHistoryPage />),
+      },
+      {
         path: APP_ROUTES.qr.slice(1),
         element: withSuspense(<QrCheckInPage />),
       },
@@ -112,11 +116,8 @@ export const router = createBrowserRouter([
         path: APP_ROUTES.results.slice(1),
         element: withSuspense(<MedicalResultsPage />),
       },
-      {
-        path: APP_ROUTES.invoices.slice(1),
-        element: withSuspense(<InvoicesPage />),
-      },
     ],
+
   },
   {
     path: "*",

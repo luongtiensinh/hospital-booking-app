@@ -1,20 +1,23 @@
 const express = require("express");
 const dayjs = require("dayjs");
+const utc = require("dayjs/plugin/utc");
 const crypto = require("crypto");
 const supabaseClient = require("../utils/supabaseClient");
 const cryptoHelper = require("../utils/crypto");
 const requireAuth = require("../middleware/requireAuth");
 
+dayjs.extend(utc);
+
 const router = express.Router();
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const CAPACITY_PER_SLOT = 10;
+const GENERAL_COUNTER_KEYWORD = "tổng quát".normalize("NFC");
 
 router.use(requireAuth);
 
-const SLOT_TIMES = {
-  "slot-1": "08:00",
-  "slot-2": "08:30",
-  "slot-3": "09:00",
-  "slot-4": "09:30",
-};
+function getTodayVN() {
+  return dayjs().utcOffset(7).format("YYYY-MM-DD");
+}
 
 function getStatusLabel(status) {
   switch (status) {
@@ -31,16 +34,45 @@ function getStatusLabel(status) {
   }
 }
 
-function toAppointmentSummary(appointment) {
-  const startTimeStr = SLOT_TIMES[appointment.slot_id] || "00:00";
-  const appointmentAt = `${appointment.appointment_date}T${startTimeStr}:00+07:00`;
+function isGeneralCounter(counterName) {
+  return (counterName || "").normalize("NFC").toLowerCase().includes(GENERAL_COUNTER_KEYWORD);
+}
+
+function normalizeAppointmentTime(value) {
+  if (typeof value !== "string") return null;
+
+  const trimmedValue = value.trim();
+  if (/^\d{2}:\d{2}$/.test(trimmedValue)) return trimmedValue;
+  if (/^\d{2}:\d{2}:\d{2}$/.test(trimmedValue)) return trimmedValue.slice(0, 5);
+
+  return null;
+}
+
+function getAppointmentStartTime(appointment) {
+  return normalizeAppointmentTime(appointment.appointment_time)
+    || normalizeAppointmentTime(appointment.slot_id)
+    || "00:00";
+}
+
+function buildAppointmentDateTime(date, timeValue) {
+  const startTimeStr = normalizeAppointmentTime(timeValue) || "00:00";
+  return `${date}T${startTimeStr}:00+07:00`;
+}
+
+async function getCounterInfo(supabase, counterId) {
+  const { data } = await supabase.from("counters").select("*").eq("id", counterId).single();
+  return data;
+}
+
+function toAppointmentSummary(appointment, counter) {
+  const startTimeStr = getAppointmentStartTime(appointment);
+  const appointmentAt = buildAppointmentDateTime(appointment.appointment_date, startTimeStr);
 
   return {
     id: appointment.id,
-    doctorName: appointment.doctor_name,
-    specialty: appointment.specialty,
+    counterName: counter?.name || "Quầy",
+    counterRoom: counter?.room || "Phòng",
     appointmentAt,
-    location: appointment.location,
     status: appointment.status,
     statusLabel: getStatusLabel(appointment.status),
     qrCodeUrl: appointment.qr_code || undefined,
@@ -62,15 +94,14 @@ router.get("/", async (req, res) => {
   const { status, upcoming } = req.query;
   let query = supabase
     .from("appointments")
-    .select("*")
+    .select("*, counters(*)")
     .eq("patient_id", req.user.id)
-    .order("appointment_date", { ascending: true });
+    .order("appointment_date", { ascending: true })
+    .order("slot_id", { ascending: true });
 
   if (status) query = query.eq("status", status);
   if (upcoming !== "false") {
-    const todayVN = new Date().toLocaleDateString("en-CA", {
-      timeZone: "Asia/Ho_Chi_Minh",
-    });
+    const todayVN = getTodayVN();
     query = query.gte("appointment_date", todayVN);
   }
 
@@ -82,25 +113,341 @@ router.get("/", async (req, res) => {
 
   return res.json({
     success: true,
-    appointments: (data || []).map(toAppointmentSummary),
+    appointments: (data || []).map((appt) => toAppointmentSummary(appt, appt.counters)),
+  });
+});
+
+// GET /api/appointments/history
+router.get("/history", async (req, res) => {
+  const supabase = supabaseClient.getSupabaseClient(req);
+  
+  const { data, error } = await supabase
+    .from("appointments")
+    .select("*, counters(*)")
+    .eq("patient_id", req.user.id)
+    .order("appointment_date", { ascending: false })
+    .order("slot_id", { ascending: false });
+
+  if (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+
+  return res.json({
+    success: true,
+    appointments: (data || []).map((appt) => toAppointmentSummary(appt, appt.counters)),
+  });
+});
+
+// GET /api/appointments/overview — Dashboard aggregate data
+router.get("/overview", async (req, res) => {
+  const supabase = supabaseClient.getSupabaseClient(req);
+  const patientId = req.user.id;
+
+  const todayVN = getTodayVN();
+
+  const { data: allAppointments, error } = await supabase
+    .from("appointments")
+    .select("*, counters(*)")
+    .eq("patient_id", patientId)
+    .order("appointment_date", { ascending: true })
+    .order("slot_id", { ascending: true });
+
+  if (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+
+  const appointments = allAppointments || [];
+
+  const upcoming = appointments.filter(
+    (a) =>
+      (a.status === "confirmed" || a.status === "checked-in") &&
+      a.appointment_date >= todayVN,
+  );
+
+  const completed = appointments.filter((a) => a.status === "completed");
+
+  const nextRaw = upcoming.find((a) => a.status === "confirmed") ?? null;
+  const nextAppointment = nextRaw ? toAppointmentSummary(nextRaw, nextRaw.counters) : null;
+
+  return res.json({
+    success: true,
+    overview: {
+      upcomingCount: upcoming.length,
+      completedCount: completed.length,
+      unreadResultsCount: 0,
+      billingOutstanding: 0,
+      nextAppointment,
+      recentResults: [],
+    },
+  });
+});
+
+// GET /api/appointments/:id
+router.get("/:id", async (req, res, next) => {
+  if (!UUID_REGEX.test(req.params.id)) {
+    return next();
+  }
+
+  const supabase = supabaseClient.getSupabaseClient(req);
+  const { data, error } = await supabase
+    .from("appointments")
+    .select("*, counters(*)")
+    .eq("id", req.params.id)
+    .eq("patient_id", req.user.id)
+    .single();
+
+  if (error || !data) {
+    return res
+      .status(404)
+      .json({ success: false, message: "Không tìm thấy lịch hẹn." });
+  }
+
+  return res.json({
+    success: true,
+    appointment: data,
+    summary: toAppointmentSummary(data, data.counters)
+  });
+});
+
+// POST /api/appointments
+router.post("/", async (req, res) => {
+  const supabase = supabaseClient.getSupabaseClient(req);
+  const { counterId, appointmentDate, slotId } = req.body || {};
+
+  if (!counterId || !appointmentDate || !slotId) {
+    return res.status(400).json({
+      success: false,
+      message: "Thiếu thông tin cần thiết.",
+    });
+  }
+
+  if (!UUID_REGEX.test(counterId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Mã quầy không hợp lệ.",
+    });
+  }
+
+  const parsedDate = dayjs(appointmentDate);
+  if (!parsedDate.isValid()) {
+    return res.status(400).json({
+      success: false,
+      message: "Định dạng ngày khám không hợp lệ.",
+    });
+  }
+
+  // Combine date + slot time into a full datetime in Vietnam timezone (+07:00)
+  const appointmentDateTime = dayjs(buildAppointmentDateTime(appointmentDate, slotId));
+
+  if (!appointmentDateTime.isValid()) {
+    return res.status(400).json({
+      success: false,
+      message: "Thời gian khám không hợp lệ.",
+    });
+  }
+
+  if (appointmentDateTime.isBefore(dayjs())) {
+    return res.status(400).json({
+      success: false,
+      message: "Thời gian khám không được ở trong quá khứ.",
+    });
+  }
+
+  const counter = await getCounterInfo(supabase, counterId);
+  if (!counter) {
+    return res.status(404).json({ success: false, message: "Không tìm thấy quầy." });
+  }
+
+  // Verify weekend rules
+  const dayOfWeek = dayjs(appointmentDate).day();
+  if (dayOfWeek === 0) {
+    return res.status(400).json({ success: false, message: "Bệnh viện không làm việc ngày Chủ nhật." });
+  }
+  if (dayOfWeek === 6 && !isGeneralCounter(counter.name)) {
+    return res.status(400).json({ success: false, message: "Thứ 7 chỉ mở cho Quầy Khám tổng quát." });
+  }
+
+  // Check duplicate booking for the SAME patient on the same day + slot
+  const { data: existingForPatient, error: checkPatientError } = await supabase
+    .from("appointments")
+    .select("id")
+    .eq("patient_id", req.user.id)
+    .eq("appointment_date", appointmentDate)
+    .eq("slot_id", slotId)
+    .neq("status", "cancelled");
+
+  if (checkPatientError) {
+    return res
+      .status(500)
+      .json({ success: false, message: checkPatientError.message });
+  }
+
+  if (existingForPatient && existingForPatient.length > 0) {
+    return res.status(409).json({
+      success: false,
+      message: "Bạn đã đặt lịch ở thời gian này rồi.",
+    });
+  }
+
+  // Check capacity
+  const { data: existingSlots, error: checkSlotsError } = await supabase
+    .from("appointments")
+    .select("id")
+    .eq("counter_id", counterId)
+    .eq("appointment_date", appointmentDate)
+    .eq("slot_id", slotId)
+    .neq("status", "cancelled");
+
+  if (checkSlotsError) {
+    return res.status(500).json({ success: false, message: checkSlotsError.message });
+  }
+
+  if (existingSlots && existingSlots.length >= CAPACITY_PER_SLOT) {
+    return res.status(409).json({
+      success: false,
+      message: "Slot này đã đầy. Vui lòng chọn giờ khác.",
+    });
+  }
+
+  const appointmentId = crypto.randomUUID();
+  const qrCode = cryptoHelper.encrypt(appointmentId);
+
+  const { data: createdAppointment, error: insertError } = await supabase
+    .from("appointments")
+    .insert([
+      {
+        id: appointmentId,
+        counter_id: counterId,
+        patient_id: req.user.id,
+        appointment_date: appointmentDate,
+        appointment_time: slotId, // store time here as well if needed
+        slot_id: slotId,
+        status: "confirmed",
+        qr_code: qrCode,
+      },
+    ])
+    .select()
+    .single();
+
+  if (insertError) {
+    return res.status(500).json({
+      success: false,
+      message: insertError.message || "Không thể tạo lịch hẹn.",
+    });
+  }
+
+  return res.status(201).json({
+    success: true,
+    message: "Đặt lịch thành công.",
+    appointment: toAppointmentSummary(createdAppointment, counter),
+  });
+});
+
+// DELETE /api/appointments/:id
+router.delete("/:id", async (req, res) => {
+  const supabase = supabaseClient.getSupabaseClient(req);
+  const { reason } = req.body || {};
+
+  const { data: appointment, error: fetchError } = await getOwnedAppointment(
+    supabase,
+    req.params.id,
+    req.user.id,
+    "*"
+  );
+
+  if (fetchError || !appointment) {
+    return res.status(404).json({ success: false, message: "Không tìm thấy lịch hẹn." });
+  }
+
+  if (appointment.status === "cancelled") {
+    return res.status(400).json({ success: false, message: "Lịch đã được hủy." });
+  }
+  if (appointment.status !== "confirmed") {
+    return res.status(400).json({ success: false, message: "Chỉ có thể hủy lịch hẹn ở trạng thái đã xác nhận." });
+  }
+
+  const startTimeStr = getAppointmentStartTime(appointment);
+  const appointmentDateTime = dayjs(buildAppointmentDateTime(appointment.appointment_date, startTimeStr));
+
+  if (appointmentDateTime.diff(dayjs(), "hour") < 24) {
+    return res.status(400).json({
+      success: false,
+      message: "Không thể hủy trong vòng 24h trước giờ khám.",
+    });
+  }
+
+  // Anti-spam: max 3 cancellations in 7 days
+  const sevenDaysAgo = dayjs().subtract(7, 'day').toISOString();
+  const { data: recentCancellations, error: countError } = await supabase
+    .from("cancellation_logs")
+    .select("id", { count: "exact" })
+    .eq("patient_id", req.user.id)
+    .gte("cancelled_at", sevenDaysAgo);
+
+  if (countError) {
+    return res.status(500).json({ success: false, message: countError.message });
+  }
+
+  if (recentCancellations && recentCancellations.length >= 3) {
+    return res.status(400).json({
+      success: false,
+      message: "Bạn đã hủy lịch tối đa 3 lần trong tuần. Không thể hủy thêm.",
+    });
+  }
+
+  const cancelledAt = new Date().toISOString();
+
+  // Transaction-like updates
+  const { error: updateError } = await supabase
+    .from("appointments")
+    .update({ 
+      status: "cancelled", 
+      cancelled_at: cancelledAt,
+      cancellation_reason: reason
+    })
+    .eq("id", req.params.id)
+    .eq("patient_id", req.user.id);
+
+  if (updateError) {
+    return res.status(500).json({ success: false, message: updateError.message });
+  }
+
+  // Log
+  await supabase.from("cancellation_logs").insert([
+    {
+      appointment_id: req.params.id,
+      patient_id: req.user.id,
+      reason: reason || "",
+      cancelled_by: req.user.id,
+      cancelled_at: cancelledAt,
+    }
+  ]);
+
+  return res.json({
+    success: true,
+    message: "Hủy lịch thành công.",
   });
 });
 
 // GET /api/appointments/latest-qr
 router.get("/latest-qr", async (req, res) => {
-  const supabase = supabaseClient.getSupabaseClient(req);
-  const todayVN = new Date().toLocaleDateString("en-CA", {
-    timeZone: "Asia/Ho_Chi_Minh",
+  res.set({
+    "Cache-Control": "no-store, no-cache, must-revalidate, private",
+    Pragma: "no-cache",
+    Expires: "0",
   });
+
+  const supabase = supabaseClient.getSupabaseClient(req);
+  const todayVN = getTodayVN();
 
   const { data, error } = await supabase
     .from("appointments")
-    .select("*")
+    .select("*, counters(*)")
     .eq("patient_id", req.user.id)
     .in("status", ["confirmed", "checked-in", "completed", "cancelled"])
     .gte("appointment_date", todayVN)
     .order("appointment_date", { ascending: true })
-    .order("appointment_time", { ascending: true })
+    .order("slot_id", { ascending: true })
     .limit(10);
 
   if (error) {
@@ -112,27 +459,21 @@ router.get("/latest-qr", async (req, res) => {
   }
 
   const nowDayjs = dayjs();
-  const appointment =
-    data.find((appt) => {
-      if (appt.status !== "confirmed") return false;
-      const slotTime = SLOT_TIMES[appt.slot_id] || appt.appointment_time || "00:00";
-      const apptAt = dayjs(`${appt.appointment_date}T${slotTime}:00+07:00`);
-      return nowDayjs.isBefore(apptAt);
-    }) || data[0];
-  const startTimeStr =
-    SLOT_TIMES[appointment.slot_id] || appointment.appointment_time || "00:00";
-  const appointmentAt = `${appointment.appointment_date}T${startTimeStr}:00+07:00`;
+  const appointment = data.find((appt) => {
+    if (appt.status !== "confirmed") return false;
+    const slotTime = getAppointmentStartTime(appt);
+    const apptAt = dayjs(buildAppointmentDateTime(appt.appointment_date, slotTime));
+    return nowDayjs.isBefore(apptAt);
+  }) || data[0];
 
-  // QR expires after the appointment time
+  const startTimeStr = getAppointmentStartTime(appointment);
+  const appointmentAt = buildAppointmentDateTime(appointment.appointment_date, startTimeStr);
   const expiresAt = appointmentAt;
 
   let status = "active";
   if (appointment.status === "cancelled") {
     status = "cancelled";
-  } else if (
-    appointment.status === "checked-in" ||
-    appointment.status === "completed"
-  ) {
+  } else if (appointment.status === "checked-in" || appointment.status === "completed") {
     status = "used";
   } else if (dayjs().isAfter(dayjs(expiresAt))) {
     status = "expired";
@@ -151,10 +492,9 @@ router.get("/latest-qr", async (req, res) => {
     expiresAt,
     status,
     statusLabel: statusLabels[status],
-    doctorName: appointment.doctor_name || "Bác sĩ",
-    specialty: appointment.specialty || "",
+    counterName: appointment.counters?.name || "Quầy",
+    counterRoom: appointment.counters?.room || "Phòng",
     appointmentAt,
-    location: appointment.location || "Phòng khám MedCare",
     appointmentStatus: appointment.status,
     appointmentStatusLabel: getStatusLabel(appointment.status),
   };
@@ -168,148 +508,67 @@ router.post("/verify-qr", async (req, res) => {
   const { value } = req.body || {};
 
   if (!value) {
-    return res.status(400).json({
-      success: false,
-      data: {
-        outcome: "invalid",
-        message: "Thiếu thông tin mã QR.",
-      },
-    });
+    return res.status(400).json({ success: false, data: { outcome: "invalid", message: "Thiếu thông tin mã QR." } });
   }
 
-  // Decrypt QR value to extract appointmentId
   const appointmentId = cryptoHelper.decrypt(value);
   if (!appointmentId) {
-    return res.json({
-      success: true,
-      data: {
-        outcome: "invalid",
-        message: "Mã QR không hợp lệ hoặc đã bị thay đổi.",
-      },
-    });
+    return res.json({ success: true, data: { outcome: "invalid", message: "Mã QR không hợp lệ hoặc đã bị thay đổi." } });
   }
 
-  // Validate UUID format before querying to avoid DB syntax errors
-  // caused by tampered QR codes decrypted with a mismatched key.
-  const UUID_REGEX =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!UUID_REGEX.test(appointmentId)) {
-    return res.json({
-      success: true,
-      data: {
-        outcome: "invalid",
-        message: "Mã QR không hợp lệ hoặc đã bị thay đổi.",
-      },
-    });
+    return res.json({ success: true, data: { outcome: "invalid", message: "Mã QR không hợp lệ hoặc đã bị thay đổi." } });
   }
 
-  // Fetch appointment by decrypted ID
   const { data: appointment, error } = await supabase
     .from("appointments")
-    .select("*")
+    .select("*, counters(*)")
     .eq("id", appointmentId)
     .single();
 
   if (error || !appointment) {
-    return res.json({
-      success: true,
-      data: {
-        outcome: "invalid",
-        message: "Không tìm thấy thông tin lịch hẹn khám.",
-      },
-    });
+    return res.json({ success: true, data: { outcome: "invalid", message: "Không tìm thấy thông tin lịch hẹn khám." } });
   }
 
-  // Check if already checked in or completed
-  if (
-    appointment.status === "checked-in" ||
-    appointment.status === "completed" ||
-    appointment.qr_scanned_at
-  ) {
+  if (appointment.status === "checked-in" || appointment.status === "completed" || appointment.qr_scanned_at) {
     return res.json({
       success: true,
       data: {
         outcome: "duplicate",
         message: "Mã QR này đã được sử dụng. Đã check-in rồi.",
         appointmentId: appointment.id,
-        doctorName: appointment.doctor_name,
-        specialty: appointment.specialty,
-        location: appointment.location,
-        appointmentAt: `${appointment.appointment_date}T${appointment.appointment_time || "00:00"}:00+07:00`,
+        counterName: appointment.counters?.name,
+        counterRoom: appointment.counters?.room,
+        appointmentAt: buildAppointmentDateTime(appointment.appointment_date, getAppointmentStartTime(appointment)),
         checkedInAt: appointment.qr_scanned_at || new Date().toISOString(),
       },
     });
   }
 
-  // Check if cancelled
   if (appointment.status === "cancelled") {
-    return res.json({
-      success: true,
-      data: {
-        outcome: "invalid",
-        message: "Lịch khám này đã bị hủy bỏ trước đó.",
-      },
-    });
+    return res.json({ success: true, data: { outcome: "invalid", message: "Lịch khám này đã bị hủy bỏ trước đó." } });
   }
 
-  // Check if expired (QR expires after the appointment time + 30 minutes grace period)
-  const expiresAt = `${appointment.appointment_date}T${appointment.appointment_time || "00:00"}:00+07:00`;
+  const expiresAt = buildAppointmentDateTime(appointment.appointment_date, getAppointmentStartTime(appointment));
   const gracePeriodMinutes = 30;
   if (dayjs().isAfter(dayjs(expiresAt).add(gracePeriodMinutes, "minute"))) {
-    return res.json({
-      success: true,
-      data: {
-        outcome: "expired",
-        message:
-          "Mã QR này đã quá thời hạn check-in (lịch hẹn đã quá giờ khám).",
-      },
-    });
+    return res.json({ success: true, data: { outcome: "expired", message: "Mã QR này đã quá thời hạn check-in." } });
   }
 
   const now = new Date().toISOString();
   const { data: updatedData, error: updateError } = await supabase
     .from("appointments")
-    .update({
-      status: "checked-in",
-      qr_scanned_at: now,
-      updated_at: now,
-    })
+    .update({ status: "checked-in", qr_scanned_at: now, updated_at: now })
     .eq("id", appointment.id)
     .eq("status", "confirmed")
     .select();
 
   if (updateError) {
-    return res.status(500).json({
-      success: false,
-      message: "Không thể cập nhật trạng thái check-in.",
-      detail: updateError.message,
-    });
+    return res.status(500).json({ success: false, message: "Không thể cập nhật trạng thái check-in.", detail: updateError.message });
   }
 
-  if (!updatedData || updatedData.length === 0) {
-    return res.json({
-      success: true,
-      data: {
-        outcome: "duplicate",
-        message: "Mã QR này đã được sử dụng. Đã check-in rồi.",
-        appointmentId: appointment.id,
-        doctorName: appointment.doctor_name,
-        specialty: appointment.specialty,
-        location: appointment.location,
-        appointmentAt: `${appointment.appointment_date}T${appointment.appointment_time || "00:00"}:00+07:00`,
-        checkedInAt: appointment.qr_scanned_at || now,
-      },
-    });
-  }
-
-  // Fetch patient name if profiles is accessible (or return default patient name)
   let patientName = "Bệnh nhân";
-  const { data: patientProfile } = await supabase
-    .from("profiles")
-    .select("full_name")
-    .eq("id", appointment.patient_id)
-    .single();
-
+  const { data: patientProfile } = await supabase.from("profiles").select("full_name").eq("id", appointment.patient_id).single();
   if (patientProfile) {
     patientName = patientProfile.full_name || "Bệnh nhân";
   }
@@ -318,271 +577,14 @@ router.post("/verify-qr", async (req, res) => {
     success: true,
     data: {
       outcome: "valid",
-      message:
-        "Xác thực mã QR thành công. Bệnh nhân đã được check-in vào phòng khám.",
+      message: "Xác thực mã QR thành công. Bệnh nhân đã được check-in vào phòng khám.",
       appointmentId: appointment.id,
       patientName,
-      doctorName: appointment.doctor_name,
-      specialty: appointment.specialty,
-      location: appointment.location,
-      appointmentAt: `${appointment.appointment_date}T${appointment.appointment_time || "00:00"}:00+07:00`,
+      counterName: appointment.counters?.name,
+      counterRoom: appointment.counters?.room,
+      appointmentAt: buildAppointmentDateTime(appointment.appointment_date, getAppointmentStartTime(appointment)),
       checkedInAt: now,
     },
-  });
-});
-
-// GET /api/appointments/overview — Dashboard aggregate data
-router.get("/overview", async (req, res) => {
-  const supabase = supabaseClient.getSupabaseClient(req);
-  const patientId = req.user.id;
-
-  const todayVN = new Date().toLocaleDateString("en-CA", {
-    timeZone: "Asia/Ho_Chi_Minh",
-  });
-
-  // Fetch all appointments for this patient
-  const { data: allAppointments, error } = await supabase
-    .from("appointments")
-    .select("*")
-    .eq("patient_id", patientId)
-    .order("appointment_date", { ascending: true })
-    .order("appointment_time", { ascending: true });
-
-  if (error) {
-    return res.status(500).json({ success: false, message: error.message });
-  }
-
-  const appointments = allAppointments || [];
-
-  // Upcoming = confirmed + today onwards
-  const upcoming = appointments.filter(
-    (a) =>
-      (a.status === "confirmed" || a.status === "checked-in") &&
-      a.appointment_date >= todayVN,
-  );
-
-  // Completed
-  const completed = appointments.filter((a) => a.status === "completed");
-
-  // Next appointment (soonest upcoming confirmed)
-  const nextRaw = upcoming.find((a) => a.status === "confirmed") ?? null;
-  const nextAppointment = nextRaw ? toAppointmentSummary(nextRaw) : null;
-
-  return res.json({
-    success: true,
-    overview: {
-      upcomingCount: upcoming.length,
-      completedCount: completed.length,
-      unreadResultsCount: 0, // extend when results feature is ready
-      billingOutstanding: 0, // extend when billing feature is ready
-      nextAppointment,
-      recentResults: [],
-    },
-  });
-});
-
-// GET /api/appointments/:id
-
-router.get("/:id", async (req, res) => {
-  const supabase = supabaseClient.getSupabaseClient(req);
-  const { data, error } = await getOwnedAppointment(
-    supabase,
-    req.params.id,
-    req.user.id,
-  );
-
-  if (error || !data) {
-    return res
-      .status(404)
-      .json({ success: false, message: "Khong tim thay lich hen." });
-  }
-
-  return res.json({
-    success: true,
-    appointment: data,
-  });
-});
-
-// POST /api/appointments
-router.post("/", async (req, res) => {
-  const supabase = supabaseClient.getSupabaseClient(req);
-  const { doctorId, appointmentDate, slotId, doctorName, specialty, location } =
-    req.body || {};
-
-  if (!doctorId || !appointmentDate || !slotId) {
-    return res.status(400).json({
-      success: false,
-      message: "Thieu thong tin can thiet.",
-    });
-  }
-
-  const parsedDate = dayjs(appointmentDate);
-  if (!parsedDate.isValid()) {
-    return res.status(400).json({
-      success: false,
-      message: "Định dạng ngày khám không hợp lệ.",
-    });
-  }
-
-  // Validate both appointment date and the slot start time (Vietnam timezone) so we
-  // block booking slots that are already in the past on the current day.
-  const startTimeStr = SLOT_TIMES[slotId];
-  if (!startTimeStr) {
-    return res.status(400).json({
-      success: false,
-      message: "Khung giờ khám không hợp lệ.",
-    });
-  }
-
-  // Combine date + slot time into a full datetime in Vietnam timezone (+07:00)
-  // and compare with the current time.
-  const appointmentDateTime = dayjs(
-    `${appointmentDate}T${startTimeStr}:00+07:00`,
-  );
-
-  if (!appointmentDateTime.isValid()) {
-    return res.status(400).json({
-      success: false,
-      message: "Thời gian khám không hợp lệ.",
-    });
-  }
-
-  if (appointmentDateTime.isBefore(dayjs())) {
-    return res.status(400).json({
-      success: false,
-      message: "Thời gian khám không được ở trong quá khứ.",
-    });
-  }
-
-  const { data: existing, error: checkError } = await supabase
-    .from("appointments")
-    .select("id")
-    .eq("doctor_id", doctorId)
-    .eq("appointment_date", appointmentDate)
-    .eq("slot_id", slotId)
-    .neq("status", "cancelled");
-
-  if (checkError) {
-    return res
-      .status(500)
-      .json({ success: false, message: checkError.message });
-  }
-
-  if (existing && existing.length > 0) {
-    return res.status(409).json({
-      success: false,
-      message: "Slot nay da duoc dat.",
-    });
-  }
-
-  const appointmentId = crypto.randomUUID();
-  const qrCode = cryptoHelper.encrypt(appointmentId);
-
-  const { data: createdAppointment, error: insertError } = await supabase
-    .from("appointments")
-    .insert([
-      {
-        id: appointmentId,
-        doctor_id: doctorId,
-        patient_id: req.user.id,
-        appointment_date: appointmentDate,
-        appointment_time: startTimeStr,
-        slot_id: slotId,
-        doctor_name: doctorName,
-        specialty,
-        location,
-        status: "confirmed",
-        qr_code: qrCode,
-      },
-    ])
-    .select()
-    .single();
-
-  if (insertError) {
-    if (insertError.code === "23505") {
-      return res.status(409).json({
-        success: false,
-        message: "Slot này đã được đặt. Vui lòng chọn giờ khác.",
-      });
-    }
-    return res.status(500).json({
-      success: false,
-      message: insertError.message || "Khong the tao lich hen.",
-    });
-  }
-
-  if (!createdAppointment) {
-    return res
-      .status(500)
-      .json({ success: false, message: "Khong the tao lich hen." });
-  }
-
-  return res.status(201).json({
-    success: true,
-    message: "Dat lich thanh cong.",
-    appointment: toAppointmentSummary(createdAppointment),
-  });
-});
-
-// DELETE /api/appointments/:id
-router.delete("/:id", async (req, res) => {
-  const supabase = supabaseClient.getSupabaseClient(req);
-  const { data: appointment, error: fetchError } = await getOwnedAppointment(
-    supabase,
-    req.params.id,
-    req.user.id,
-    "appointment_date, status, slot_id",
-  );
-
-  if (fetchError || !appointment) {
-    return res.status(404).json({
-      success: false,
-      message: "Khong tim thay lich hen.",
-    });
-  }
-
-  if (appointment.status === "cancelled") {
-    return res.status(400).json({
-      success: false,
-      message: "Lich da duoc huy.",
-    });
-  }
-  if (appointment.status !== "confirmed") {
-    return res.status(400).json({
-      success: false,
-      message: "Chỉ có thể hủy lịch hẹn ở trạng thái đã xác nhận.",
-    });
-  }
-
-  const startTimeStr = SLOT_TIMES[appointment.slot_id] || "00:00";
-  // Parse using Vietnam timezone offset to avoid server-local timezone drift (e.g. UTC on cloud).
-  const appointmentDateTime = dayjs(
-    `${appointment.appointment_date}T${startTimeStr}:00+07:00`,
-  );
-
-  if (appointmentDateTime.diff(dayjs(), "hour") < 24) {
-    return res.status(400).json({
-      success: false,
-      message: "Khong the huy trong vong 24h truoc gio kham.",
-    });
-  }
-
-  const { error: updateError } = await supabase
-    .from("appointments")
-    .update({ status: "cancelled" })
-    .eq("id", req.params.id)
-    .eq("patient_id", req.user.id);
-
-  if (updateError) {
-    return res.status(500).json({
-      success: false,
-      message: updateError.message,
-    });
-  }
-
-  return res.json({
-    success: true,
-    message: "Huy lich thanh cong.",
   });
 });
 
