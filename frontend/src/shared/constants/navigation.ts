@@ -5,10 +5,10 @@ import {
   FileText,
   LayoutDashboard,
   QrCode,
-  ReceiptText,
 } from "lucide-react";
 
 import { APP_ROUTES } from "./routes";
+
 
 export type NavigationItem = {
   title: string;
@@ -48,10 +48,5 @@ export const navigationItems: NavigationItem[] = [
     href: APP_ROUTES.results,
     icon: FileText,
   },
-  {
-    title: "Hóa đơn",
-    description: "Chi phí và PDF hóa đơn",
-    href: APP_ROUTES.invoices,
-    icon: ReceiptText,
-  },
 ];
+

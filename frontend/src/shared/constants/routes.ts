@@ -6,6 +6,6 @@ export const APP_ROUTES = {
   appointmentHistory: "/appointments/history",
   qr: "/qr-check-in",
   results: "/results",
-  invoices: "/invoices",
   forbidden: "/forbidden",
 } as const;
+

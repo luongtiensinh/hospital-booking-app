@@ -46,11 +46,6 @@ const MedicalResultsPage = lazy(() =>
     default: module.MedicalResultsPage,
   })),
 );
-const InvoicesPage = lazy(() =>
-  import("@/features/invoice/pages/invoices-page").then((module) => ({
-    default: module.InvoicesPage,
-  })),
-);
 
 function withSuspense(page: React.ReactNode) {
   return (
@@ -121,11 +116,8 @@ export const router = createBrowserRouter([
         path: APP_ROUTES.results.slice(1),
         element: withSuspense(<MedicalResultsPage />),
       },
-      {
-        path: APP_ROUTES.invoices.slice(1),
-        element: withSuspense(<InvoicesPage />),
-      },
     ],
+
   },
   {
     path: "*",
