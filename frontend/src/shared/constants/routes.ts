@@ -8,4 +8,3 @@ export const APP_ROUTES = {
   results: "/results",
   forbidden: "/forbidden",
 } as const;
-

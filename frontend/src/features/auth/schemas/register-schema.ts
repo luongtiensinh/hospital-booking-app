@@ -4,13 +4,16 @@ export const registerSchema = z
   .object({
     fullName: z
       .string()
-      .min(2, "Vui lòng nhập họ tên.")
+      .min(2, "Vui lòng nhập họ tên (ít nhất 2 ký tự).")
       .max(80, "Họ tên quá dài."),
-    email: z.email("Vui lòng nhập email hợp lệ."),
     phoneNumber: z
       .string()
-      .min(10, "Số điện thoại cần tối thiểu 10 số.")
-      .max(15, "Số điện thoại không hợp lệ."),
+      .min(1, "Số điện thoại không được để trống.")
+      .regex(/^[0-9]{9,11}$/, "Số điện thoại không hợp lệ (9–11 chữ số)."),
+    cccd: z
+      .string()
+      .min(1, "Số CCCD không được để trống.")
+      .regex(/^[0-9]{12}$/, "Số CCCD phải đúng 12 chữ số."),
     password: z
       .string()
       .min(8, "Mật khẩu cần tối thiểu 8 ký tự.")

@@ -16,13 +16,26 @@ type ApiResponse<T> = {
 
 export const authApi = {
   async login(payload: LoginPayload): Promise<AuthSession> {
-    const { data } = await httpClient.post<ApiResponse<{}>>("/auth/login", payload);
+    // payload.identifier -> SĐT hoặc CCCD
+    const { data } = await httpClient.post<ApiResponse<{}>>(
+      "/auth/login",
+      payload,
+    );
     if (!data.session) throw new Error(data.message || "Login failed.");
     return data.session;
   },
 
   async register(payload: RegisterPayload): Promise<AuthSession | null> {
-    const { data } = await httpClient.post<ApiResponse<{}>>("/auth/register", payload);
+    // payload: { fullName, phoneNumber, cccd, password } — không có email
+    const { data } = await httpClient.post<ApiResponse<{}>>(
+      "/auth/register",
+      {
+        fullname: payload.fullName,
+        phone: payload.phoneNumber,
+        cccd: payload.cccd,
+        password: payload.password,
+      },
+    );
     return data.session ?? null;
   },
 
@@ -44,4 +57,3 @@ export const authApi = {
     return data.user;
   },
 };
-

@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { resultService } from "../services/result-service";
 import { useState } from "react";
-import { toast } from "sonner"; // Giả định project dùng sonner như trong vendor
+import { toast } from "sonner";
+import { resultService } from "../services/result-service";
 
 export function useResults() {
   return useQuery({
-    queryKey: ["medical-results"],
+    queryKey: ["results"],
     queryFn: () => resultService.getPatientResults(),
   });
 }

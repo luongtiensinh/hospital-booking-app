@@ -1,10 +1,22 @@
-import { QrCode, ShieldCheck } from "lucide-react";
+import { QrCode, ScanLine, ShieldCheck } from "lucide-react";
 import { useCallback } from "react";
 
-import { Alert, Grid, Group, Stack, Text } from "@mantine/core";
+import {
+  Alert,
+  Badge,
+  Box,
+  Card,
+  Grid,
+  Group,
+  Skeleton,
+  Stack,
+  Text,
+  ThemeIcon,
+} from "@mantine/core";
 
 import { PageContainer } from "@/app/layouts/page-container";
 import { PageHeader } from "@/app/layouts/page-header";
+import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
 import { PatientQrCard } from "@/features/qr/components/patient-qr-card";
 import { QrScannerPanel } from "@/features/qr/components/qr-scanner-panel";
 import { QrVerifyResultCard } from "@/features/qr/components/qr-verify-result-card";
@@ -13,21 +25,125 @@ import { useQrScanSession } from "@/features/qr/hooks/use-qr-scan-session";
 import { useQrScanner } from "@/features/qr/hooks/use-qr-scanner";
 import { useVerifyQr } from "@/features/qr/hooks/use-verify-qr";
 import { EmptyState } from "@/shared/components/feedback/empty-state";
-import { Skeleton } from "@mantine/core";
 
 const scannerElementId = "qr-checkin-scanner";
 
-export function QrCheckInPage() {
+// ---------------------------------------------------------------
+// Patient view — chỉ hiển thị mã QR của bệnh nhân
+// ---------------------------------------------------------------
+function PatientQrView() {
   const latestQrQuery = useLatestPatientQr();
+
+  return (
+    <>
+      <PageHeader
+        description="Xuất trình mã QR này cho nhân viên tại quầy để check-in lịch khám."
+        eyebrow="Mã QR của tôi"
+        title="QR Check-in lịch khám"
+      />
+
+      {latestQrQuery.isError && (
+        <Alert color="yellow" radius="md" variant="light" mb="lg">
+          Không thể tải mã QR. Vui lòng thử lại.
+        </Alert>
+      )}
+
+      <Grid>
+        <Grid.Col span={{ base: 12, sm: 8, md: 6, xl: 5 }}>
+          {latestQrQuery.isLoading ? (
+            <Skeleton height={440} radius="xl" />
+          ) : latestQrQuery.data ? (
+            <PatientQrCard
+              isRefreshing={latestQrQuery.isFetching}
+              onRefresh={() => void latestQrQuery.refetch()}
+              qr={latestQrQuery.data}
+            />
+          ) : (
+            <EmptyState
+              description="Khi có lịch khám đã xác nhận, mã QR check-in sẽ được tạo và hiển thị tại đây."
+              icon={QrCode}
+              title="Chưa có QR khả dụng"
+            />
+          )}
+        </Grid.Col>
+
+        {/* Hướng dẫn sử dụng */}
+        <Grid.Col span={{ base: 12, sm: 4, md: 6, xl: 7 }}>
+          <Card withBorder radius="xl" p="xl" h="100%">
+            <Stack gap="lg">
+              <Group gap="sm">
+                <ThemeIcon color="blue" size={40} radius="xl" variant="light">
+                  <QrCode size={18} />
+                </ThemeIcon>
+                <Box>
+                  <Text fw={700} size="md" c="dark.8">
+                    Hướng dẫn check-in
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    Quy trình 3 bước đơn giản
+                  </Text>
+                </Box>
+              </Group>
+
+              {[
+                {
+                  step: "01",
+                  title: "Đặt lịch khám",
+                  desc: "Đặt lịch trước trên hệ thống và chờ xác nhận.",
+                  color: "blue",
+                },
+                {
+                  step: "02",
+                  title: "Lưu mã QR",
+                  desc: "Mã QR tự động sinh sau khi lịch được xác nhận.",
+                  color: "teal",
+                },
+                {
+                  step: "03",
+                  title: "Check-in tại quầy",
+                  desc: "Xuất trình mã cho nhân viên để hoàn tất check-in.",
+                  color: "green",
+                },
+              ].map(({ step, title, desc, color }) => (
+                <Group key={step} gap="md" align="flex-start">
+                  <Badge
+                    color={color}
+                    variant="light"
+                    size="lg"
+                    radius="md"
+                    style={{ minWidth: 36, fontWeight: 800 }}
+                  >
+                    {step}
+                  </Badge>
+                  <Box>
+                    <Text fw={700} size="sm" c="dark.8">
+                      {title}
+                    </Text>
+                    <Text size="xs" c="dimmed">
+                      {desc}
+                    </Text>
+                  </Box>
+                </Group>
+              ))}
+            </Stack>
+          </Card>
+        </Grid.Col>
+      </Grid>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------
+// Staff view (doctor / admin) — chỉ hiển thị màn hình quét QR
+// ---------------------------------------------------------------
+function StaffQrScanView() {
   const verifyQrMutation = useVerifyQr();
   const { permission, status, lastProcessedValue, lastResult, resetScanState } =
     useQrScanSession();
 
   const handleDetected = useCallback(
     (value: string) => {
-      if (value === lastProcessedValue) {
-        return;
-      }
+      if (value === lastProcessedValue) return;
       verifyQrMutation.mutate({ value });
     },
     [lastProcessedValue, verifyQrMutation],
@@ -45,68 +161,35 @@ export function QrCheckInPage() {
   }, [resetScanState, startScanner, verifyQrMutation]);
 
   return (
-    <PageContainer>
+    <>
       <PageHeader
-        description=""
-        eyebrow="QR Check-in"
-        title="QR và scan camera"
+        description="Scan mã QR của bệnh nhân để xác nhận check-in lịch hẹn."
+        eyebrow="Nhân viên · Check-in"
+        title="Quét QR bệnh nhân"
       />
 
-      {(latestQrQuery.isError || verifyQrMutation.isError) && (
-        <Alert color="yellow" radius="md" variant="light">
-          QR module không thể tải hoặc verify dữ liệu. Bạn có thể retry để tiếp
-          tục.
+      {verifyQrMutation.isError && (
+        <Alert color="yellow" radius="md" variant="light" mb="lg">
+          Không thể xác minh mã QR. Vui lòng thử lại.
         </Alert>
       )}
 
       <Grid>
-        {/* QR Card */}
-        <Grid.Col span={{ base: 12, xl: 5 }}>
-          <Stack gap="xs">
-            <Group gap="sm">
-              <QrCode size={18} color="var(--mantine-color-blue-6)" />
-              <div>
-                <Text fw={700} size="md" c="dark.8">
-                  QR dashboard bệnh nhân
-                </Text>
-                <Text size="xs" c="dimmed">
-                  Hiển thị QR gần nhất, lịch khám sắp tới và trạng thái
-                  appointment.
-                </Text>
-              </div>
-            </Group>
-
-            {latestQrQuery.isLoading ? (
-              <Skeleton height={420} radius="lg" />
-            ) : latestQrQuery.data ? (
-              <PatientQrCard
-                isRefreshing={latestQrQuery.isFetching}
-                onRefresh={() => void latestQrQuery.refetch()}
-                qr={latestQrQuery.data}
-              />
-            ) : (
-              <EmptyState
-                description="Khi có lịch khám đã xác nhận, QR check-in gần nhất sẽ được hiển thị tại đây."
-                icon={QrCode}
-                title="Chưa có QR khả dụng"
-              />
-            )}
-          </Stack>
-        </Grid.Col>
-
         {/* Scanner */}
-        <Grid.Col span={{ base: 12, xl: 4 }}>
-          <Stack gap="xs">
+        <Grid.Col span={{ base: 12, md: 7, xl: 6 }}>
+          <Stack gap="sm">
             <Group gap="sm">
-              <ShieldCheck size={18} color="var(--mantine-color-blue-6)" />
-              <div>
+              <ThemeIcon color="blue" size={36} radius="xl" variant="light">
+                <ScanLine size={18} />
+              </ThemeIcon>
+              <Box>
                 <Text fw={700} size="md" c="dark.8">
-                  Scan QR
+                  Camera scan
                 </Text>
                 <Text size="xs" c="dimmed">
-                  Hỗ trợ camera permission, loading state và verify duplicate.
+                  Hướng camera vào mã QR của bệnh nhân
                 </Text>
-              </div>
+              </Box>
             </Group>
             <QrScannerPanel
               containerId={scannerElementId}
@@ -120,19 +203,20 @@ export function QrCheckInPage() {
         </Grid.Col>
 
         {/* Verify result */}
-        <Grid.Col span={{ base: 12, xl: 3 }}>
-          <Stack gap="xs">
+        <Grid.Col span={{ base: 12, md: 5, xl: 6 }}>
+          <Stack gap="sm">
             <Group gap="sm">
-              <ShieldCheck size={18} color="var(--mantine-color-blue-6)" />
-              <div>
+              <ThemeIcon color="teal" size={36} radius="xl" variant="light">
+                <ShieldCheck size={18} />
+              </ThemeIcon>
+              <Box>
                 <Text fw={700} size="md" c="dark.8">
-                  Verify status
+                  Kết quả xác nhận
                 </Text>
                 <Text size="xs" c="dimmed">
-                  Toast, retry button và fallback UI cho invalid hoặc duplicate
-                  QR.
+                  Trạng thái check-in và thông tin bệnh nhân
                 </Text>
-              </div>
+              </Box>
             </Group>
             <QrVerifyResultCard
               onRetry={handleRetry}
@@ -142,6 +226,24 @@ export function QrCheckInPage() {
           </Stack>
         </Grid.Col>
       </Grid>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------
+// Page router — phân nhánh theo role
+// ---------------------------------------------------------------
+export function QrCheckInPage() {
+  const { role } = useAuthSession();
+
+  return (
+    <PageContainer>
+      {role === "patient" || !role ? (
+        <PatientQrView />
+      ) : (
+        // doctor + admin → màn hình quét QR
+        <StaffQrScanView />
+      )}
     </PageContainer>
   );
 }
