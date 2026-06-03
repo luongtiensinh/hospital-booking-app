@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const supabase = require("../utils/supabaseClient");
+const supabaseClient = require("../utils/supabaseClient");
 const requireAuth = require("../middleware/requireAuth");
 const requireRole = require("../middleware/requireRole");
 
@@ -14,6 +14,7 @@ router.use(requireAuth);
 // ---------------------------------------------------------------
 router.get("/", async (req, res) => {
   try {
+    const supabase = supabaseClient.getSupabaseClient(req);
     const { role, id: userId } = req.user;
 
     let selectQuery = `
@@ -68,6 +69,7 @@ router.get(
   requireRole(["doctor", "admin"]),
   async (req, res) => {
     try {
+      const supabase = supabaseClient.getSupabaseClient(req);
       const { role, id: userId } = req.user;
 
       let query = supabase
@@ -112,6 +114,7 @@ router.get(
 // ---------------------------------------------------------------
 router.post("/", requireRole(["doctor", "admin"]), async (req, res) => {
   try {
+    const supabase = supabaseClient.getSupabaseClient(req);
     const { id: userId, role } = req.user;
     const { appointmentId, diagnosis, result, indicators } = req.body || {};
 
@@ -126,13 +129,40 @@ router.post("/", requireRole(["doctor", "admin"]), async (req, res) => {
         .json({ success: false, message: "Thiếu chẩn đoán (diagnosis)." });
     }
 
+    // Kiểm tra lịch hẹn tồn tại và trạng thái hợp lệ
+    const { data: appointment, error: apptError } = await supabase
+      .from("appointments")
+      .select("status")
+      .eq("id", appointmentId)
+      .single();
+
+    if (apptError || !appointment) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy lịch hẹn." });
+    }
+
+    if (appointment.status === "cancelled") {
+      return res.status(400).json({
+        success: false,
+        message: "Không thể nhập kết quả cho lịch hẹn đã hủy.",
+      });
+    }
+
+    if (appointment.status === "completed") {
+      return res.status(400).json({
+        success: false,
+        message: "Lịch hẹn này đã hoàn thành và có kết quả.",
+      });
+    }
+
     // Lưu kết quả
     const { data: newResult, error: insertError } = await supabase
       .from("test_results")
       .insert([
         {
           appointment_id: appointmentId,
-          diagnosis: diagnosis.trim(),
+          diagnosis: String(diagnosis).trim(),
           result: result || null,
         },
       ])

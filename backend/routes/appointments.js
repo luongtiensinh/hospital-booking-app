@@ -493,7 +493,7 @@ router.delete("/:id", async (req, res) => {
   await supabase.from("cancellation_logs").insert([
     {
       appointment_id: req.params.id,
-      patient_id: req.user.id,
+      patient_id: appointment.patient_id,
       reason: reason || "",
       cancelled_by: req.user.id,
       cancelled_at: cancelledAt,

@@ -104,12 +104,11 @@ function EnterResultModal({
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: () =>
-      resultApi.createResult({
-        appointmentId: appointment!.id,
-        diagnosis,
-        result,
-      }),
+    mutationFn: (payload: {
+      appointmentId: string;
+      diagnosis: string;
+      result: string;
+    }) => resultApi.createResult(payload),
     onSuccess: () => {
       toast.success("Đã lưu kết quả khám thành công.");
       queryClient.invalidateQueries({ queryKey: ["results"] });
@@ -185,7 +184,13 @@ function EnterResultModal({
             leftSection={<Save size={14} />}
             loading={mutation.isPending}
             disabled={!diagnosis.trim()}
-            onClick={() => mutation.mutate()}
+            onClick={() =>
+              mutation.mutate({
+                appointmentId: appointment!.id,
+                diagnosis,
+                result,
+              })
+            }
           >
             Lưu kết quả
           </Button>
