@@ -1,13 +1,4 @@
-import {
-  Anchor,
-  Badge,
-  Box,
-  Button,
-  Card,
-  Group,
-  Stack,
-  Text,
-} from "@mantine/core";
+import { Badge, Box, Button, Card, Group, Stack, Text } from "@mantine/core";
 import { FileDown } from "lucide-react";
 
 import { formatDate } from "@/shared/utils/formatters";

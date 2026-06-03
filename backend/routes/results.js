@@ -9,7 +9,7 @@ router.use(requireAuth);
 // ---------------------------------------------------------------
 // GET /api/results
 // - patient:  chỉ lấy kết quả lịch hẹn của mình
-// - doctor:   chỉ lấy kết quả lịch hẹn của bác sĩ đó
+// - doctor:   lấy toàn bộ kết quả (giống admin) để tiếp đón & nhập chẩn đoán
 // - admin:    lấy toàn bộ
 // ---------------------------------------------------------------
 router.get("/", async (req, res) => {
@@ -38,7 +38,6 @@ router.get("/", async (req, res) => {
       .order("created_at", { ascending: false });
 
     if (role === "patient") {
-      // Chỉ trả về kết quả cho lịch hẹn của patient hiện tại
       query = query.eq("appointments.patient_id", userId);
     }
     // admin: không thêm filter → lấy tất cả

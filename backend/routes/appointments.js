@@ -113,7 +113,7 @@ router.get("/", async (req, res) => {
     .order("appointment_date", { ascending: true })
     .order("slot_id", { ascending: true });
 
-  if (role === "patient") {
+  if (role !== "admin") {
     query = query.eq("patient_id", userId);
   }
   // admin: không filter → lấy toàn bộ
@@ -149,7 +149,7 @@ router.get("/history", async (req, res) => {
     .order("appointment_date", { ascending: false })
     .order("slot_id", { ascending: false });
 
-  if (role === "patient") {
+  if (role !== "admin") {
     query = query.eq("patient_id", userId);
   }
   // admin: không filter
