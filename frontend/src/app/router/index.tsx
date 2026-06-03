@@ -116,6 +116,17 @@ export const router = createBrowserRouter([
         path: APP_ROUTES.results.slice(1),
         element: withSuspense(<MedicalResultsPage />),
       },
+      {
+        path: "/doctor/enter-results",
+        element: withSuspense(
+          <ProtectedRoute allowedRoles={["doctor", "admin"]}>
+            {require("@/features/result/pages/doctor-enter-results-page").default()}
+          </ProtectedRoute>
+        ),
+      },
+
+
+
     ],
 
   },
