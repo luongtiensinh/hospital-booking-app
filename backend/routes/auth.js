@@ -83,11 +83,9 @@ router.post("/register", async (req, res, next) => {
       return res.status(400).json({ success: false, errors });
     }
 
-    // --- Kiểm tra trùng lặp SĐT hoặc CCCD trong profiles ---
+    // --- Kiểm tra trùng lặp SĐT hoặc CCCD trong profiles thông qua RPC SECURITY DEFINER để tránh RLS ---
     const { data: existingProfiles, error: checkError } = await supabase
-      .from("profiles")
-      .select("id, phone, cccd")
-      .or(`phone.eq.${phoneStr},cccd.eq.${cccdStr}`);
+      .rpc("check_existing_profiles", { phone_val: phoneStr, cccd_val: cccdStr });
 
     if (checkError) {
       return res
@@ -199,12 +197,9 @@ router.post("/login", async (req, res, next) => {
       });
     }
 
-    // --- Tìm profile bằng SĐT hoặc CCCD ---
+    // --- Tìm profile bằng SĐT hoặc CCCD thông qua RPC SECURITY DEFINER để tránh RLS ---
     const { data: profiles, error: profileError } = await supabase
-      .from("profiles")
-      .select("id, fullname, phone, cccd, role, avatar_url")
-      .or(`phone.eq.${identifierStr},cccd.eq.${identifierStr}`)
-      .limit(1);
+      .rpc("find_profile_by_identifier", { identifier: identifierStr });
 
     if (profileError) {
       return res
@@ -280,8 +275,12 @@ router.post("/refresh", async (req, res, next) => {
       });
     }
 
-    // Lấy lại profile để cập nhật role mới nhất
-    const { data: profile } = await supabase
+    // Lấy lại profile để cập nhật role mới nhất (sử dụng client tạm thời được xác thực bằng access token mới để vượt qua RLS)
+    const userClient = supabase.createAuthenticatedClient(
+      data.session.access_token,
+    );
+
+    const { data: profile } = await userClient
       .from("profiles")
       .select("id, fullname, phone, cccd, role, avatar_url")
       .eq("id", data.user.id)
