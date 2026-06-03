@@ -183,10 +183,10 @@ function EnterResultModal({
             radius="md"
             leftSection={<Save size={14} />}
             loading={mutation.isPending}
-            disabled={!diagnosis.trim()}
+            disabled={!diagnosis.trim() || !appointment}
             onClick={() =>
               mutation.mutate({
-                appointmentId: appointment!.id,
+                appointmentId: appointment?.id ?? "",
                 diagnosis,
                 result,
               })
