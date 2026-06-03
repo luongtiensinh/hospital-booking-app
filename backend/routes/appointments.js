@@ -443,24 +443,26 @@ router.delete("/:id", async (req, res) => {
   }
 
   // Anti-spam: max 3 cancellations in 7 days
-  const sevenDaysAgo = dayjs().subtract(7, "day").toISOString();
-  const { data: recentCancellations, error: countError } = await supabase
-    .from("cancellation_logs")
-    .select("id", { count: "exact" })
-    .eq("patient_id", req.user.id)
-    .gte("cancelled_at", sevenDaysAgo);
+  if (role !== "admin") {
+    const sevenDaysAgo = dayjs().subtract(7, "day").toISOString();
+    const { data: recentCancellations, error: countError } = await supabase
+      .from("cancellation_logs")
+      .select("id", { count: "exact" })
+      .eq("patient_id", req.user.id)
+      .gte("cancelled_at", sevenDaysAgo);
 
-  if (countError) {
-    return res
-      .status(500)
-      .json({ success: false, message: countError.message });
-  }
+    if (countError) {
+      return res
+        .status(500)
+        .json({ success: false, message: countError.message });
+    }
 
-  if (recentCancellations && recentCancellations.length >= 3) {
-    return res.status(400).json({
-      success: false,
-      message: "Bạn đã hủy lịch tối đa 3 lần trong tuần. Không thể hủy thêm.",
-    });
+    if (recentCancellations && recentCancellations.length >= 3) {
+      return res.status(400).json({
+        success: false,
+        message: "Bạn đã hủy lịch tối đa 3 lần trong tuần. Không thể hủy thêm.",
+      });
+    }
   }
 
   const cancelledAt = new Date().toISOString();

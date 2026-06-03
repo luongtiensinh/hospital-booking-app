@@ -1,4 +1,5 @@
 const supabase = require("../utils/supabaseClient");
+const { createAuthenticatedClient } = supabase;
 
 function getBearerToken(authorizationHeader) {
   if (!authorizationHeader) return null;
@@ -41,8 +42,8 @@ async function requireAuth(req, res, next) {
       });
     }
 
-    // Lấy thông tin profile thực tế từ bảng public.profiles (bao gồm role)
-    const { data: profile, error: profileError } = await supabase
+    const authedSupabase = createAuthenticatedClient(token);
+    const { data: profile, error: profileError } = await authedSupabase
       .from("profiles")
       .select("id, fullname, phone, role, cccd, avatar_url")
       .eq("id", data.user.id)
@@ -59,7 +60,6 @@ async function requireAuth(req, res, next) {
       });
     }
 
-    // Gắn thông tin profile vào req.user để các route sử dụng
     req.user = {
       id: data.user.id,
       email: data.user.email,
