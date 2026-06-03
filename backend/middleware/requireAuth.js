@@ -41,8 +41,18 @@ async function requireAuth(req, res, next) {
 
     req.user = data.user;
     req.accessToken = token;
+
+    // Fetch user role from profiles table
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', req.user.id)
+      .single();
+
+    req.user.role = profile?.role || 'patient';
+
     return next();
-  } catch {
+  } catch (err) {
     return res.status(401).json({
       success: false,
       message: 'Token không hợp lệ hoặc đã hết hạn.',

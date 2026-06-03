@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const supabaseClient = require("../utils/supabaseClient");
 const cryptoHelper = require("../utils/crypto");
 const requireAuth = require("../middleware/requireAuth");
+const requireRole = require("../middleware/requireRole");
 
 dayjs.extend(utc);
 
@@ -79,13 +80,19 @@ function toAppointmentSummary(appointment, counter) {
   };
 }
 
-async function getOwnedAppointment(supabase, id, patientId, columns = "*") {
-  return supabase
+async function getOwnedAppointment(supabase, id, user, columns = "*") {
+  let query = supabase
     .from("appointments")
     .select(columns)
-    .eq("id", id)
-    .eq("patient_id", patientId)
-    .single();
+    .eq("id", id);
+
+  if (user.role === 'patient') {
+    query = query.eq("patient_id", user.id);
+  } else if (user.role === 'doctor') {
+    query = query.eq("doctor_id", user.id);
+  }
+  
+  return query.single();
 }
 
 // GET /api/appointments?status=...&upcoming=true
@@ -95,9 +102,14 @@ router.get("/", async (req, res) => {
   let query = supabase
     .from("appointments")
     .select("*, counters(*)")
-    .eq("patient_id", req.user.id)
     .order("appointment_date", { ascending: true })
     .order("slot_id", { ascending: true });
+
+  if (req.user.role === 'patient') {
+    query = query.eq("patient_id", req.user.id);
+  } else if (req.user.role === 'doctor') {
+    query = query.eq("doctor_id", req.user.id);
+  }
 
   if (status) query = query.eq("status", status);
   if (upcoming !== "false") {
@@ -121,12 +133,19 @@ router.get("/", async (req, res) => {
 router.get("/history", async (req, res) => {
   const supabase = supabaseClient.getSupabaseClient(req);
   
-  const { data, error } = await supabase
+  let query = supabase
     .from("appointments")
     .select("*, counters(*)")
-    .eq("patient_id", req.user.id)
     .order("appointment_date", { ascending: false })
     .order("slot_id", { ascending: false });
+
+  if (req.user.role === 'patient') {
+    query = query.eq("patient_id", req.user.id);
+  } else if (req.user.role === 'doctor') {
+    query = query.eq("doctor_id", req.user.id);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -145,12 +164,19 @@ router.get("/overview", async (req, res) => {
 
   const todayVN = getTodayVN();
 
-  const { data: allAppointments, error } = await supabase
+  let query = supabase
     .from("appointments")
     .select("*, counters(*)")
-    .eq("patient_id", patientId)
     .order("appointment_date", { ascending: true })
     .order("slot_id", { ascending: true });
+
+  if (req.user.role === 'patient') {
+    query = query.eq("patient_id", patientId);
+  } else if (req.user.role === 'doctor') {
+    query = query.eq("doctor_id", req.user.id);
+  }
+
+  const { data: allAppointments, error } = await query;
 
   if (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -189,12 +215,18 @@ router.get("/:id", async (req, res, next) => {
   }
 
   const supabase = supabaseClient.getSupabaseClient(req);
-  const { data, error } = await supabase
+  let query = supabase
     .from("appointments")
     .select("*, counters(*)")
-    .eq("id", req.params.id)
-    .eq("patient_id", req.user.id)
-    .single();
+    .eq("id", req.params.id);
+
+  if (req.user.role === 'patient') {
+    query = query.eq("patient_id", req.user.id);
+  } else if (req.user.role === 'doctor') {
+    query = query.eq("doctor_id", req.user.id);
+  }
+
+  const { data, error } = await query.single();
 
   if (error || !data) {
     return res
@@ -351,7 +383,7 @@ router.delete("/:id", async (req, res) => {
   const { data: appointment, error: fetchError } = await getOwnedAppointment(
     supabase,
     req.params.id,
-    req.user.id,
+    req.user,
     "*"
   );
 
@@ -381,7 +413,7 @@ router.delete("/:id", async (req, res) => {
   const { data: recentCancellations, error: countError } = await supabase
     .from("cancellation_logs")
     .select("id", { count: "exact" })
-    .eq("patient_id", req.user.id)
+    .eq("patient_id", appointment.patient_id)
     .gte("cancelled_at", sevenDaysAgo);
 
   if (countError) {
@@ -405,8 +437,7 @@ router.delete("/:id", async (req, res) => {
       cancelled_at: cancelledAt,
       cancellation_reason: reason
     })
-    .eq("id", req.params.id)
-    .eq("patient_id", req.user.id);
+    .eq("id", req.params.id);
 
   if (updateError) {
     return res.status(500).json({ success: false, message: updateError.message });
@@ -440,15 +471,22 @@ router.get("/latest-qr", async (req, res) => {
   const supabase = supabaseClient.getSupabaseClient(req);
   const todayVN = getTodayVN();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("appointments")
     .select("*, counters(*)")
-    .eq("patient_id", req.user.id)
     .in("status", ["confirmed", "checked-in", "completed", "cancelled"])
     .gte("appointment_date", todayVN)
     .order("appointment_date", { ascending: true })
     .order("slot_id", { ascending: true })
     .limit(10);
+
+  if (req.user.role === 'patient') {
+    query = query.eq("patient_id", req.user.id);
+  } else if (req.user.role === 'doctor') {
+    query = query.eq("doctor_id", req.user.id);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -503,7 +541,7 @@ router.get("/latest-qr", async (req, res) => {
 });
 
 // POST /api/appointments/verify-qr
-router.post("/verify-qr", async (req, res) => {
+router.post("/verify-qr", requireRole(['admin', 'receptionist']), async (req, res) => {
   const supabase = supabaseClient.getSupabaseClient(req);
   const { value } = req.body || {};
 

@@ -3,24 +3,32 @@ const router = express.Router();
 const supabase = require("../utils/supabaseClient");
 const requireAuth = require("../middleware/requireAuth");
 
-function toAuthUser(supabaseUser) {
+async function toAuthUser(supabaseUser) {
   const metadata = supabaseUser?.user_metadata || {};
+  let role = "patient";
+  if (supabaseUser?.id) {
+    const { data } = await supabase.from('profiles').select('role').eq('id', supabaseUser.id).single();
+    if (data?.role) {
+      role = data.role;
+    }
+  }
+
   return {
     id: supabaseUser.id,
     fullName: metadata.fullname || metadata.fullName || "",
     email: supabaseUser.email || "",
     phoneNumber: metadata.phone || metadata.phoneNumber || "",
-    role: "patient",
+    role: role,
     avatarUrl: metadata.avatarUrl ?? null,
   };
 }
 
-function toAuthSession(authData) {
+async function toAuthSession(authData) {
   if (!authData?.session || !authData?.user) return null;
   return {
     accessToken: authData.session.access_token,
     refreshToken: authData.session.refresh_token,
-    user: toAuthUser(authData.user),
+    user: await toAuthUser(authData.user),
   };
 }
 
@@ -95,7 +103,7 @@ router.post("/register", async (req, res, next) => {
         .json({ success: false, message: authError.message });
     }
 
-    const session = toAuthSession(authData);
+    const session = await toAuthSession(authData);
     return res.status(201).json({
       success: true,
       message: "Đăng ký thành công!",
@@ -136,7 +144,7 @@ router.post("/login", async (req, res, next) => {
       });
     }
 
-    const session = toAuthSession(authData);
+    const session = await toAuthSession(authData);
     if (!session) {
       return res
         .status(500)
@@ -180,7 +188,7 @@ router.post("/refresh", async (req, res, next) => {
       session: {
         accessToken: data.session.access_token,
         refreshToken: data.session.refresh_token,
-        user: toAuthUser(data.user),
+        user: await toAuthUser(data.user),
       },
     });
   } catch (err) {
@@ -190,7 +198,12 @@ router.post("/refresh", async (req, res, next) => {
 
 // GET /api/auth/profile
 router.get("/profile", requireAuth, async (req, res) => {
-  return res.json({ success: true, user: toAuthUser(req.user) });
+  // Use req.user.role if set by requireAuth middleware
+  const user = await toAuthUser(req.user);
+  if (req.user.role) {
+    user.role = req.user.role;
+  }
+  return res.json({ success: true, user });
 });
 
 // POST /api/auth/logout

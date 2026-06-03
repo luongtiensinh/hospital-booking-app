@@ -29,13 +29,17 @@ const doctorsRouter = require('./routes/doctors');
 const appointmentsRouter = require('./routes/appointments');
 const calendarRouter = require('./routes/calendar');
 const countersRouter = require('./routes/counters');
+const medicalResultsRouter = require('./routes/medical-results');
 
 app.use('/api/auth', authRouter);
+
 app.use('/api/doctors', doctorsRouter);
 app.use('/api/appointments', appointmentsRouter);
 app.use('/api/calendar', calendarRouter);
 app.use('/api/counters', countersRouter);
+app.use('/api/medical-results', medicalResultsRouter);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server đang chạy tại http://localhost:${PORT}`));
 
+setInterval(() => {}, 1000 * 60 * 60);
