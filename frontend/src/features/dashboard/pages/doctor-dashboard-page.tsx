@@ -38,8 +38,6 @@ type AppointmentForDoctor = {
   appointment_time: string | null;
   slot_id: string;
   status: string;
-  doctor_name: string | null;
-  specialty: string | null;
   notes: string | null;
   profiles: {
     fullname: string;
@@ -55,7 +53,7 @@ const STATUS_CONFIG: Record<
   { label: string; color: string; icon: React.ElementType }
 > = {
   confirmed: { label: "Đã xác nhận", color: "blue", icon: CalendarClock },
-  checked_in: { label: "Đã check-in", color: "teal", icon: CheckCircle2 },
+  "checked-in": { label: "Đã check-in", color: "teal", icon: CheckCircle2 },
   completed: { label: "Đã khám", color: "green", icon: CheckCircle2 },
   cancelled: { label: "Đã hủy", color: "red", icon: Clock },
 };
@@ -188,7 +186,7 @@ export function DoctorDashboardPage() {
   );
 
   const checkedIn = todayAppointments.filter(
-    (a) => a.status === "checked_in",
+    (a) => a.status === "checked-in",
   ).length;
   const completed = todayAppointments.filter(
     (a) => a.status === "completed",

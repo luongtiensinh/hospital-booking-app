@@ -115,17 +115,6 @@ router.get("/", async (req, res) => {
 
   if (role === "patient") {
     query = query.eq("patient_id", userId);
-  } else if (role === "doctor") {
-    // Bác sĩ chỉ xem lịch hẹn mà họ được phân công
-    const { data: doctorRecord } = await supabase
-      .from("doctors")
-      .select("id")
-      .eq("user_id", userId)
-      .single();
-    if (!doctorRecord) {
-      return res.json({ success: true, appointments: [] });
-    }
-    query = query.eq("doctor_id", doctorRecord.id);
   }
   // admin: không filter → lấy toàn bộ
 
@@ -162,16 +151,6 @@ router.get("/history", async (req, res) => {
 
   if (role === "patient") {
     query = query.eq("patient_id", userId);
-  } else if (role === "doctor") {
-    const { data: doctorRecord } = await supabase
-      .from("doctors")
-      .select("id")
-      .eq("user_id", userId)
-      .single();
-    if (!doctorRecord) {
-      return res.json({ success: true, appointments: [] });
-    }
-    query = query.eq("doctor_id", doctorRecord.id);
   }
   // admin: không filter
 
@@ -318,20 +297,16 @@ router.post("/", async (req, res) => {
   // Verify weekend rules
   const dayOfWeek = dayjs(appointmentDate).day();
   if (dayOfWeek === 0) {
-    return res
-      .status(400)
-      .json({
-        success: false,
-        message: "Bệnh viện không làm việc ngày Chủ nhật.",
-      });
+    return res.status(400).json({
+      success: false,
+      message: "Bệnh viện không làm việc ngày Chủ nhật.",
+    });
   }
   if (dayOfWeek === 6 && !isGeneralCounter(counter.name)) {
-    return res
-      .status(400)
-      .json({
-        success: false,
-        message: "Thứ 7 chỉ mở cho Quầy Khám tổng quát.",
-      });
+    return res.status(400).json({
+      success: false,
+      message: "Thứ 7 chỉ mở cho Quầy Khám tổng quát.",
+    });
   }
 
   // Check duplicate booking for the SAME patient on the same day + slot
@@ -449,12 +424,10 @@ router.delete("/:id", async (req, res) => {
       .json({ success: false, message: "Lịch đã được hủy." });
   }
   if (appointment.status !== "confirmed") {
-    return res
-      .status(400)
-      .json({
-        success: false,
-        message: "Chỉ có thể hủy lịch hẹn ở trạng thái đã xác nhận.",
-      });
+    return res.status(400).json({
+      success: false,
+      message: "Chỉ có thể hủy lịch hẹn ở trạng thái đã xác nhận.",
+    });
   }
 
   const startTimeStr = getAppointmentStartTime(appointment);
@@ -619,12 +592,10 @@ router.post("/verify-qr", async (req, res) => {
   const { value } = req.body || {};
 
   if (!value) {
-    return res
-      .status(400)
-      .json({
-        success: false,
-        data: { outcome: "invalid", message: "Thiếu thông tin mã QR." },
-      });
+    return res.status(400).json({
+      success: false,
+      data: { outcome: "invalid", message: "Thiếu thông tin mã QR." },
+    });
   }
 
   const appointmentId = cryptoHelper.decrypt(value);
@@ -720,13 +691,11 @@ router.post("/verify-qr", async (req, res) => {
     .select();
 
   if (updateError) {
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: "Không thể cập nhật trạng thái check-in.",
-        detail: updateError.message,
-      });
+    return res.status(500).json({
+      success: false,
+      message: "Không thể cập nhật trạng thái check-in.",
+      detail: updateError.message,
+    });
   }
 
   let patientName = "Bệnh nhân";

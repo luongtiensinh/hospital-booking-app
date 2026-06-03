@@ -57,7 +57,6 @@ function PatientResultCard({ result }: { result: BackendResult }) {
   const date = result.appointments?.appointment_date
     ? dayjs(result.appointments.appointment_date).format("DD/MM/YYYY")
     : "—";
-  const doctor = result.appointments?.doctor_name ?? "Bác sĩ";
 
   return (
     <Card withBorder radius="lg" p="md" style={{ borderColor: "var(--mantine-color-gray-2)" }}>
@@ -71,7 +70,7 @@ function PatientResultCard({ result }: { result: BackendResult }) {
               {result.diagnosis ?? "Chẩn đoán chưa có"}
             </Text>
             <Text size="xs" c="dimmed">
-              {date} · BS. {doctor}
+              {date}
             </Text>
           </Box>
         </Group>
@@ -208,11 +207,11 @@ function DoctorAppointmentRow({
 }) {
   const STATUS_LABEL: Record<string, { label: string; color: string }> = {
     confirmed: { label: "Đã xác nhận", color: "blue" },
-    checked_in: { label: "Đã check-in", color: "teal" },
+    "checked-in": { label: "Đã check-in", color: "teal" },
     completed: { label: "Đã khám", color: "green" },
   };
   const badge = STATUS_LABEL[appt.status] ?? { label: appt.status, color: "gray" };
-  const canEnterResult = appt.status === "checked_in" || appt.status === "confirmed";
+  const canEnterResult = appt.status === "checked-in" || appt.status === "confirmed";
 
   return (
     <Group

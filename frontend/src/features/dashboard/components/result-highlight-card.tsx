@@ -1,4 +1,13 @@
-import { Anchor, Badge, Box, Button, Card, Group, Stack, Text } from "@mantine/core";
+import {
+  Anchor,
+  Badge,
+  Box,
+  Button,
+  Card,
+  Group,
+  Stack,
+  Text,
+} from "@mantine/core";
 import { FileDown } from "lucide-react";
 
 import { formatDate } from "@/shared/utils/formatters";
@@ -25,8 +34,9 @@ export function ResultHighlightCard({ item }: ResultHighlightCardProps) {
       <Stack gap="sm">
         <Group justify="space-between" align="flex-start" wrap="nowrap">
           <Box>
-            <Text fw={600} size="sm" c="dark.8">{item.examName}</Text>
-            <Text size="xs" c="dimmed">Bác sĩ {item.doctorName}</Text>
+            <Text fw={600} size="sm" c="dark.8">
+              {item.examName}
+            </Text>
           </Box>
           <Badge
             color={statusColorMap[item.status] ?? "blue"}
@@ -39,7 +49,9 @@ export function ResultHighlightCard({ item }: ResultHighlightCardProps) {
           </Badge>
         </Group>
 
-        <Text size="xs" c="dimmed" lh={1.6}>{item.summary}</Text>
+        <Text size="xs" c="dimmed" lh={1.6}>
+          {item.summary}
+        </Text>
 
         <Group justify="space-between" align="center">
           <Text
@@ -53,7 +65,7 @@ export function ResultHighlightCard({ item }: ResultHighlightCardProps) {
           </Text>
           {item.pdfUrl ? (
             <Button
-              component={Anchor}
+              component="a"
               href={item.pdfUrl}
               target="_blank"
               rel="noreferrer"

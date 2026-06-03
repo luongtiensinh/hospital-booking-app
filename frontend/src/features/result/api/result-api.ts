@@ -8,13 +8,10 @@ export type BackendResult = {
   created_at: string;
   updated_at: string;
   appointment_id: string;
-  doctor_id: string | null;
   appointments: {
     id: string;
     patient_id: string;
     appointment_date: string;
-    doctor_name: string | null;
-    specialty: string | null;
     status: string;
   } | null;
 };
@@ -26,8 +23,6 @@ export type DoctorAppointment = {
   appointment_time: string | null;
   slot_id: string;
   status: string;
-  doctor_name: string | null;
-  specialty: string | null;
   notes: string | null;
   profiles: { fullname: string; phone: string } | null;
 };

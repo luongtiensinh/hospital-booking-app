@@ -12,15 +12,13 @@ type SideNavProps = {
 export function SideNav({ compact = false, onNavigate }: SideNavProps) {
   const { role } = useAuthSession();
 
-  // Lọc nav items theo role của user
   const visibleItems = navigationItems.filter((item) => {
-    if (!item.roles) return true; // không khai báo roles → hiển thị cho tất cả
+    if (!item.roles) return true;
     if (!role) return false;
     return item.roles.includes(role);
   });
 
   if (compact) {
-    // Mobile bottom nav — icon + short text label
     return (
       <Box
         component="nav"
@@ -47,7 +45,7 @@ export function SideNav({ compact = false, onNavigate }: SideNavProps) {
   // Desktop sidebar — full items
   return (
     <Box component="nav">
-      <Stack gap={2}>
+      <Stack gap={8}>
         {visibleItems.map((item) => (
           <FullNavItem
             key={item.href + item.title}
@@ -70,7 +68,7 @@ function FullNavItem({
   item: (typeof navigationItems)[0];
   onNavigate?: () => void;
 }) {
-  const isActive = !!useMatch({ path: item.href, end: item.href === "/" });
+  const isActive = !!useMatch({ path: item.href, end: true });
   const Icon = item.icon;
 
   return (
@@ -116,7 +114,7 @@ function CompactNavItem({
   item: (typeof navigationItems)[0];
   onNavigate?: () => void;
 }) {
-  const isActive = !!useMatch({ path: item.href, end: item.href === "/" });
+  const isActive = !!useMatch({ path: item.href, end: true });
   const Icon = item.icon;
 
   return (

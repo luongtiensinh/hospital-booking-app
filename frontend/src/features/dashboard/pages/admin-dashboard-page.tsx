@@ -38,8 +38,6 @@ type Appointment = {
   appointment_date: string;
   slot_id: string;
   status: string;
-  doctor_name: string | null;
-  specialty: string | null;
   profiles?: { fullname: string; phone: string } | null;
 };
 
@@ -126,7 +124,7 @@ function AdminStatCard({
 
 const STATUS_BADGE: Record<string, { label: string; color: string }> = {
   confirmed: { label: "Đã xác nhận", color: "blue" },
-  checked_in: { label: "Đã check-in", color: "teal" },
+  "checked-in": { label: "Đã check-in", color: "teal" },
   completed: { label: "Đã khám", color: "green" },
   cancelled: { label: "Đã hủy", color: "red" },
 };
@@ -260,7 +258,6 @@ export function AdminDashboardPage() {
                 <Table.Thead>
                   <Table.Tr>
                     <Table.Th>Bệnh nhân</Table.Th>
-                    <Table.Th>Bác sĩ</Table.Th>
                     <Table.Th>Ngày khám</Table.Th>
                     <Table.Th>Giờ</Table.Th>
                     <Table.Th>Trạng thái</Table.Th>
@@ -291,14 +288,7 @@ export function AdminDashboardPage() {
                             </Box>
                           </Group>
                         </Table.Td>
-                        <Table.Td>
-                          <Text size="sm">{appt.doctor_name ?? "—"}</Text>
-                          {appt.specialty && (
-                            <Text size="xs" c="dimmed">
-                              {appt.specialty}
-                            </Text>
-                          )}
-                        </Table.Td>
+
                         <Table.Td>
                           <Text size="sm">
                             {dayjs(appt.appointment_date).format("DD/MM/YYYY")}

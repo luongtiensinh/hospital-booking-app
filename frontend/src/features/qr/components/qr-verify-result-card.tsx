@@ -127,16 +127,16 @@ export function QrVerifyResultCard({
                   <Text size="xs" fw={700}>{result.patientName ?? "--"}</Text>
                 </Group>
                 <Group justify="space-between">
-                  <Text size="xs" c="dimmed">Bác sĩ:</Text>
-                  <Text size="xs" fw={700}>{result.doctorName ?? "--"}</Text>
-                </Group>
-                <Group justify="space-between">
                   <Text size="xs" c="dimmed">Thời gian hẹn:</Text>
                   <Text size="xs" fw={700}>{formatDateTime(result.appointmentAt)}</Text>
                 </Group>
                 <Group justify="space-between">
-                  <Text size="xs" c="dimmed">Phòng khám:</Text>
-                  <Text size="xs" fw={700}>{result.location ?? "--"}</Text>
+                  <Text size="xs" c="dimmed">Quầy & Phòng:</Text>
+                  <Text size="xs" fw={700}>
+                    {result.counterName && result.counterRoom
+                      ? `${result.counterName} (${result.counterRoom})`
+                      : "--"}
+                  </Text>
                 </Group>
                 {result.checkedInAt ? (
                   <Group justify="space-between">

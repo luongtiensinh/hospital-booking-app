@@ -84,8 +84,10 @@ router.post("/register", async (req, res, next) => {
     }
 
     // --- Kiểm tra trùng lặp SĐT hoặc CCCD trong profiles thông qua RPC SECURITY DEFINER để tránh RLS ---
-    const { data: existingProfiles, error: checkError } = await supabase
-      .rpc("check_existing_profiles", { phone_val: phoneStr, cccd_val: cccdStr });
+    const { data: existingProfiles, error: checkError } = await supabase.rpc(
+      "check_existing_profiles",
+      { phone_val: phoneStr, cccd_val: cccdStr },
+    );
 
     if (checkError) {
       return res
@@ -143,7 +145,7 @@ router.post("/register", async (req, res, next) => {
 
     // --- Đảm bảo cccd được lưu vào bảng profiles ngay lập tức ---
     if (authData?.user?.id) {
-      await supabase
+      const { error: profileError } = await supabase
         .from("profiles")
         .upsert({
           id: authData.user.id,
@@ -153,6 +155,24 @@ router.post("/register", async (req, res, next) => {
           role: "patient",
         })
         .eq("id", authData.user.id);
+
+      if (profileError) {
+        console.error("Lỗi khi tạo profile cho user mới:", profileError);
+        try {
+          if (supabase.auth.admin) {
+            await supabase.auth.admin.deleteUser(authData.user.id);
+          }
+        } catch (delErr) {
+          console.error(
+            "Không thể xóa user auth sau khi tạo profile thất bại:",
+            delErr,
+          );
+        }
+        return res.status(500).json({
+          success: false,
+          message: "Lỗi tạo hồ sơ người dùng: " + profileError.message,
+        });
+      }
     }
 
     // Lấy profile vừa tạo để trả về session
@@ -198,8 +218,10 @@ router.post("/login", async (req, res, next) => {
     }
 
     // --- Tìm profile bằng SĐT hoặc CCCD thông qua RPC SECURITY DEFINER để tránh RLS ---
-    const { data: profiles, error: profileError } = await supabase
-      .rpc("find_profile_by_identifier", { identifier: identifierStr });
+    const { data: profiles, error: profileError } = await supabase.rpc(
+      "find_profile_by_identifier",
+      { identifier: identifierStr },
+    );
 
     if (profileError) {
       return res
