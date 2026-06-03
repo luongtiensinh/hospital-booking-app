@@ -143,37 +143,8 @@ router.post("/register", async (req, res, next) => {
         .json({ success: false, message: authError.message });
     }
 
-    // --- Đảm bảo cccd được lưu vào bảng profiles ngay lập tức ---
-    if (authData?.user?.id) {
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .upsert({
-          id: authData.user.id,
-          fullname: fullnameStr,
-          phone: phoneStr,
-          cccd: cccdStr,
-          role: "patient",
-        })
-        .eq("id", authData.user.id);
-
-      if (profileError) {
-        console.error("Lỗi khi tạo profile cho user mới:", profileError);
-        try {
-          if (supabase.auth.admin) {
-            await supabase.auth.admin.deleteUser(authData.user.id);
-          }
-        } catch (delErr) {
-          console.error(
-            "Không thể xóa user auth sau khi tạo profile thất bại:",
-            delErr,
-          );
-        }
-        return res.status(500).json({
-          success: false,
-          message: "Lỗi tạo hồ sơ người dùng: " + profileError.message,
-        });
-      }
-    }
+    // Profile được tạo tự động bởi trigger `on_auth_user_created` → handle_new_user()
+    // trên database (SECURITY DEFINER) khi signUp thành công — không cần upsert ở đây.
 
     // Lấy profile vừa tạo để trả về session
     const profile = {
