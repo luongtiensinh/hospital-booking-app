@@ -183,16 +183,23 @@ router.post("/", requireRole(["doctor", "admin"]), async (req, res) => {
 
     if (updateError) {
       console.error(
-        `[POST /results] Lưu kết quả OK nhưng cập nhật trạng thái lịch hẹn ${appointmentId} thất bại:`,
+        `[POST /results] Cập nhật trạng thái lịch hẹn ${appointmentId} thất bại, đang rollback kết quả...`,
         updateError.message,
       );
+
+      await supabase.from("test_results").delete().eq("id", newResult.id);
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Không thể cập nhật trạng thái lịch hẹn. Kết quả chưa được lưu, vui lòng thử lại.",
+      });
     }
 
     return res.status(201).json({
       success: true,
       message: "Đã lưu kết quả khám thành công.",
       result: newResult,
-      appointmentUpdated: !updateError,
     });
   } catch (err) {
     console.error("[POST /results]", err);
