@@ -703,11 +703,11 @@ router.post("/verify-qr", async (req, res) => {
   let patientName = "Bệnh nhân";
   const { data: patientProfile } = await supabase
     .from("profiles")
-    .select("full_name")
+    .select("fullname")
     .eq("id", appointment.patient_id)
     .single();
   if (patientProfile) {
-    patientName = patientProfile.full_name || "Bệnh nhân";
+    patientName = patientProfile.fullname || "Bệnh nhân";
   }
 
   return res.json({
