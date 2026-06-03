@@ -13,8 +13,8 @@ export function RegisterForm() {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       fullName: "",
-      email: "",
       phoneNumber: "",
+      cccd: "",
       password: "",
       confirmPassword: "",
     },
@@ -40,25 +40,29 @@ export function RegisterForm() {
         />
 
         <TextInput
-          id="email"
-          label="Email"
-          placeholder="benhnhan@medcare.vn"
-          type="email"
-          size="md"
-          radius="md"
-          error={form.formState.errors.email?.message}
-          {...form.register("email")}
-        />
-
-        <TextInput
           id="phoneNumber"
           label="Số điện thoại"
           placeholder="09xxxxxxxx"
           type="tel"
           size="md"
           radius="md"
+          description="Dùng để đăng nhập vào hệ thống"
           error={form.formState.errors.phoneNumber?.message}
           {...form.register("phoneNumber")}
+        />
+
+        <TextInput
+          id="cccd"
+          label="Số căn cước công dân (CCCD)"
+          placeholder="0xxxxxxxxxx (12 chữ số)"
+          type="text"
+          inputMode="numeric"
+          maxLength={12}
+          size="md"
+          radius="md"
+          description="Dùng để xác thực danh tính và có thể đăng nhập"
+          error={form.formState.errors.cccd?.message}
+          {...form.register("cccd")}
         />
 
         <PasswordInput

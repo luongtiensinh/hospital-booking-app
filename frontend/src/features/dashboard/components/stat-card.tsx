@@ -6,7 +6,7 @@ type StatCardProps = {
   icon: LucideIcon;
   label: string;
   value: string;
-  helper: string;
+  helper?: string;
 };
 
 export function StatCard({ icon: Icon, label, value, helper }: StatCardProps) {
@@ -34,7 +34,9 @@ export function StatCard({ icon: Icon, label, value, helper }: StatCardProps) {
           </Text>
         </Box>
 
-        <Text size="xs" c="dimmed" lh={1.5}>{helper}</Text>
+        {helper && (
+          <Text size="xs" c="dimmed" lh={1.5}>{helper}</Text>
+        )}
       </Stack>
     </Card>
   );

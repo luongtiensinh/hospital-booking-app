@@ -82,7 +82,7 @@ export function PatientDashboardPage() {
       </SimpleGrid>
 
       {/* Main content grid */}
-      <Grid gutter="md">
+      <Grid>
         {/* Next appointment */}
         <Grid.Col span={{ base: 12, xl: 5 }}>
           {isLoading ? (

@@ -11,6 +11,7 @@ import { RouterErrorPage } from "@/pages/router-error-page";
 
 import { GuestRoute, ProtectedRoute } from "./route-guards";
 
+// ---------- Auth Pages ----------
 const LoginPage = lazy(() =>
   import("@/features/auth/pages/login-page").then((module) => ({
     default: module.LoginPage,
@@ -21,11 +22,15 @@ const RegisterPage = lazy(() =>
     default: module.RegisterPage,
   })),
 );
-const PatientDashboardPage = lazy(() =>
-  import("@/features/dashboard/pages/patient-dashboard-page").then((module) => ({
-    default: module.PatientDashboardPage,
+
+// ---------- Dashboard Pages (role-based) ----------
+const DashboardPage = lazy(() =>
+  import("@/features/dashboard/pages/dashboard-page").then((module) => ({
+    default: module.DashboardPage,
   })),
 );
+
+// ---------- Patient Pages ----------
 const AppointmentsPage = lazy(() =>
   import("@/features/appointment/pages/appointments-page").then((module) => ({
     default: module.AppointmentsPage,
@@ -36,6 +41,8 @@ const AppointmentHistoryPage = lazy(() =>
     default: module.AppointmentHistoryPage,
   })),
 );
+
+// ---------- Shared Pages ----------
 const QrCheckInPage = lazy(() =>
   import("@/features/qr/pages/qr-check-in-page").then((module) => ({
     default: module.QrCheckInPage,
@@ -98,26 +105,38 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: withSuspense(<PatientDashboardPage />),
+        // Dashboard tự xác định giao diện theo role bên trong
+        element: withSuspense(<DashboardPage />),
       },
       {
+        // Chỉ patient được vào trang đặt lịch
         path: APP_ROUTES.appointments.slice(1),
-        element: withSuspense(<AppointmentsPage />),
+        element: (
+          <ProtectedRoute allowedRoles={["patient"]}>
+            {withSuspense(<AppointmentsPage />)}
+          </ProtectedRoute>
+        ),
       },
       {
+        // Patient xem lịch sử cá nhân; admin xem toàn bộ hệ thống
         path: APP_ROUTES.appointmentHistory.slice(1),
-        element: withSuspense(<AppointmentHistoryPage />),
+        element: (
+          <ProtectedRoute allowedRoles={["patient", "admin"]}>
+            {withSuspense(<AppointmentHistoryPage />)}
+          </ProtectedRoute>
+        ),
       },
       {
+        // QR Check-in: tất cả role đều truy cập được (nội dung khác nhau)
         path: APP_ROUTES.qr.slice(1),
         element: withSuspense(<QrCheckInPage />),
       },
       {
+        // Kết quả: tất cả role đều truy cập (nội dung khác nhau theo role)
         path: APP_ROUTES.results.slice(1),
         element: withSuspense(<MedicalResultsPage />),
       },
     ],
-
   },
   {
     path: "*",

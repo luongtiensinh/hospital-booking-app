@@ -6,10 +6,9 @@ export type LatestAppointmentQr = {
   expiresAt: string;
   status: "active" | "used" | "expired" | "cancelled";
   statusLabel: string;
-  doctorName: string;
-  specialty: string;
+  counterName: string;
+  counterRoom: string;
   appointmentAt: string;
-  location: string;
   appointmentStatus: AppointmentStatus;
   appointmentStatusLabel: string;
 };
@@ -25,9 +24,8 @@ export type VerifyQrResponse = {
   message: string;
   appointmentId?: string;
   patientName?: string;
-  doctorName?: string;
-  specialty?: string;
-  location?: string;
+  counterName?: string;
+  counterRoom?: string;
   appointmentAt?: string;
   checkedInAt?: string;
 };

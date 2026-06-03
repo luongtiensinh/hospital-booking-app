@@ -177,10 +177,10 @@ export function PatientQrCard({
                     </ThemeIcon>
                     <div>
                       <Text size="xs" fw={500} c="dimmed">
-                        Bác sĩ & Địa điểm
+                        Địa điểm tiếp nhận
                       </Text>
                       <Text size="xs" fw={700} className="line-clamp-1">
-                        {qr.doctorName} • {qr.specialty} • {qr.location}
+                        {qr.counterName} • {qr.counterRoom}
                       </Text>
                     </div>
                   </Group>
@@ -242,10 +242,10 @@ export function PatientQrCard({
 
           <Stack gap="xs" align="center" className="text-center">
             <Text fw={700} size="md" c="blue.9">
-              {qr.doctorName}
+              {qr.counterName}
             </Text>
             <Text size="xs" c="dimmed" fw={500}>
-              {qr.specialty} • {qr.location}
+              {qr.counterRoom}
             </Text>
             <Badge
               color={appStatusColorMap[qr.appointmentStatus] || "blue"}
