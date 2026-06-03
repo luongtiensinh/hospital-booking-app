@@ -146,15 +146,23 @@ router.post("/", requireRole(["doctor", "admin"]), async (req, res) => {
     }
 
     // Cập nhật trạng thái lịch hẹn → completed
-    await supabase
+    const { error: updateError } = await supabase
       .from("appointments")
       .update({ status: "completed", updated_at: new Date().toISOString() })
       .eq("id", appointmentId);
+
+    if (updateError) {
+      console.error(
+        `[POST /results] Lưu kết quả OK nhưng cập nhật trạng thái lịch hẹn ${appointmentId} thất bại:`,
+        updateError.message,
+      );
+    }
 
     return res.status(201).json({
       success: true,
       message: "Đã lưu kết quả khám thành công.",
       result: newResult,
+      appointmentUpdated: !updateError,
     });
   } catch (err) {
     console.error("[POST /results]", err);

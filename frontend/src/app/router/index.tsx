@@ -118,10 +118,10 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        // Chỉ patient được vào lịch sử đặt lịch cá nhân
+        // Patient xem lịch sử cá nhân; admin xem toàn bộ hệ thống
         path: APP_ROUTES.appointmentHistory.slice(1),
         element: (
-          <ProtectedRoute allowedRoles={["patient"]}>
+          <ProtectedRoute allowedRoles={["patient", "admin"]}>
             {withSuspense(<AppointmentHistoryPage />)}
           </ProtectedRoute>
         ),
