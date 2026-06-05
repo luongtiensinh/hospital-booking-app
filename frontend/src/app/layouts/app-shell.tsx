@@ -2,10 +2,9 @@ import { AppShell, Box, ScrollArea, Stack, Text } from "@mantine/core";
 import { Outlet } from "react-router-dom";
 
 import { AppHeader } from "@/app/layouts/app-header";
-import { LogoMark } from "@/app/layouts/logo-mark";
 import { SideNav } from "@/app/layouts/side-nav";
+import { HospitalLogo } from "@/shared/ui/hospital-logo";
 
-// Bottom nav height (bao gồm icon + label + safe-area)
 const BOTTOM_NAV_HEIGHT = 68;
 
 export function AppShellLayout() {
@@ -15,7 +14,6 @@ export function AppShellLayout() {
       navbar={{
         width: 260,
         breakpoint: "lg",
-        // Trên mobile: sidebar luôn ẩn — điều hướng qua bottom nav
         collapsed: { mobile: true },
       }}
       padding={0}
@@ -31,7 +29,6 @@ export function AppShellLayout() {
         },
       }}
     >
-      {/* Header */}
       <AppShell.Header
         style={{
           background: "transparent",
@@ -42,17 +39,16 @@ export function AppShellLayout() {
         <AppHeader />
       </AppShell.Header>
 
-      {/* Sidebar — desktop (≥ lg breakpoint) */}
       <AppShell.Navbar p="md">
         <AppShell.Section mb="lg">
           <Stack gap={6} align="flex-start">
-            <LogoMark size={44} />
+            <HospitalLogo height={38} />
             <Box>
               <Text fw={700} size="sm" c="dark.8">
-                MedCare Portal
+                Hệ thống Y tế số
               </Text>
               <Text size="xs" c="dimmed">
-                Quản lý khám bệnh
+                BV Ung bướu Đà Nẵng
               </Text>
             </Box>
           </Stack>
@@ -63,7 +59,6 @@ export function AppShellLayout() {
         </AppShell.Section>
       </AppShell.Navbar>
 
-      {/* Main content */}
       <AppShell.Main>
         <Box
           px={{ base: "sm", sm: "lg", lg: "xl" }}
@@ -75,7 +70,6 @@ export function AppShellLayout() {
         </Box>
       </AppShell.Main>
 
-      {/* Bottom navigation — mobile only (< lg breakpoint) */}
       <Box
         hiddenFrom="lg"
         style={{

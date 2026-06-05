@@ -4,7 +4,7 @@ import { Anchor, Box, Flex, Paper, Stack, Text, Title } from "@mantine/core";
 import { Link } from "react-router-dom";
 
 import { APP_ROUTES } from "@/shared/constants/routes";
-import { LogoMark } from "@/app/layouts/logo-mark";
+import { HospitalLogo } from "@/shared/ui/hospital-logo";
 
 type AuthShellProps = PropsWithChildren<{
   heading: string;
@@ -36,25 +36,23 @@ export function AuthShell({
       >
         <Box w="100%" maw={480}>
           <Stack gap="xl">
-            {/* Logo (visible on mobile too) */}
             <Anchor
               component={Link}
               to={APP_ROUTES.login}
               underline="never"
               style={{ display: "inline-flex", alignItems: "center", gap: 12 }}
             >
-              <LogoMark />
+              <HospitalLogo height={40} />
               <Box>
-                <Text fw={700} size="sm" c="dark">
-                  MedCare
+                <Text fw={700} size="sm" c="blue.9">
+                  BV Ung bướu Đà Nẵng
                 </Text>
                 <Text size="xs" c="dimmed">
-                  Healthcare Dashboard
+                  Cổng thông tin khám chữa bệnh
                 </Text>
               </Box>
             </Anchor>
 
-            {/* Card form */}
             <Paper
               p={{ base: "lg", sm: "xl" }}
               radius="xl"
