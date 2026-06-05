@@ -111,9 +111,11 @@ export function QrScannerPanel({
   const description =
     permission === "denied"
       ? "Camera đã bị từ chối. Hãy cấp quyền truy cập camera trong cài đặt trình duyệt rồi thử lại."
-      : status === "verifying"
-        ? "Đang xác thực mã QR với máy chủ..."
-        : "Hướng camera của thiết bị vào mã QR lịch hẹn để check-in tự động.";
+      : permission === "not_found"
+        ? "Không tìm thấy thiết bị camera trên hệ thống. Vui lòng cắm/bật camera hoặc nhập mã thủ công."
+        : status === "verifying"
+          ? "Đang xác thực mã QR với máy chủ..."
+          : "Hướng camera của thiết bị vào mã QR lịch hẹn để check-in tự động.";
 
   const handleManualSubmit = () => {
     const trimmed = manualCode.trim();
@@ -127,7 +129,12 @@ export function QrScannerPanel({
   };
 
   const isVerifying = status === "verifying";
-  const isDone = !isActive && status !== "idle" && status !== "scanning" && status !== "verifying";
+  const isDone =
+    !isActive &&
+    status !== "idle" &&
+    status !== "scanning" &&
+    status !== "verifying" &&
+    !(status === "error" && (permission === "denied" || permission === "not_found"));
 
   return (
     <Card
@@ -169,7 +176,9 @@ export function QrScannerPanel({
                     <Text size="sm" c="white" fw={500} className="opacity-75">
                       {permission === "denied"
                         ? "Không thể truy cập camera thiết bị."
-                        : "Đang khởi động camera..."}
+                        : permission === "not_found"
+                          ? "Không tìm thấy thiết bị camera."
+                          : "Đang khởi động camera..."}
                     </Text>
                   </Stack>
                 </div>
