@@ -40,10 +40,6 @@ export function AppShellLayout() {
       </AppShell.Header>
 
       <AppShell.Navbar p="md">
-        <AppShell.Section mb="lg">
-
-        </AppShell.Section>
-
         <AppShell.Section grow component={ScrollArea}>
           <SideNav />
         </AppShell.Section>

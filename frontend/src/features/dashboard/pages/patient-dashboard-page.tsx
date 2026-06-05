@@ -135,7 +135,7 @@ export function PatientDashboardPage() {
                   Kết quả cần chú ý
                 </Text>
                 {data.recentResults.slice(0, 3).map((result) => (
-                  <ResultHighlightCard key={result.id} result={result} />
+                  <ResultHighlightCard key={result.id} item={result} />
                 ))}
               </Stack>
             </Card>
