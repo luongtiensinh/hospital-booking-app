@@ -18,9 +18,9 @@ export function NotFoundPage() {
           Quay về trang chủ
         </Button>
       }
-      description="Lien ket ban mo khong ton tai hoac da duoc thay doi. Vui long quay lai khu vuc chinh de tiep tuc thao tac."
+      description="Liên kết bạn mở không tồn tại hoặc đã được thay đổi. Vui lòng quay lại khu vực chính để tiếp tục thao tác."
       icon={SearchX}
-      title="Khong tim thay trang"
+      title="Không tìm thấy trang"
     />
   );
 }

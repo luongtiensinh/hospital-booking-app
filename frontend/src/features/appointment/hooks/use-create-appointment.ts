@@ -12,7 +12,7 @@ export function useCreateAppointment() {
   return useMutation({
     mutationFn: appointmentsService.createAppointment,
     onSuccess: async () => {
-      toast.success("Dat lich thanh cong.");
+      toast.success("Đặt lịch thành công.");
       resetBooking();
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["appointments", "upcoming"] }),
@@ -21,7 +21,7 @@ export function useCreateAppointment() {
       ]);
     },
     onError: (error) => {
-      toast.error(getErrorMessage(error, "Dat lich that bai."));
+      toast.error(getErrorMessage(error, "Đặt lịch thất bại."));
     },
   });
 }
