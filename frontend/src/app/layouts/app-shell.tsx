@@ -41,17 +41,7 @@ export function AppShellLayout() {
 
       <AppShell.Navbar p="md">
         <AppShell.Section mb="lg">
-          <Stack gap={6} align="flex-start">
-            <HospitalLogo height={38} />
-            <Box>
-              <Text fw={700} size="sm" c="dark.8">
-                Hệ thống Y tế số
-              </Text>
-              <Text size="xs" c="dimmed">
-                BV Ung bướu Đà Nẵng
-              </Text>
-            </Box>
-          </Stack>
+
         </AppShell.Section>
 
         <AppShell.Section grow component={ScrollArea}>
