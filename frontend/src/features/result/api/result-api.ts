@@ -13,6 +13,16 @@ export type BackendResult = {
     patient_id: string;
     appointment_date: string;
     status: string;
+    counters: {
+      id: string;
+      name: string;
+      room: string;
+    } | null;
+    profiles: {
+      id: string;
+      fullname: string;
+      phone: string;
+    } | null;
   } | null;
 };
 
@@ -56,6 +66,21 @@ export const resultApi = {
       success: boolean;
       result: BackendResult;
     }>("/results", payload);
+    return data.result;
+  },
+
+  /** [Doctor/Admin] Cập nhật kết quả khám */
+  updateResult: async (
+    id: string,
+    payload: {
+      diagnosis: string;
+      result?: string;
+    },
+  ) => {
+    const { data } = await httpClient.put<{
+      success: boolean;
+      result: BackendResult;
+    }>(`/results/${id}`, payload);
     return data.result;
   },
 

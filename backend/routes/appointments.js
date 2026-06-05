@@ -182,48 +182,85 @@ router.get("/history", async (req, res) => {
 
 // GET /api/appointments/overview — Dashboard aggregate data
 router.get("/overview", async (req, res) => {
-  const supabase = supabaseClient.getSupabaseClient(req);
-  const patientId = req.user.id;
+  try {
+    const supabase = supabaseClient.getSupabaseClient(req);
+    const patientId = req.user.id;
+    const todayVN = getTodayVN();
 
-  const todayVN = getTodayVN();
+    const { data: allAppointments, error } = await supabase
+      .from("appointments")
+      .select("*, counters(*)")
+      .eq("patient_id", patientId)
+      .order("appointment_date", { ascending: true })
+      .order("slot_id", { ascending: true });
 
-  const { data: allAppointments, error } = await supabase
-    .from("appointments")
-    .select("*, counters(*)")
-    .eq("patient_id", patientId)
-    .order("appointment_date", { ascending: true })
-    .order("slot_id", { ascending: true });
+    if (error) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
 
-  if (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    // Fetch test results for dashboard
+    const { data: resultsData, error: resultsError } = await supabase
+      .from("test_results")
+      .select(`
+        id,
+        result,
+        diagnosis,
+        pdf_url,
+        created_at,
+        appointments!inner (
+          patient_id,
+          counters (
+            name
+          )
+        )
+      `)
+      .eq("appointments.patient_id", patientId)
+      .order("created_at", { ascending: false });
+
+    if (resultsError) {
+      console.error("[GET /overview] Fetching test results failed:", resultsError.message);
+    }
+
+    const appointments = allAppointments || [];
+
+    const upcoming = appointments.filter(
+      (a) =>
+        (a.status === "confirmed" || a.status === "checked-in") &&
+        a.appointment_date >= todayVN,
+    );
+
+    const completed = appointments.filter((a) => a.status === "completed");
+
+    const nextRaw = upcoming.find((a) => a.status === "confirmed") ?? null;
+    const nextAppointment = nextRaw
+      ? toAppointmentSummary(nextRaw, nextRaw.counters)
+      : null;
+
+    const mappedResults = (resultsData || []).slice(0, 3).map((r) => ({
+      id: r.id,
+      examName: r.appointments?.counters?.name || "Kết quả khám",
+      reportedAt: r.created_at,
+      summary: `Chẩn đoán: ${r.diagnosis || "Chưa có"}`,
+      status: "reviewed",
+      statusLabel: "Đã có kết quả",
+      pdfUrl: r.pdf_url,
+    }));
+
+    return res.json({
+      success: true,
+      overview: {
+        upcomingCount: upcoming.length,
+        completedCount: completed.length,
+        unreadResultsCount: (resultsData || []).length,
+        billingOutstanding: 0,
+        nextAppointment,
+        recentResults: mappedResults,
+      },
+    });
+  } catch (err) {
+    console.error("[GET /overview] Lỗi hệ thống:", err);
+    return res.status(500).json({ success: false, message: "Lỗi server." });
   }
-
-  const appointments = allAppointments || [];
-
-  const upcoming = appointments.filter(
-    (a) =>
-      (a.status === "confirmed" || a.status === "checked-in") &&
-      a.appointment_date >= todayVN,
-  );
-
-  const completed = appointments.filter((a) => a.status === "completed");
-
-  const nextRaw = upcoming.find((a) => a.status === "confirmed") ?? null;
-  const nextAppointment = nextRaw
-    ? toAppointmentSummary(nextRaw, nextRaw.counters)
-    : null;
-
-  return res.json({
-    success: true,
-    overview: {
-      upcomingCount: upcoming.length,
-      completedCount: completed.length,
-      unreadResultsCount: 0,
-      billingOutstanding: 0,
-      nextAppointment,
-      recentResults: [],
-    },
-  });
 });
 
 // GET /api/appointments/:id

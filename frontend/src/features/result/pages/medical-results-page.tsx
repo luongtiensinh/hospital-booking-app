@@ -1,6 +1,4 @@
-import { useState } from "react";
-import { ClipboardList, FlaskConical, Plus, Save, X } from "lucide-react";
-
+import { useState, useEffect } from "react";
 import {
   Alert,
   Avatar,
@@ -8,6 +6,8 @@ import {
   Box,
   Button,
   Card,
+  Divider,
+  Grid,
   Group,
   Modal,
   Skeleton,
@@ -17,6 +17,21 @@ import {
   TextInput,
   ThemeIcon,
 } from "@mantine/core";
+import {
+  ClipboardList,
+  FlaskConical,
+  Plus,
+  Save,
+  X,
+  Calendar,
+  MapPin,
+  User,
+  Phone,
+  FileText,
+  Download,
+  Stethoscope,
+  Pencil,
+} from "lucide-react";
 import { useDisclosure } from "@mantine/hooks";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -53,36 +68,205 @@ function useDoctorAppointments(enabled: boolean) {
 // ---------------------------------------------------------------
 // Patient view — list own results
 // ---------------------------------------------------------------
-function PatientResultCard({ result }: { result: BackendResult }) {
+function PatientResultCard({
+  result,
+  onEdit,
+}: {
+  result: BackendResult;
+  onEdit?: (result: BackendResult) => void;
+}) {
+  const { role } = useAuthSession();
+  const isDoctorOrAdmin = role === "doctor" || role === "admin";
+
   const date = result.appointments?.appointment_date
     ? dayjs(result.appointments.appointment_date).format("DD/MM/YYYY")
     : "—";
 
+  const patientName = result.appointments?.profiles?.fullname ?? "—";
+  const patientPhone = result.appointments?.profiles?.phone ?? "—";
+  const counterName = result.appointments?.counters?.name ?? "—";
+  const counterRoom = result.appointments?.counters?.room ?? "—";
+
+  const handleDownload = () => {
+    const content = `BỆNH VIỆN MEDCARE - PHIẾU KẾT QUẢ KHÁM BỆNH
+================================================
+Bệnh nhân:       ${patientName}
+Số điện thoại:   ${patientPhone}
+Ngày khám:       ${date}
+Phòng khám:      ${counterName} (${counterRoom})
+
+CHẨN ĐOÁN:
+${result.diagnosis ?? "Chưa có chẩn đoán"}
+
+KẾT LUẬN / GHI CHÚ BÁC SĨ:
+${result.result ?? "Chưa có kết luận"}
+
+------------------------------------------------
+Cảm ơn bạn đã tin tưởng dịch vụ của MedCare!`;
+
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Ket_qua_kham_${patientName.replace(/\s+/g, "_")}_${dayjs(result.appointments?.appointment_date).format("YYYYMMDD")}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("Tải kết quả khám thành công.");
+  };
+
   return (
-    <Card withBorder radius="lg" p="md" style={{ borderColor: "var(--mantine-color-gray-2)" }}>
-      <Group justify="space-between" mb="xs">
-        <Group gap="sm">
-          <ThemeIcon color="blue" size={40} radius="xl" variant="light">
-            <FlaskConical size={18} />
-          </ThemeIcon>
-          <Box>
-            <Text fw={700} size="sm" c="dark.8">
-              {result.diagnosis ?? "Chẩn đoán chưa có"}
-            </Text>
-            <Text size="xs" c="dimmed">
-              {date}
+    <Card
+      withBorder
+      radius="xl"
+      p="lg"
+      style={{
+        borderColor: "var(--mantine-color-gray-2)",
+        background: "var(--mantine-color-white)",
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.02)",
+        transition: "transform 0.2s ease, box-shadow 0.2s ease",
+      }}
+    >
+      <Stack gap="md">
+        {/* Header */}
+        <Group justify="space-between" align="flex-start" wrap="nowrap">
+          <Group gap="sm" align="center">
+            <ThemeIcon color="blue" size={44} radius="xl" variant="light">
+              <Stethoscope size={22} />
+            </ThemeIcon>
+            <Box>
+              <Text fw={800} size="md" c="dark.8">
+                {result.diagnosis ?? "Chẩn đoán chưa có"}
+              </Text>
+              <Group gap="xs" mt={2}>
+                <Badge color="green" variant="light" size="sm" radius="md">
+                  Đã có kết quả
+                </Badge>
+                <Text size="xs" c="dimmed">
+                  Mã khám: #
+                  {result.appointment_id.substring(0, 8).toUpperCase()}
+                </Text>
+              </Group>
+            </Box>
+          </Group>
+          <Group gap="xs">
+            {isDoctorOrAdmin && onEdit && (
+              <Button
+                variant="light"
+                color="orange"
+                size="xs"
+                radius="md"
+                leftSection={<Pencil size={14} />}
+                onClick={() => onEdit(result)}
+              >
+                Sửa kết quả
+              </Button>
+            )}
+            <Button
+              variant="light"
+              color="blue"
+              size="xs"
+              radius="md"
+              leftSection={<Download size={14} />}
+              onClick={handleDownload}
+            >
+              Tải kết quả
+            </Button>
+          </Group>
+        </Group>
+
+        <Divider color="gray.1" />
+
+        {/* Metadata info */}
+        <Grid gap="xs">
+          {isDoctorOrAdmin && (
+            <>
+              <Grid.Col span={{ base: 12, sm: 6 }}>
+                <Group gap="xs" wrap="nowrap">
+                  <User
+                    size={14}
+                    style={{ color: "var(--mantine-color-blue-5)" }}
+                  />
+                  <Text size="xs" fw={500} c="dark.7">
+                    Bệnh nhân:{" "}
+                    <Text span fw={700}>
+                      {patientName}
+                    </Text>
+                  </Text>
+                </Group>
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, sm: 6 }}>
+                <Group gap="xs" wrap="nowrap">
+                  <Phone
+                    size={14}
+                    style={{ color: "var(--mantine-color-blue-5)" }}
+                  />
+                  <Text size="xs" c="dimmed">
+                    SĐT:{" "}
+                    <Text span fw={600} c="dark.7">
+                      {patientPhone}
+                    </Text>
+                  </Text>
+                </Group>
+              </Grid.Col>
+            </>
+          )}
+
+          <Grid.Col span={{ base: 12, sm: 6 }}>
+            <Group gap="xs" wrap="nowrap">
+              <Calendar
+                size={14}
+                style={{ color: "var(--mantine-color-blue-5)" }}
+              />
+              <Text size="xs" c="dimmed">
+                Ngày khám:{" "}
+                <Text span fw={600} c="dark.7">
+                  {date}
+                </Text>
+              </Text>
+            </Group>
+          </Grid.Col>
+
+          <Grid.Col span={{ base: 12, sm: 6 }}>
+            <Group gap="xs" wrap="nowrap">
+              <MapPin
+                size={14}
+                style={{ color: "var(--mantine-color-blue-5)" }}
+              />
+              <Text size="xs" c="dimmed">
+                Phòng khám:{" "}
+                <Text span fw={600} c="dark.7">
+                  {counterName} ({counterRoom})
+                </Text>
+              </Text>
+            </Group>
+          </Grid.Col>
+        </Grid>
+
+        {/* Details section */}
+        {result.result && (
+          <Box
+            p="sm"
+            style={{
+              background: "var(--mantine-color-gray-0)",
+              borderRadius: "12px",
+              borderLeft: "4px solid var(--mantine-color-blue-5)",
+            }}
+          >
+            <Group gap="xs" mb={4}>
+              <FileText
+                size={14}
+                style={{ color: "var(--mantine-color-gray-6)" }}
+              />
+              <Text size="xs" fw={700} c="gray.7">
+                Kết luận & Hướng điều trị:
+              </Text>
+            </Group>
+            <Text size="sm" c="dark.7" style={{ lineHeight: 1.5 }}>
+              {result.result}
             </Text>
           </Box>
-        </Group>
-        <Badge color="green" variant="light" radius="sm">
-          Đã có kết quả
-        </Badge>
-      </Group>
-      {result.result && (
-        <Text size="sm" c="dark.6" style={{ fontStyle: "italic" }}>
-          "{result.result}"
-        </Text>
-      )}
+        )}
+      </Stack>
     </Card>
   );
 }
@@ -176,7 +360,12 @@ export function EnterResultModal({
         />
 
         <Group justify="flex-end" gap="sm">
-          <Button variant="default" radius="md" leftSection={<X size={14} />} onClick={onClose}>
+          <Button
+            variant="default"
+            radius="md"
+            leftSection={<X size={14} />}
+            onClick={onClose}
+          >
             Hủy
           </Button>
           <Button
@@ -201,22 +390,156 @@ export function EnterResultModal({
 }
 
 // ---------------------------------------------------------------
+// Doctor / Admin: Edit result modal
+// ---------------------------------------------------------------
+export function EditResultModal({
+  opened,
+  onClose,
+  result,
+}: {
+  opened: boolean;
+  onClose: () => void;
+  result: BackendResult | null;
+}) {
+  const [diagnosis, setDiagnosis] = useState("");
+  const [resultText, setResultText] = useState("");
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (result) {
+      setDiagnosis(result.diagnosis ?? "");
+      setResultText(result.result ?? "");
+    } else {
+      setDiagnosis("");
+      setResultText("");
+    }
+  }, [result, opened]);
+
+  const mutation = useMutation({
+    mutationFn: (payload: { id: string; diagnosis: string; result: string }) =>
+      resultApi.updateResult(payload.id, {
+        diagnosis: payload.diagnosis,
+        result: payload.result,
+      }),
+    onSuccess: () => {
+      toast.success("Đã cập nhật kết quả khám thành công.");
+      queryClient.invalidateQueries({ queryKey: ["results"] });
+      queryClient.invalidateQueries({ queryKey: ["results", "appointments"] });
+      onClose();
+    },
+    onError: () => {
+      toast.error("Không thể cập nhật kết quả. Vui lòng thử lại.");
+    },
+  });
+
+  const patientName = result?.appointments?.profiles?.fullname ?? "Bệnh nhân";
+  const date = result?.appointments?.appointment_date
+    ? dayjs(result.appointments.appointment_date).format("DD/MM/YYYY")
+    : "";
+
+  return (
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      title={
+        <Group gap="sm">
+          <ThemeIcon color="orange" size={32} radius="xl" variant="light">
+            <Pencil size={16} />
+          </ThemeIcon>
+          <Text fw={700} size="md">
+            Sửa kết quả khám
+          </Text>
+        </Group>
+      }
+      radius="lg"
+      size="md"
+      centered
+    >
+      <Stack gap="md">
+        <Card withBorder radius="md" p="sm" bg="orange.0">
+          <Text size="sm" fw={700} c="orange.8">
+            {patientName}
+          </Text>
+          <Text size="xs" c="dimmed">
+            {date} · {result?.appointments?.profiles?.phone ?? ""}
+          </Text>
+        </Card>
+
+        <Textarea
+          label="Chẩn đoán"
+          placeholder="VD: Viêm họng cấp / Theo dõi huyết áp..."
+          required
+          minRows={2}
+          radius="md"
+          value={diagnosis}
+          onChange={(e) => setDiagnosis(e.currentTarget.value)}
+        />
+
+        <Textarea
+          label="Kết luận / Ghi chú bác sĩ"
+          placeholder="Kết luận chi tiết, hướng điều trị tiếp theo..."
+          minRows={3}
+          radius="md"
+          value={resultText}
+          onChange={(e) => setResultText(e.currentTarget.value)}
+        />
+
+        <Group justify="flex-end" gap="sm">
+          <Button
+            variant="default"
+            radius="md"
+            leftSection={<X size={14} />}
+            onClick={onClose}
+          >
+            Hủy
+          </Button>
+          <Button
+            color="orange"
+            radius="md"
+            leftSection={<Save size={14} />}
+            loading={mutation.isPending}
+            disabled={!diagnosis.trim() || !result}
+            onClick={() =>
+              mutation.mutate({
+                id: result?.id ?? "",
+                diagnosis,
+                result: resultText,
+              })
+            }
+          >
+            Lưu thay đổi
+          </Button>
+        </Group>
+      </Stack>
+    </Modal>
+  );
+}
+
+// ---------------------------------------------------------------
 // Doctor / Admin appointment row
 // ---------------------------------------------------------------
 function DoctorAppointmentRow({
   appt,
   onEnterResult,
+  onEditResult,
+  correspondingResult,
 }: {
   appt: DoctorAppointment;
   onEnterResult: (appt: DoctorAppointment) => void;
+  onEditResult: (result: BackendResult) => void;
+  correspondingResult?: BackendResult;
 }) {
   const STATUS_LABEL: Record<string, { label: string; color: string }> = {
     confirmed: { label: "Đã xác nhận", color: "blue" },
     "checked-in": { label: "Đã check-in", color: "teal" },
     completed: { label: "Đã khám", color: "green" },
   };
-  const badge = STATUS_LABEL[appt.status] ?? { label: appt.status, color: "gray" };
-  const canEnterResult = appt.status === "checked-in" || appt.status === "confirmed";
+  const badge = STATUS_LABEL[appt.status] ?? {
+    label: appt.status,
+    color: "gray",
+  };
+  const canEnterResult =
+    appt.status === "checked-in" || appt.status === "confirmed";
 
   return (
     <Group
@@ -257,6 +580,18 @@ function DoctorAppointmentRow({
             Nhập kết quả
           </Button>
         )}
+        {appt.status === "completed" && correspondingResult && (
+          <Button
+            size="xs"
+            color="orange"
+            variant="light"
+            radius="md"
+            leftSection={<Pencil size={12} />}
+            onClick={() => onEditResult(correspondingResult)}
+          >
+            Sửa kết quả
+          </Button>
+        )}
       </Group>
     </Group>
   );
@@ -274,24 +609,38 @@ export function MedicalResultsPage() {
   const resultsQuery = useResults();
   const doctorApptQuery = useDoctorAppointments(isDoctorOrAdmin);
 
-  const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
-  const [selectedAppt, setSelectedAppt] = useState<DoctorAppointment | null>(null);
+  const [modalOpened, { open: openModal, close: closeModal }] =
+    useDisclosure(false);
+  const [selectedAppt, setSelectedAppt] = useState<DoctorAppointment | null>(
+    null,
+  );
+
+  const [editModalOpened, { open: openEditModal, close: closeEditModal }] =
+    useDisclosure(false);
+  const [selectedResult, setSelectedResult] = useState<BackendResult | null>(
+    null,
+  );
 
   const handleEnterResult = (appt: DoctorAppointment) => {
     setSelectedAppt(appt);
     openModal();
   };
 
+  const handleEditResult = (result: BackendResult) => {
+    setSelectedResult(result);
+    openEditModal();
+  };
+
   const pageDescription = isDoctorOrAdmin
     ? "Xem danh sách bệnh nhân và nhập kết quả khám."
-    : "Xem lịch sử kết quả xét nghiệm của bạn.";
+    : "Xem lịch sử kết quả khám bệnh của bạn.";
 
   return (
     <PageContainer>
       <PageHeader
         description={pageDescription}
         eyebrow={isDoctorOrAdmin ? "Doctor / Admin" : "Medical Results"}
-        title="Kết quả xét nghiệm"
+        title="Kết quả khám bệnh"
       />
 
       {/* Doctor / Admin: Appointment list để nhập kết quả */}
@@ -301,7 +650,10 @@ export function MedicalResultsPage() {
           radius="lg"
           p="lg"
           mb="xl"
-          style={{ borderColor: "var(--mantine-color-blue-2)", background: "var(--mantine-color-blue-0)" }}
+          style={{
+            borderColor: "var(--mantine-color-blue-2)",
+            background: "var(--mantine-color-blue-0)",
+          }}
         >
           <Stack gap="md">
             <Group gap="sm">
@@ -332,13 +684,20 @@ export function MedicalResultsPage() {
               />
             ) : (
               <Stack gap="sm">
-                {doctorApptQuery.data.map((appt) => (
-                  <DoctorAppointmentRow
-                    key={appt.id}
-                    appt={appt}
-                    onEnterResult={handleEnterResult}
-                  />
-                ))}
+                {doctorApptQuery.data.map((appt) => {
+                  const correspondingResult = resultsQuery.data?.find(
+                    (r) => r.appointment_id === appt.id,
+                  );
+                  return (
+                    <DoctorAppointmentRow
+                      key={appt.id}
+                      appt={appt}
+                      onEnterResult={handleEnterResult}
+                      onEditResult={handleEditResult}
+                      correspondingResult={correspondingResult}
+                    />
+                  );
+                })}
               </Stack>
             )}
           </Stack>
@@ -348,7 +707,7 @@ export function MedicalResultsPage() {
       {/* All roles: Show list of results */}
       <Stack gap="md">
         <Text fw={700} size="lg" c="dark.8">
-          {isDoctorOrAdmin ? "Kết quả đã nhập" : "Kết quả xét nghiệm của bạn"}
+          {isDoctorOrAdmin ? "Kết quả đã nhập" : "Kết quả khám bệnh của bạn"}
         </Text>
 
         {resultsQuery.isError && (
@@ -366,7 +725,11 @@ export function MedicalResultsPage() {
         ) : resultsQuery.data && resultsQuery.data.length > 0 ? (
           <Stack gap="sm">
             {resultsQuery.data.map((result) => (
-              <PatientResultCard key={result.id} result={result} />
+              <PatientResultCard
+                key={result.id}
+                result={result}
+                onEdit={handleEditResult}
+              />
             ))}
           </Stack>
         ) : (
@@ -374,7 +737,7 @@ export function MedicalResultsPage() {
             description={
               isDoctorOrAdmin
                 ? "Chưa có kết quả nào được nhập."
-                : "Kết quả xét nghiệm sẽ xuất hiện tại đây sau khi bác sĩ xác nhận."
+                : "Kết quả khám bệnh sẽ xuất hiện tại đây sau khi bác sĩ xác nhận."
             }
             icon={FlaskConical}
             title="Chưa có kết quả"
@@ -386,6 +749,12 @@ export function MedicalResultsPage() {
         opened={modalOpened}
         onClose={closeModal}
         appointment={selectedAppt}
+      />
+
+      <EditResultModal
+        opened={editModalOpened}
+        onClose={closeEditModal}
+        result={selectedResult}
       />
     </PageContainer>
   );

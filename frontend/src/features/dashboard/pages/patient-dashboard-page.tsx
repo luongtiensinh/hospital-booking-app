@@ -136,7 +136,7 @@ export function PatientDashboardPage() {
             </Card>
           ) : (
             <EmptyState
-              description="Các kết quả xét nghiệm và chẩn đoán hình ảnh mới sẽ xuất hiện tại đây để bạn theo dõi."
+              description="Các kết quả khám bệnh và chẩn đoán hình ảnh mới sẽ xuất hiện tại đây để bạn theo dõi."
               icon={FlaskConical}
               title="Chưa có kết quả mới"
             />
