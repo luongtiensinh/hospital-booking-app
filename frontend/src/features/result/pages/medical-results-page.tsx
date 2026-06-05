@@ -14,7 +14,6 @@ import {
   Stack,
   Text,
   Textarea,
-  TextInput,
   ThemeIcon,
 } from "@mantine/core";
 import {

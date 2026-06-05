@@ -82,28 +82,34 @@ export function QrScannerPanel({
             radius="xl"
             className="overflow-hidden border border-slate-900 bg-slate-950 shadow-inner shadow-black/40"
           >
-            <div
-              className="flex min-h-[260px] items-center justify-center text-white"
-              id={containerId}
-            >
-              {!isActive ? (
-                <Stack gap="sm" align="center" px="md" className="text-center">
-                  <ThemeIcon
-                    size={64}
-                    radius={100}
-                    color="white"
-                    variant="light"
-                    className="bg-white/10 text-white"
-                  >
-                    <Camera className="h-7 w-7 text-white" />
-                  </ThemeIcon>
-                  <Text size="sm" c="white" fw={500} className="opacity-75">
-                    {permission === "denied"
-                      ? "Không thể truy cập camera thiết bị."
-                      : "Sẵn sàng mở camera để quét mã QR."}
-                  </Text>
-                </Stack>
-              ) : null}
+            <div className="relative flex min-h-[260px] w-full items-center justify-center text-white">
+              {/* Placeholder when not active - completely managed by React */}
+              {!isActive && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-950">
+                  <Stack gap="sm" align="center" px="md" className="text-center py-8">
+                    <ThemeIcon
+                      size={64}
+                      radius={100}
+                      color="white"
+                      variant="light"
+                      className="bg-white/10 text-white"
+                    >
+                      <Camera className="h-7 w-7 text-white" />
+                    </ThemeIcon>
+                    <Text size="sm" c="white" fw={500} className="opacity-75">
+                      {permission === "denied"
+                        ? "Không thể truy cập camera thiết bị."
+                        : "Sẵn sàng mở camera để quét mã QR."}
+                    </Text>
+                  </Stack>
+                </div>
+              )}
+
+              {/* Camera scanner element - managed by html5-qrcode, empty for React */}
+              <div
+                id={containerId}
+                className="w-full min-h-[260px]"
+              />
             </div>
           </Paper>
         </div>
