@@ -84,9 +84,6 @@ router.get(
   async (req, res) => {
     try {
       const supabase = supabaseClient.getSupabaseClient(req);
-      const { role, id: userId } = req.user;
-
-      const todayVN = dayjs().utcOffset(7).format("YYYY-MM-DD");
 
       let query = supabase
         .from("appointments")
@@ -110,9 +107,9 @@ router.get(
       `,
         )
         .in("status", ["confirmed", "checked-in", "completed"])
-        .eq("appointment_date", todayVN)
+        .order("appointment_date", { ascending: false })
         .order("slot_id", { ascending: true });
-      // admin: không filter theo bác sĩ → lấy tất cả lịch hôm nay
+      // Lấy toàn bộ lịch hẹn (không giới hạn ngày)
 
       const { data, error } = await query;
       if (error) {

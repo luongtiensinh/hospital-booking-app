@@ -1,10 +1,4 @@
-import {
-  Activity,
-  CalendarClock,
-  CircleDollarSign,
-  FlaskConical,
-  QrCode,
-} from "lucide-react";
+import { Activity, CalendarClock, FlaskConical, QrCode } from "lucide-react";
 
 import {
   Alert,
@@ -27,8 +21,6 @@ import { useDashboardOverview } from "@/features/dashboard/hooks/use-dashboard-o
 import { PatientQrCard } from "@/features/qr/components/patient-qr-card";
 import { useLatestPatientQr } from "@/features/qr/hooks/use-latest-patient-qr";
 import { EmptyState } from "@/shared/components/feedback/empty-state";
-import { HospitalLogo } from "@/shared/ui/hospital-logo";
-import { formatCurrency } from "@/shared/utils/formatters";
 
 export function PatientDashboardPage() {
   const { data, isLoading, isError } = useDashboardOverview();
@@ -45,17 +37,6 @@ export function PatientDashboardPage() {
           icon: Activity,
           label: "Lượt khám hoàn tất",
           value: String(data.completedCount),
-        },
-        {
-          icon: FlaskConical,
-          label: "Kết quả chưa đọc",
-          value: String(data.unreadResultsCount),
-          helper: "",
-        },
-        {
-          icon: CircleDollarSign,
-          label: "Chi phí chờ xử lý",
-          value: formatCurrency(data.billingOutstanding),
         },
       ]
     : [];

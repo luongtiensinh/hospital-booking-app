@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Activity,
   CalendarDays,
@@ -10,11 +10,15 @@ import {
   XCircle,
   Clock,
   RefreshCcw,
+  Calendar,
+  Filter,
+  X,
 } from "lucide-react";
 
 import {
   Alert,
   Avatar,
+  ActionIcon,
   Badge,
   Box,
   Card,
@@ -27,7 +31,6 @@ import {
   Text,
   ThemeIcon,
   TextInput,
-  SegmentedControl,
   Button,
   Tooltip,
   Select,
@@ -333,7 +336,7 @@ export function AdminDashboardPage() {
   // Search & Filter state
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [dateFilter, setDateFilter] = useState<string>("today");
+  const [filterDate, setFilterDate] = useState<string>("");
 
   // Cancellation state
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
@@ -403,33 +406,44 @@ export function AdminDashboardPage() {
   });
 
   // Filter & Search appointments
-  const filteredAppointments = appointments.filter((appt) => {
-    // 1. Date filter
-    if (dateFilter === "today" && appt.appointment_date !== todayStr) {
-      return false;
-    }
-    // 2. Status filter
-    if (statusFilter !== "all" && appt.status !== statusFilter) {
-      return false;
-    }
-    // 3. Search query
-    const patientName = appt.profiles?.fullname?.toLowerCase() || "bệnh nhân";
-    const patientPhone = appt.profiles?.phone || "";
-    const counterName = (
-      appt.counterName ||
-      appt.counters?.name ||
-      ""
-    ).toLowerCase();
-    const shortCode = appt.id.substring(0, 8).toLowerCase();
-    const query = search.toLowerCase();
+  const filteredAppointments = useMemo(
+    () =>
+      appointments.filter((appt) => {
+        // 1. Date filter
+        if (filterDate && appt.appointment_date !== filterDate) return false;
 
-    return (
-      patientName.includes(query) ||
-      patientPhone.includes(query) ||
-      counterName.includes(query) ||
-      shortCode.includes(query)
-    );
-  });
+        // 2. Status filter
+        if (statusFilter !== "all" && appt.status !== statusFilter)
+          return false;
+
+        // 3. Search query
+        const patientName =
+          appt.profiles?.fullname?.toLowerCase() || "bệnh nhân";
+        const patientPhone = appt.profiles?.phone || "";
+        const counterName = (
+          appt.counterName ||
+          appt.counters?.name ||
+          ""
+        ).toLowerCase();
+        const shortCode = appt.id.substring(0, 8).toLowerCase();
+        const query = search.toLowerCase();
+
+        return (
+          patientName.includes(query) ||
+          patientPhone.includes(query) ||
+          counterName.includes(query) ||
+          shortCode.includes(query)
+        );
+      }),
+    [appointments, filterDate, statusFilter, search],
+  );
+
+  const hasActiveFilter = !!search || !!filterDate || statusFilter !== "all";
+  const handleClearFilters = () => {
+    setSearch("");
+    setFilterDate("");
+    setStatusFilter("all");
+  };
 
   const handleCancelClick = (appt: Appointment) => {
     setSelectedAppt({
@@ -500,32 +514,123 @@ export function AdminDashboardPage() {
             </Button>
           </Group>
 
-          {/* Search & Filter controls — responsive */}
-          <Stack gap="sm" mt="xs">
-            <TextInput
-              placeholder="Tìm kiếm tên, SĐT, quầy, mã check-in..."
-              leftSection={<Search size={16} />}
-              value={search}
-              onChange={(e) => setSearch(e.currentTarget.value)}
-              radius="md"
-            />
-
-            <Group gap="sm" wrap="wrap">
-              {/* Date filter — SegmentedControl (compact) */}
-              <SegmentedControl
-                value={dateFilter}
-                onChange={setDateFilter}
-                data={[
-                  { label: "Hôm nay", value: "today" },
-                  { label: "Tất cả", value: "all" },
-                ]}
-                color="blue"
-                radius="md"
+          {/* Search & Filter controls */}
+          <Box
+            p="md"
+            mt="xs"
+            style={{
+              background: "var(--mantine-color-gray-0)",
+              borderRadius: 12,
+              border: "1px solid var(--mantine-color-gray-2)",
+            }}
+          >
+            <Group gap="xs" mb="sm" align="center">
+              <ThemeIcon size="sm" color="gray" variant="transparent">
+                <Filter size={14} />
+              </ThemeIcon>
+              <Text
                 size="xs"
-                style={{ flex: "0 0 auto" }}
+                fw={700}
+                c="dimmed"
+                tt="uppercase"
+                style={{ letterSpacing: "0.06em" }}
+              >
+                Bộ lọc
+              </Text>
+              {hasActiveFilter && (
+                <Button
+                  size="compact-xs"
+                  variant="light"
+                  color="red"
+                  leftSection={<X size={11} />}
+                  onClick={handleClearFilters}
+                  radius="md"
+                  ml="auto"
+                >
+                  Xóa bộ lọc
+                </Button>
+              )}
+            </Group>
+
+            <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm">
+              <TextInput
+                placeholder="Tên, SĐT, quầy, mã check-in..."
+                leftSection={<Search size={15} />}
+                value={search}
+                onChange={(e) => setSearch(e.currentTarget.value)}
+                radius="md"
+                size="sm"
+                rightSection={
+                  search ? (
+                    <ActionIcon
+                      size="xs"
+                      variant="transparent"
+                      color="gray"
+                      onClick={() => setSearch("")}
+                    >
+                      <X size={12} />
+                    </ActionIcon>
+                  ) : undefined
+                }
               />
 
-              {/* Status filter — Select on mobile, SegmentedControl on desktop */}
+              <Box style={{ position: "relative" }}>
+                <Box
+                  style={{
+                    position: "absolute",
+                    left: 12,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    pointerEvents: "none",
+                    zIndex: 1,
+                    color: "var(--mantine-color-gray-5)",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <Calendar size={15} />
+                </Box>
+                <input
+                  type="date"
+                  value={filterDate}
+                  onChange={(e) => setFilterDate(e.target.value)}
+                  style={{
+                    width: "100%",
+                    height: 36,
+                    paddingLeft: 36,
+                    paddingRight: filterDate ? 36 : 12,
+                    paddingTop: 0,
+                    paddingBottom: 0,
+                    fontSize: "var(--mantine-font-size-sm)",
+                    border: "1px solid var(--mantine-color-gray-4)",
+                    borderRadius: 8,
+                    outline: "none",
+                    background: "var(--mantine-color-white)",
+                    color: filterDate
+                      ? "var(--mantine-color-dark-8)"
+                      : "var(--mantine-color-gray-5)",
+                    fontFamily: "inherit",
+                    boxSizing: "border-box",
+                  }}
+                />
+                {filterDate && (
+                  <ActionIcon
+                    size="xs"
+                    variant="transparent"
+                    color="gray"
+                    style={{
+                      position: "absolute",
+                      right: 8,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                    }}
+                    onClick={() => setFilterDate("")}
+                  >
+                    <X size={12} />
+                  </ActionIcon>
+                )}
+              </Box>
+
               <Select
                 value={statusFilter}
                 onChange={(v) => setStatusFilter(v ?? "all")}
@@ -537,29 +642,27 @@ export function AdminDashboardPage() {
                   { label: "Đã hủy", value: "cancelled" },
                 ]}
                 radius="md"
-                size="xs"
-                style={{ flex: 1, minWidth: 160 }}
+                size="sm"
                 checkIconPosition="right"
-                hiddenFrom="sm"
               />
+            </SimpleGrid>
+          </Box>
 
-              <SegmentedControl
-                value={statusFilter}
-                onChange={setStatusFilter}
-                data={[
-                  { label: "Tất cả", value: "all" },
-                  { label: "Chờ khám", value: "confirmed" },
-                  { label: "Checked-in", value: "checked-in" },
-                  { label: "Đã khám", value: "completed" },
-                  { label: "Đã hủy", value: "cancelled" },
-                ]}
-                color="blue"
-                radius="md"
-                size="xs"
-                visibleFrom="sm"
-              />
+          {!isLoading && (
+            <Group gap="xs">
+              <Text size="sm" c="dimmed">
+                Hiển thị{" "}
+                <Text span fw={700} c="dark.7">
+                  {filteredAppointments.length}
+                </Text>{" "}
+                /{" "}
+                <Text span fw={600} c="dimmed">
+                  {appointments.length}
+                </Text>{" "}
+                lịch hẹn
+              </Text>
             </Group>
-          </Stack>
+          )}
 
           {isLoading ? (
             <Stack gap="xs">
@@ -632,9 +735,17 @@ export function AdminDashboardPage() {
                         "DD/MM/YYYY",
                       );
                       const shortCode = appt.id.substring(0, 8).toUpperCase();
+                      const isToday = appt.appointment_date === todayStr;
 
                       return (
-                        <Table.Tr key={appt.id}>
+                        <Table.Tr
+                          key={appt.id}
+                          style={{
+                            background: isToday
+                              ? "rgba(219,234,254,0.4)"
+                              : undefined,
+                          }}
+                        >
                           {/* 1. Patient details */}
                           <Table.Td>
                             <Group gap="xs">
@@ -650,6 +761,16 @@ export function AdminDashboardPage() {
                                 <Text size="sm" fw={700} c="dark.8">
                                   {patientName}
                                 </Text>
+                                {isToday && (
+                                  <Badge
+                                    size="xs"
+                                    color="blue"
+                                    variant="dot"
+                                    radius="sm"
+                                  >
+                                    Hôm nay
+                                  </Badge>
+                                )}
                                 <Text size="xs" c="dimmed">
                                   {patientPhone}
                                 </Text>

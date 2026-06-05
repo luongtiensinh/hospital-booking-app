@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Activity,
   CalendarClock,
@@ -10,6 +10,9 @@ import {
   ClipboardList,
   Check,
   RefreshCcw,
+  Calendar,
+  Filter,
+  X,
 } from "lucide-react";
 
 import {
@@ -25,11 +28,12 @@ import {
   Skeleton,
   ThemeIcon,
   TextInput,
-  SegmentedControl,
   Button,
   Tooltip,
   Select,
   Divider,
+  ActionIcon,
+  Indicator,
 } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -106,11 +110,13 @@ function DoctorStatCard({
   label,
   value,
   color,
+  sub,
 }: {
   icon: React.ElementType;
   label: string;
   value: string;
   color: string;
+  sub?: string;
 }) {
   return (
     <Card
@@ -139,6 +145,11 @@ function DoctorStatCard({
           <Text size="xl" fw={850} c="dark.8">
             {value}
           </Text>
+          {sub && (
+            <Text size="xs" c="dimmed" mt={2}>
+              {sub}
+            </Text>
+          )}
         </Box>
       </Group>
     </Card>
@@ -277,51 +288,52 @@ export function DoctorDashboardPage() {
 
   const isMobile = useMediaQuery("(max-width: 768px)");
 
+  // Filter state
   const [search, setSearch] = useState("");
-  const [activeQueueTab, setActiveQueueTab] = useState<string>("checked-in");
+  const [filterDate, setFilterDate] = useState<string>("");
+  const [activeQueueTab, setActiveQueueTab] = useState<string>("all");
 
   // Diagnostics Modal State
   const [resultModalOpened, { open: openResultModal, close: closeResultModal }] = useDisclosure(false);
   const [selectedAppt, setSelectedAppt] = useState<AppointmentForDoctor | null>(null);
 
   const todayStr = dayjs().format("YYYY-MM-DD");
-  
-  // Stats calculations based on today
-  const todayAppointments = appointments.filter(
-    (a) => a.appointment_date === todayStr,
-  );
-  const checkedInToday = todayAppointments.filter(
-    (a) => a.status === "checked-in",
-  ).length;
-  const completedToday = todayAppointments.filter(
-    (a) => a.status === "completed",
-  ).length;
+
+  // ----------- Stats (all appointments) -----------
+  const todayAppointments = appointments.filter((a) => a.appointment_date === todayStr);
+  const checkedInToday = todayAppointments.filter((a) => a.status === "checked-in").length;
+  const completedToday = todayAppointments.filter((a) => a.status === "completed").length;
   const totalToday = todayAppointments.length;
+  const totalAll = appointments.length;
 
   const stats = [
     {
       icon: Users,
-      label: "Bệnh nhân hôm nay",
-      value: String(totalToday),
+      label: "Tổng lịch hẹn",
+      value: String(totalAll),
       color: "blue",
+      sub: `${totalToday} lịch hôm nay`,
     },
     {
       icon: Activity,
       label: "Đang chờ khám",
       value: String(checkedInToday),
       color: "teal",
+      sub: "Hôm nay",
     },
     {
       icon: CheckCircle2,
       label: "Đã khám xong",
       value: String(completedToday),
       color: "green",
+      sub: "Hôm nay",
     },
     {
       icon: Stethoscope,
       label: "Chưa check-in",
       value: String(totalToday - checkedInToday - completedToday),
       color: "orange",
+      sub: "Hôm nay",
     },
   ];
 
@@ -338,25 +350,42 @@ export function DoctorDashboardPage() {
     },
   });
 
-  // Filter & Search appointments
-  const filteredAppointments = todayAppointments.filter((appt) => {
-    // 1. Queue Tab Filter
-    if (activeQueueTab !== "all" && appt.status !== activeQueueTab) {
-      return false;
-    }
+  // ----------- Filter logic -----------
+  const filteredAppointments = useMemo(() => {
+    return appointments.filter((appt) => {
+      // 1. Status tab
+      if (activeQueueTab !== "all" && appt.status !== activeQueueTab) return false;
 
-    // 2. Search Query (Name, Phone, or Code)
-    const patientName = appt.profiles?.fullname?.toLowerCase() || "";
-    const patientPhone = appt.profiles?.phone || "";
-    const shortCode = appt.id.substring(0, 8).toLowerCase();
-    const query = search.toLowerCase();
+      // 2. Date filter
+      if (filterDate) {
+        if (appt.appointment_date !== filterDate) return false;
+      }
 
-    return (
-      patientName.includes(query) ||
-      patientPhone.includes(query) ||
-      shortCode.includes(query)
-    );
-  });
+      // 3. Search (name, phone, or code)
+      const patientName = appt.profiles?.fullname?.toLowerCase() || "";
+      const patientPhone = appt.profiles?.phone || "";
+      const shortCode = appt.id.substring(0, 8).toLowerCase();
+      const query = search.toLowerCase().trim();
+
+      if (query) {
+        return (
+          patientName.includes(query) ||
+          patientPhone.includes(query) ||
+          shortCode.includes(query)
+        );
+      }
+
+      return true;
+    });
+  }, [appointments, activeQueueTab, filterDate, search]);
+
+  const hasActiveFilter = !!search || !!filterDate || activeQueueTab !== "all";
+
+  const handleClearFilters = () => {
+    setSearch("");
+    setFilterDate("");
+    setActiveQueueTab("all");
+  };
 
   const handleEnterResultClick = (appt: AppointmentForDoctor) => {
     setSelectedAppt(appt);
@@ -366,7 +395,7 @@ export function DoctorDashboardPage() {
   return (
     <PageContainer>
       <PageHeader
-        description={`Xin chào, Bác sĩ ${displayName}. Dưới đây là danh sách bệnh nhân và hàng đợi phòng khám.`}
+        description={`Xin chào, Bác sĩ ${displayName}.`}
         eyebrow="Doctor Dashboard"
         title="Bảng điều khiển Bác sĩ"
       />
@@ -381,12 +410,12 @@ export function DoctorDashboardPage() {
       <SimpleGrid cols={{ base: 2, sm: 2, xl: 4 }} spacing="md" mb="xl">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} height={100} radius="lg" />
-            ))
+            <Skeleton key={i} height={100} radius="lg" />
+          ))
           : stats.map((s) => <DoctorStatCard key={s.label} {...s} />)}
       </SimpleGrid>
 
-      {/* Appointment queue */}
+      {/* Appointment list */}
       <Card
         withBorder
         radius="lg"
@@ -394,6 +423,7 @@ export function DoctorDashboardPage() {
         style={{ borderColor: "var(--mantine-color-gray-1)", boxShadow: "0 4px 20px rgba(0,0,0,0.01)" }}
       >
         <Stack gap="md">
+          {/* Header */}
           <Group justify="space-between" align="center" wrap="wrap">
             <Group gap="sm">
               <ThemeIcon color="blue" size={36} radius="xl" variant="light">
@@ -401,69 +431,184 @@ export function DoctorDashboardPage() {
               </ThemeIcon>
               <Box>
                 <Text fw={700} size="lg" c="dark.8">
-                  Hàng đợi bệnh nhân phòng khám
-                </Text>
-                <Text size="xs" c="dimmed">
-                  Quản lý danh sách khám và nhập kết quả bệnh án
+                  Danh sách lịch hẹn
                 </Text>
               </Box>
             </Group>
 
-            <Button
-              size="xs"
-              variant="subtle"
-              color="gray"
-              leftSection={<RefreshCcw size={14} />}
-              onClick={() => void refetch()}
-            >
-              Làm mới hàng đợi
-            </Button>
+            <Group gap="xs">
+              {hasActiveFilter && (
+                <Button
+                  size="xs"
+                  variant="light"
+                  color="red"
+                  leftSection={<X size={14} />}
+                  onClick={handleClearFilters}
+                  radius="md"
+                >
+                  Xóa bộ lọc
+                </Button>
+              )}
+              <Button
+                size="xs"
+                variant="subtle"
+                color="gray"
+                leftSection={<RefreshCcw size={14} />}
+                onClick={() => void refetch()}
+              >
+                Làm mới
+              </Button>
+            </Group>
           </Group>
 
-          {/* Search & Tabs — responsive */}
-          <Stack gap="sm" mt="xs">
-            <TextInput
-              placeholder="Tìm bệnh nhân bằng tên, SĐT, mã check-in..."
-              leftSection={<Search size={16} />}
-              value={search}
-              onChange={(e) => setSearch(e.currentTarget.value)}
-              radius="md"
-            />
+          {/* ── Filter bar ── */}
+          <Box
+            p="md"
+            style={{
+              background: "var(--mantine-color-gray-0)",
+              borderRadius: 12,
+              border: "1px solid var(--mantine-color-gray-2)",
+            }}
+          >
+            <Group gap="xs" mb="sm" align="center">
+              <ThemeIcon size="sm" color="gray" variant="transparent">
+                <Filter size={14} />
+              </ThemeIcon>
+              <Text size="xs" fw={700} c="dimmed" tt="uppercase" style={{ letterSpacing: "0.06em" }}>
+                Bộ lọc
+              </Text>
+            </Group>
 
-            {/* Queue tab filter — Select on mobile, SegmentedControl on desktop */}
-            {isMobile ? (
-              <Select
-                value={activeQueueTab}
-                onChange={(v) => setActiveQueueTab(v ?? "checked-in")}
-                data={[
-                  { label: "Đang chờ khám", value: "checked-in" },
-                  { label: "Chờ check-in", value: "confirmed" },
-                  { label: "Đã khám xong", value: "completed" },
-                  { label: "Tất cả", value: "all" },
-                ]}
+            <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm">
+              {/* Search by name / phone / code */}
+              <TextInput
+                placeholder="Tên, số điện thoại, mã khám..."
+                leftSection={<Search size={15} />}
+                value={search}
+                onChange={(e) => setSearch(e.currentTarget.value)}
                 radius="md"
                 size="sm"
-                checkIconPosition="right"
+                rightSection={
+                  search ? (
+                    <ActionIcon
+                      size="xs"
+                      variant="transparent"
+                      color="gray"
+                      onClick={() => setSearch("")}
+                    >
+                      <X size={12} />
+                    </ActionIcon>
+                  ) : undefined
+                }
               />
-            ) : (
-              <SegmentedControl
-                value={activeQueueTab}
-                onChange={setActiveQueueTab}
-                data={[
-                  { label: "Đang chờ khám", value: "checked-in" },
-                  { label: "Chờ check-in", value: "confirmed" },
-                  { label: "Đã khám xong", value: "completed" },
-                  { label: "Tất cả", value: "all" },
-                ]}
-                color="teal"
-                radius="md"
-              />
-            )}
-          </Stack>
 
+              {/* Date picker — native input */}
+              <Box style={{ position: "relative" }}>
+                <Box
+                  style={{
+                    position: "absolute",
+                    left: 12,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    pointerEvents: "none",
+                    zIndex: 1,
+                    color: "var(--mantine-color-gray-5)",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <Calendar size={15} />
+                </Box>
+                <input
+                  type="date"
+                  value={filterDate}
+                  onChange={(e) => setFilterDate(e.target.value)}
+                  style={{
+                    width: "100%",
+                    height: 36,
+                    paddingLeft: 36,
+                    paddingRight: filterDate ? 36 : 12,
+                    paddingTop: 0,
+                    paddingBottom: 0,
+                    fontSize: "var(--mantine-font-size-sm)",
+                    border: "1px solid var(--mantine-color-gray-4)",
+                    borderRadius: 8,
+                    outline: "none",
+                    background: "var(--mantine-color-white)",
+                    color: filterDate ? "var(--mantine-color-dark-8)" : "var(--mantine-color-gray-5)",
+                    fontFamily: "inherit",
+                    boxSizing: "border-box",
+                  }}
+                />
+                {filterDate && (
+                  <ActionIcon
+                    size="xs"
+                    variant="transparent"
+                    color="gray"
+                    style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)" }}
+                    onClick={() => setFilterDate("")}
+                  >
+                    <X size={12} />
+                  </ActionIcon>
+                )}
+              </Box>
+
+              {/* Status filter — Select on mobile */}
+              {isMobile ? (
+                <Select
+                  value={activeQueueTab}
+                  onChange={(v) => setActiveQueueTab(v ?? "all")}
+                  data={[
+                    { label: "Tất cả trạng thái", value: "all" },
+                    { label: "Đang chờ khám", value: "checked-in" },
+                    { label: "Chờ check-in", value: "confirmed" },
+                    { label: "Đã khám xong", value: "completed" },
+                  ]}
+                  radius="md"
+                  size="sm"
+                  checkIconPosition="right"
+                />
+              ) : (
+                <Select
+                  value={activeQueueTab}
+                  onChange={(v) => setActiveQueueTab(v ?? "all")}
+                  data={[
+                    { label: "Tất cả trạng thái", value: "all" },
+                    { label: "Đang chờ khám", value: "checked-in" },
+                    { label: "Chờ check-in", value: "confirmed" },
+                    { label: "Đã khám xong", value: "completed" },
+                  ]}
+                  radius="md"
+                  size="sm"
+                  checkIconPosition="right"
+                />
+              )}
+            </SimpleGrid>
+          </Box>
+
+          {/* Result count */}
+          {!isLoading && (
+            <Group gap="xs">
+              <Indicator color="blue" size={8} processing={isLoading}>
+                <Text size="sm" c="dimmed">
+                  Hiển thị{" "}
+                  <Text span fw={700} c="dark.7">
+                    {filteredAppointments.length}
+                  </Text>{" "}
+                  /{" "}
+                  <Text span fw={600} c="dimmed">
+                    {appointments.length}
+                  </Text>{" "}
+                  lịch hẹn
+                </Text>
+              </Indicator>
+            </Group>
+          )}
+
+          {/* List */}
           {isLoading ? (
             <Stack gap="sm">
-              {Array.from({ length: 3 }).map((_, i) => (
+              {Array.from({ length: 5 }).map((_, i) => (
                 <Skeleton key={i} height={80} radius="md" />
               ))}
             </Stack>
@@ -480,8 +625,19 @@ export function DoctorDashboardPage() {
                 <Stethoscope size={28} />
               </ThemeIcon>
               <Text c="dimmed" size="sm">
-                Không có bệnh nhân nào trong hàng đợi này.
+                Không tìm thấy lịch hẹn nào khớp với bộ lọc.
               </Text>
+              {hasActiveFilter && (
+                <Button
+                  mt="sm"
+                  size="xs"
+                  variant="subtle"
+                  color="blue"
+                  onClick={handleClearFilters}
+                >
+                  Xóa bộ lọc
+                </Button>
+              )}
             </Box>
           ) : isMobile ? (
             /* ── Mobile: card list ── */
@@ -499,7 +655,7 @@ export function DoctorDashboardPage() {
               ))}
             </Stack>
           ) : (
-            /* ── Desktop: existing row layout ── */
+            /* ── Desktop: row layout ── */
             <Stack gap="sm">
               {filteredAppointments.map((appt) => {
                 const cfg = getStatusConfig(appt.status);
@@ -513,6 +669,7 @@ export function DoctorDashboardPage() {
                 const shortCode = appt.id.substring(0, 8).toUpperCase();
                 const counterName = appt.counterName || appt.counters?.name || "Khám bệnh";
                 const counterRoom = appt.counterRoom || appt.counters?.room || "Phòng khám";
+                const isToday = appt.appointment_date === todayStr;
 
                 return (
                   <Group
@@ -521,8 +678,10 @@ export function DoctorDashboardPage() {
                     p="md"
                     style={{
                       borderRadius: 12,
-                      border: "1px solid var(--mantine-color-gray-1)",
-                      background: "rgba(255,255,255,0.7)",
+                      border: `1px solid ${isToday ? "var(--mantine-color-blue-2)" : "var(--mantine-color-gray-1)"}`,
+                      background: isToday
+                        ? "rgba(224,242,254,0.35)"
+                        : "rgba(255,255,255,0.7)",
                       boxShadow: "0 2px 8px rgba(0, 0, 0, 0.01)",
                     }}
                   >
@@ -539,6 +698,11 @@ export function DoctorDashboardPage() {
                           <Text size="xs" c="dimmed" fw={500}>
                             · {phone}
                           </Text>
+                          {isToday && (
+                            <Badge size="xs" color="blue" variant="dot" radius="sm">
+                              Hôm nay
+                            </Badge>
+                          )}
                         </Group>
 
                         {/* 2. Medical Service & Room */}
@@ -548,7 +712,10 @@ export function DoctorDashboardPage() {
 
                         {/* 3. Appointment Date & Time & Short Code */}
                         <Text size="xs" c="dimmed" mt={1}>
-                          Thời gian: <span style={{ fontWeight: 600 }}>{time}</span> ngày {date} · <span style={{ fontWeight: 700, color: "var(--mantine-color-gray-6)" }}>Mã khám: {shortCode}</span>
+                          Thời gian: <span style={{ fontWeight: 600 }}>{time}</span> ngày {date} ·{" "}
+                          <span style={{ fontWeight: 700, color: "var(--mantine-color-gray-6)" }}>
+                            Mã khám: {shortCode}
+                          </span>
                         </Text>
                       </Box>
                     </Group>

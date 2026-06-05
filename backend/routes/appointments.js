@@ -84,13 +84,19 @@ function toAppointmentSummary(appointment, counter) {
 
   return {
     id: appointment.id,
-    counterName: counter?.name || "Quầy",
-    counterRoom: counter?.room || "Phòng",
-    appointmentAt,
+    patient_id: appointment.patient_id,
+    appointment_date: appointment.appointment_date,
+    appointment_time: appointment.appointment_time || null,
+    slot_id: appointment.slot_id || null,
+    notes: appointment.notes || null,
     status: appointment.status,
     statusLabel: getStatusLabel(appointment.status),
+    counterName: counter?.name || "Quầy",
+    counterRoom: counter?.room || "Phòng",
+    counters: counter ? { name: counter.name, room: counter.room } : null,
+    appointmentAt,
     qrCodeUrl: appointment.qr_code || undefined,
-    profiles: appointment.profiles || undefined,
+    profiles: appointment.profiles || null,
   };
 }
 
