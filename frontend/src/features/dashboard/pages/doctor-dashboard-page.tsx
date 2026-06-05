@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Activity,
   CalendarClock,
@@ -5,6 +6,10 @@ import {
   Clock,
   Stethoscope,
   Users,
+  Search,
+  ClipboardList,
+  Check,
+  RefreshCcw,
 } from "lucide-react";
 
 import {
@@ -19,13 +24,20 @@ import {
   Text,
   Skeleton,
   ThemeIcon,
+  TextInput,
+  SegmentedControl,
+  Button,
+  Tooltip,
 } from "@mantine/core";
-
+import { useDisclosure } from "@mantine/hooks";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { httpClient } from "@/shared/services/http-client";
+import { appointmentsService } from "@/features/appointment/services/appointments-service";
+import { EnterResultModal } from "@/features/result/pages/medical-results-page";
 import { PageContainer } from "@/app/layouts/page-container";
 import { PageHeader } from "@/app/layouts/page-header";
 import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
-import { useQuery } from "@tanstack/react-query";
-import { httpClient } from "@/shared/services/http-client";
+import { toast } from "sonner";
 import dayjs from "dayjs";
 
 // ---------------------------------------------------------------
@@ -43,6 +55,12 @@ type AppointmentForDoctor = {
     fullname: string;
     phone: string;
   } | null;
+  counterName?: string;
+  counterRoom?: string;
+  counters?: {
+    name: string;
+    room: string;
+  } | null;
 };
 
 // ---------------------------------------------------------------
@@ -53,7 +71,7 @@ const STATUS_CONFIG: Record<
   { label: string; color: string; icon: React.ElementType }
 > = {
   confirmed: { label: "Đã xác nhận", color: "blue", icon: CalendarClock },
-  "checked-in": { label: "Đã check-in", color: "teal", icon: CheckCircle2 },
+  "checked-in": { label: "Đang chờ khám", color: "teal", icon: Activity },
   completed: { label: "Đã khám", color: "green", icon: CheckCircle2 },
   cancelled: { label: "Đã hủy", color: "red", icon: Clock },
 };
@@ -67,7 +85,7 @@ function getStatusConfig(status: string) {
 // ---------------------------------------------------------------
 function useDoctorAppointments() {
   return useQuery({
-    queryKey: ["doctor", "appointments"],
+    queryKey: ["results", "appointments"],
     queryFn: async () => {
       const { data } = await httpClient.get<{
         success: boolean;
@@ -97,7 +115,10 @@ function DoctorStatCard({
       withBorder
       radius="lg"
       p="lg"
-      style={{ borderColor: "var(--mantine-color-gray-2)" }}
+      style={{
+        borderColor: "var(--mantine-color-gray-1)",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.02)",
+      }}
     >
       <Group gap="md">
         <ThemeIcon color={color} size={48} radius="xl" variant="light">
@@ -107,13 +128,13 @@ function DoctorStatCard({
           <Text
             size="xs"
             c="dimmed"
-            fw={500}
+            fw={600}
             tt="uppercase"
             style={{ letterSpacing: "0.05em" }}
           >
             {label}
           </Text>
-          <Text size="xl" fw={800} c="dark.8">
+          <Text size="xl" fw={850} c="dark.8">
             {value}
           </Text>
         </Box>
@@ -123,72 +144,35 @@ function DoctorStatCard({
 }
 
 // ---------------------------------------------------------------
-// Appointment row
-// ---------------------------------------------------------------
-function AppointmentRow({ appt }: { appt: AppointmentForDoctor }) {
-  const cfg = getStatusConfig(appt.status);
-  const StatusIcon = cfg.icon;
-  const name = appt.profiles?.fullname ?? "Bệnh nhân";
-  const phone = appt.profiles?.phone ?? "";
-  const time = appt.slot_id
-    ? appt.slot_id.substring(0, 5)
-    : (appt.appointment_time?.substring(0, 5) ?? "--:--");
-
-  return (
-    <Group
-      justify="space-between"
-      p="sm"
-      style={{
-        borderRadius: 12,
-        border: "1px solid var(--mantine-color-gray-2)",
-        background: "rgba(255,255,255,0.7)",
-      }}
-    >
-      <Group gap="sm">
-        <Avatar color="blue" radius="xl" size="md">
-          {name.charAt(0).toUpperCase()}
-        </Avatar>
-        <Box>
-          <Text fw={700} size="sm" c="dark.8">
-            {name}
-          </Text>
-          <Text size="xs" c="dimmed">
-            {phone} · {time}
-          </Text>
-        </Box>
-      </Group>
-      <Badge
-        color={cfg.color}
-        radius="sm"
-        variant="light"
-        leftSection={<StatusIcon size={12} />}
-      >
-        {cfg.label}
-      </Badge>
-    </Group>
-  );
-}
-
-// ---------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------
 export function DoctorDashboardPage() {
   const { displayName } = useAuthSession();
+  const queryClient = useQueryClient();
   const {
     data: appointments = [],
     isLoading,
     isError,
+    refetch,
   } = useDoctorAppointments();
 
+  const [search, setSearch] = useState("");
+  const [activeQueueTab, setActiveQueueTab] = useState<string>("checked-in");
+
+  // Diagnostics Modal State
+  const [resultModalOpened, { open: openResultModal, close: closeResultModal }] = useDisclosure(false);
+  const [selectedAppt, setSelectedAppt] = useState<AppointmentForDoctor | null>(null);
+
   const todayStr = dayjs().format("YYYY-MM-DD");
+  
+  // Stats calculations based on today
   const todayAppointments = appointments.filter(
     (a) => a.appointment_date === todayStr,
   );
-
-  const checkedIn = todayAppointments.filter(
+  const checkedInToday = todayAppointments.filter(
     (a) => a.status === "checked-in",
   ).length;
-  const completed = todayAppointments.filter(
+  const completedToday = todayAppointments.filter(
     (a) => a.status === "completed",
   ).length;
   const totalToday = todayAppointments.length;
@@ -201,29 +185,67 @@ export function DoctorDashboardPage() {
       color: "blue",
     },
     {
-      icon: CheckCircle2,
-      label: "Đã check-in",
-      value: String(checkedIn),
+      icon: Activity,
+      label: "Đang chờ khám",
+      value: String(checkedInToday),
       color: "teal",
     },
     {
-      icon: Activity,
+      icon: CheckCircle2,
       label: "Đã khám xong",
-      value: String(completed),
+      value: String(completedToday),
       color: "green",
     },
     {
       icon: Stethoscope,
-      label: "Còn chờ khám",
-      value: String(totalToday - completed),
+      label: "Chưa check-in",
+      value: String(totalToday - checkedInToday - completedToday),
       color: "orange",
     },
   ];
 
+  // Manual Check-in mutation
+  const checkInMutation = useMutation({
+    mutationFn: (id: string) => appointmentsService.checkInAppointment(id),
+    onSuccess: () => {
+      toast.success("Check-in bệnh nhân thành công.");
+      queryClient.invalidateQueries({ queryKey: ["results", "appointments"] });
+    },
+    onError: (err: any) => {
+      const errMsg = err?.response?.data?.message || "Không thể thực hiện check-in.";
+      toast.error(errMsg);
+    },
+  });
+
+  // Filter & Search appointments
+  const filteredAppointments = appointments.filter((appt) => {
+    // 1. Queue Tab Filter
+    if (activeQueueTab !== "all" && appt.status !== activeQueueTab) {
+      return false;
+    }
+
+    // 2. Search Query (Name, Phone, or Code)
+    const patientName = appt.profiles?.fullname?.toLowerCase() || "";
+    const patientPhone = appt.profiles?.phone || "";
+    const shortCode = appt.id.substring(0, 8).toLowerCase();
+    const query = search.toLowerCase();
+
+    return (
+      patientName.includes(query) ||
+      patientPhone.includes(query) ||
+      shortCode.includes(query)
+    );
+  });
+
+  const handleEnterResultClick = (appt: AppointmentForDoctor) => {
+    setSelectedAppt(appt);
+    openResultModal();
+  };
+
   return (
     <PageContainer>
       <PageHeader
-        description={`Xin chào, ${displayName}. Dưới đây là danh sách bệnh nhân của bạn hôm nay.`}
+        description={`Xin chào, Bác sĩ ${displayName}. Dưới đây là danh sách bệnh nhân và hàng đợi phòng khám.`}
         eyebrow="Doctor Dashboard"
         title="Bảng điều khiển Bác sĩ"
       />
@@ -248,30 +270,66 @@ export function DoctorDashboardPage() {
         withBorder
         radius="lg"
         p="lg"
-        style={{ borderColor: "var(--mantine-color-gray-2)" }}
+        style={{ borderColor: "var(--mantine-color-gray-1)", boxShadow: "0 4px 20px rgba(0,0,0,0.01)" }}
       >
         <Stack gap="md">
-          <Group gap="sm">
-            <ThemeIcon color="blue" size={36} radius="xl" variant="light">
-              <CalendarClock size={18} />
-            </ThemeIcon>
-            <Box>
-              <Text fw={700} size="lg" c="dark.8">
-                Danh sách bệnh nhân hôm nay
-              </Text>
-              <Text size="xs" c="dimmed">
-                {dayjs().format("DD/MM/YYYY")}
-              </Text>
-            </Box>
+          <Group justify="space-between" align="center" wrap="wrap">
+            <Group gap="sm">
+              <ThemeIcon color="blue" size={36} radius="xl" variant="light">
+                <CalendarClock size={18} />
+              </ThemeIcon>
+              <Box>
+                <Text fw={700} size="lg" c="dark.8">
+                  Hàng đợi bệnh nhân phòng khám
+                </Text>
+                <Text size="xs" c="dimmed">
+                  Quản lý danh sách khám và nhập kết quả bệnh án
+                </Text>
+              </Box>
+            </Group>
+
+            <Button
+              size="xs"
+              variant="subtle"
+              color="gray"
+              leftSection={<RefreshCcw size={14} />}
+              onClick={() => void refetch()}
+            >
+              Làm mới hàng đợi
+            </Button>
           </Group>
+
+          {/* Search & Tabs */}
+          <SimpleGrid cols={{ base: 1, md: 2 }} spacing="sm" mt="xs">
+            <TextInput
+              placeholder="Tìm bệnh nhân bằng tên, SĐT, mã check-in..."
+              leftSection={<Search size={16} />}
+              value={search}
+              onChange={(e) => setSearch(e.currentTarget.value)}
+              radius="md"
+            />
+            
+            <SegmentedControl
+              value={activeQueueTab}
+              onChange={setActiveQueueTab}
+              data={[
+                { label: "Đang chờ khám", value: "checked-in" },
+                { label: "Chờ check-in", value: "confirmed" },
+                { label: "Đã khám xong", value: "completed" },
+                { label: "Tất cả", value: "all" },
+              ]}
+              color="teal"
+              radius="md"
+            />
+          </SimpleGrid>
 
           {isLoading ? (
             <Stack gap="sm">
               {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} height={68} radius="md" />
+                <Skeleton key={i} height={80} radius="md" />
               ))}
             </Stack>
-          ) : todayAppointments.length === 0 ? (
+          ) : filteredAppointments.length === 0 ? (
             <Box py="xl" style={{ textAlign: "center" }}>
               <ThemeIcon
                 color="gray"
@@ -284,45 +342,118 @@ export function DoctorDashboardPage() {
                 <Stethoscope size={28} />
               </ThemeIcon>
               <Text c="dimmed" size="sm">
-                Hôm nay chưa có lịch khám nào được phân công.
+                Không có bệnh nhân nào trong hàng đợi này.
               </Text>
             </Box>
           ) : (
             <Stack gap="sm">
-              {todayAppointments.map((appt) => (
-                <AppointmentRow key={appt.id} appt={appt} />
-              ))}
+              {filteredAppointments.map((appt) => {
+                const cfg = getStatusConfig(appt.status);
+                const StatusIcon = cfg.icon;
+                const name = appt.profiles?.fullname ?? "Bệnh nhân";
+                const phone = appt.profiles?.phone ?? "Không có SĐT";
+                const time = appt.slot_id
+                  ? appt.slot_id.substring(0, 5)
+                  : (appt.appointment_time?.substring(0, 5) ?? "--:--");
+                const date = dayjs(appt.appointment_date).format("DD/MM/YYYY");
+                const shortCode = appt.id.substring(0, 8).toUpperCase();
+                const counterName = appt.counterName || appt.counters?.name || "Khám bệnh";
+                const counterRoom = appt.counterRoom || appt.counters?.room || "Phòng khám";
+
+                return (
+                  <Group
+                    key={appt.id}
+                    justify="space-between"
+                    p="md"
+                    style={{
+                      borderRadius: 12,
+                      border: "1px solid var(--mantine-color-gray-1)",
+                      background: "rgba(255,255,255,0.7)",
+                      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.01)",
+                    }}
+                  >
+                    <Group gap="md">
+                      <Avatar color="blue" radius="xl" size="md">
+                        {name.charAt(0).toUpperCase()}
+                      </Avatar>
+                      <Box>
+                        {/* 1. Patient Name & Phone */}
+                        <Group gap="xs" align="center">
+                          <Text fw={750} size="sm" c="dark.8">
+                            {name}
+                          </Text>
+                          <Text size="xs" c="dimmed" fw={500}>
+                            · {phone}
+                          </Text>
+                        </Group>
+
+                        {/* 2. Medical Service & Room */}
+                        <Text size="xs" fw={600} c="blue.7" mt={1}>
+                          Dịch vụ: {counterName} ({counterRoom})
+                        </Text>
+
+                        {/* 3. Appointment Date & Time & Short Code */}
+                        <Text size="xs" c="dimmed" mt={1}>
+                          Thời gian: <span style={{ fontWeight: 600 }}>{time}</span> ngày {date} · <span style={{ fontWeight: 700, color: "var(--mantine-color-gray-6)" }}>Mã khám: {shortCode}</span>
+                        </Text>
+                      </Box>
+                    </Group>
+
+                    <Group gap="sm">
+                      <Badge
+                        color={cfg.color}
+                        radius="sm"
+                        variant="light"
+                        leftSection={<StatusIcon size={12} />}
+                      >
+                        {cfg.label}
+                      </Badge>
+
+                      {/* 4. Actions */}
+                      {appt.status === "confirmed" && (
+                        <Tooltip label="Check-in trực tiếp tại phòng khám">
+                          <Button
+                            size="xs"
+                            variant="light"
+                            color="teal"
+                            radius="md"
+                            leftSection={<Check size={14} />}
+                            loading={checkInMutation.isPending && checkInMutation.variables === appt.id}
+                            onClick={() => checkInMutation.mutate(appt.id)}
+                          >
+                            Check-in
+                          </Button>
+                        </Tooltip>
+                      )}
+
+                      {(appt.status === "checked-in" || appt.status === "confirmed") && (
+                        <Button
+                          size="xs"
+                          radius="md"
+                          color="blue"
+                          leftSection={<ClipboardList size={14} />}
+                          onClick={() => handleEnterResultClick(appt)}
+                        >
+                          Khám & Nhập KQ
+                        </Button>
+                      )}
+                    </Group>
+                  </Group>
+                );
+              })}
             </Stack>
           )}
         </Stack>
       </Card>
 
-      {/* Upcoming (other days) */}
-      {!isLoading &&
-        appointments.filter((a) => a.appointment_date > todayStr).length >
-          0 && (
-          <Card
-            withBorder
-            radius="lg"
-            p="lg"
-            mt="md"
-            style={{ borderColor: "var(--mantine-color-gray-2)" }}
-          >
-            <Stack gap="md">
-              <Text fw={700} size="lg" c="dark.8">
-                Lịch sắp tới
-              </Text>
-              <Stack gap="sm">
-                {appointments
-                  .filter((a) => a.appointment_date > todayStr)
-                  .slice(0, 5)
-                  .map((appt) => (
-                    <AppointmentRow key={appt.id} appt={appt} />
-                  ))}
-              </Stack>
-            </Stack>
-          </Card>
-        )}
+      {/* Enter Result Modal */}
+      {resultModalOpened && selectedAppt && (
+        <EnterResultModal
+          opened={resultModalOpened}
+          onClose={closeResultModal}
+          appointment={selectedAppt}
+        />
+      )}
     </PageContainer>
   );
 }

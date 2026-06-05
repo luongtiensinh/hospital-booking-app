@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const supabaseClient = require("../utils/supabaseClient");
 const cryptoHelper = require("../utils/crypto");
 const requireAuth = require("../middleware/requireAuth");
+const requireRole = require("../middleware/requireRole");
 
 dayjs.extend(utc);
 
@@ -89,6 +90,7 @@ function toAppointmentSummary(appointment, counter) {
     status: appointment.status,
     statusLabel: getStatusLabel(appointment.status),
     qrCodeUrl: appointment.qr_code || undefined,
+    profiles: appointment.profiles || undefined,
   };
 }
 
@@ -107,13 +109,18 @@ router.get("/", async (req, res) => {
   const { status, upcoming } = req.query;
   const { role, id: userId } = req.user;
 
+  let selectQuery = "*, counters(*)";
+  if (role === "admin" || role === "doctor") {
+    selectQuery = "*, counters(*), profiles!fk_appointments_patient(fullname, phone)";
+  }
+
   let query = supabase
     .from("appointments")
-    .select("*, counters(*)")
+    .select(selectQuery)
     .order("appointment_date", { ascending: true })
     .order("slot_id", { ascending: true });
 
-  if (role !== "admin") {
+  if (role !== "admin" && role !== "doctor") {
     query = query.eq("patient_id", userId);
   }
   // admin: không filter → lấy toàn bộ
@@ -143,13 +150,18 @@ router.get("/history", async (req, res) => {
   const supabase = supabaseClient.getSupabaseClient(req);
   const { role, id: userId } = req.user;
 
+  let selectQuery = "*, counters(*)";
+  if (role === "admin" || role === "doctor") {
+    selectQuery = "*, counters(*), profiles!fk_appointments_patient(fullname, phone)";
+  }
+
   let query = supabase
     .from("appointments")
-    .select("*, counters(*)")
+    .select(selectQuery)
     .order("appointment_date", { ascending: false })
     .order("slot_id", { ascending: false });
 
-  if (role !== "admin") {
+  if (role !== "admin" && role !== "doctor") {
     query = query.eq("patient_id", userId);
   }
   // admin: không filter
@@ -435,7 +447,7 @@ router.delete("/:id", async (req, res) => {
     buildAppointmentDateTime(appointment.appointment_date, startTimeStr),
   );
 
-  if (appointmentDateTime.diff(dayjs(), "hour") < 24) {
+  if (role !== "admin" && appointmentDateTime.diff(dayjs(), "hour") < 24) {
     return res.status(400).json({
       success: false,
       message: "Không thể hủy trong vòng 24h trước giờ khám.",
@@ -588,27 +600,122 @@ router.get("/latest-qr", async (req, res) => {
   return res.json({ success: true, data: responseData });
 });
 
+// POST /api/appointments/:id/check-in
+// Admin or Doctor checks in a patient manually
+router.post("/:id/check-in", requireRole(["admin", "doctor"]), async (req, res) => {
+  const supabase = supabaseClient.getSupabaseClient(req);
+  const appointmentId = req.params.id;
+
+  if (!UUID_REGEX.test(appointmentId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Mã lịch hẹn không hợp lệ.",
+    });
+  }
+
+  // Get current appointment status
+  const { data: appointment, error: fetchError } = await supabase
+    .from("appointments")
+    .select("status")
+    .eq("id", appointmentId)
+    .single();
+
+  if (fetchError || !appointment) {
+    return res.status(404).json({
+      success: false,
+      message: "Không tìm thấy lịch hẹn.",
+    });
+  }
+
+  if (appointment.status === "cancelled") {
+    return res.status(400).json({
+      success: false,
+      message: "Không thể check-in lịch hẹn đã bị hủy.",
+    });
+  }
+
+  if (appointment.status === "completed" || appointment.status === "checked-in") {
+    return res.status(400).json({
+      success: false,
+      message: `Lịch hẹn đã ở trạng thái ${appointment.status === "completed" ? "đã khám" : "đã check-in"}.`,
+    });
+  }
+
+  const now = new Date().toISOString();
+  const { error: updateError } = await supabase
+    .from("appointments")
+    .update({ status: "checked-in", qr_scanned_at: now, updated_at: now })
+    .eq("id", appointmentId);
+
+  if (updateError) {
+    return res.status(500).json({
+      success: false,
+      message: "Không thể cập nhật trạng thái check-in.",
+      detail: updateError.message,
+    });
+  }
+
+  return res.json({
+    success: true,
+    message: "Check-in bệnh nhân thành công.",
+  });
+});
+
 // POST /api/appointments/verify-qr
 router.post("/verify-qr", async (req, res) => {
   const supabase = supabaseClient.getSupabaseClient(req);
   const { value } = req.body || {};
 
-  if (!value) {
+  const valTrimmed = String(value || "").trim();
+  if (!valTrimmed) {
     return res.status(400).json({
       success: false,
-      data: { outcome: "invalid", message: "Thiếu thông tin mã QR." },
+      data: { outcome: "invalid", message: "Thiếu thông tin mã QR hoặc mã check-in." },
     });
   }
 
-  const appointmentId = cryptoHelper.decrypt(value);
-  if (!appointmentId) {
-    return res.json({
-      success: true,
-      data: {
-        outcome: "invalid",
-        message: "Mã QR không hợp lệ hoặc đã bị thay đổi.",
-      },
-    });
+  let appointmentId = null;
+
+  if (valTrimmed.length === 8) {
+    // Treat as 8-character short check-in code
+    const shortCode = valTrimmed.toLowerCase();
+    
+    // Query confirmed or checked-in appointments
+    const { data: appts, error: fetchErr } = await supabase
+      .from("appointments")
+      .select("id")
+      .in("status", ["confirmed", "checked-in"]);
+    
+    if (fetchErr) {
+      return res.status(500).json({
+        success: false,
+        message: "Lỗi kết nối cơ sở dữ liệu.",
+        detail: fetchErr.message,
+      });
+    }
+
+    const match = appts.find(a => a.id.substring(0, 8).toLowerCase() === shortCode);
+    if (!match) {
+      return res.json({
+        success: true,
+        data: {
+          outcome: "invalid",
+          message: "Không tìm thấy lịch hẹn khớp với mã nhập tay.",
+        },
+      });
+    }
+    appointmentId = match.id;
+  } else {
+    appointmentId = cryptoHelper.decrypt(valTrimmed);
+    if (!appointmentId) {
+      return res.json({
+        success: true,
+        data: {
+          outcome: "invalid",
+          message: "Mã QR không hợp lệ hoặc đã bị thay đổi.",
+        },
+      });
+    }
   }
 
   if (!UUID_REGEX.test(appointmentId)) {

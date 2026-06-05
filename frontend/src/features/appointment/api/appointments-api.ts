@@ -65,4 +65,8 @@ export const appointmentsApi = {
       data: { reason }
     });
   },
+
+  async checkInAppointment(id: string): Promise<void> {
+    await httpClient.post(`/appointments/${id}/check-in`);
+  },
 };

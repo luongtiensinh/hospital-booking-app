@@ -90,7 +90,7 @@ function PatientResultCard({ result }: { result: BackendResult }) {
 // ---------------------------------------------------------------
 // Doctor / Admin: Enter result modal
 // ---------------------------------------------------------------
-function EnterResultModal({
+export function EnterResultModal({
   opened,
   onClose,
   appointment,

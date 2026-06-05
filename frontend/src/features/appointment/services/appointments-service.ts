@@ -48,5 +48,9 @@ export const appointmentsService = {
 
   async cancelAppointment(id: string, reason?: string): Promise<void> {
     return appointmentsApi.cancelAppointment(id, reason);
+  },
+
+  async checkInAppointment(id: string): Promise<void> {
+    return appointmentsApi.checkInAppointment(id);
   }
 };

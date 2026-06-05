@@ -54,7 +54,7 @@ export function CancelAppointmentDialog({
         <div>
           <Text size="sm" fw={600}>Thông tin lịch hẹn:</Text>
           <Text size="sm" c="dimmed">• Quầy: {counterName}</Text>
-          <Text size="sm" c="dimmed">• Thời gian: {formatDateTime(appointmentAt)}</Text>
+        <Text size="sm" c="dimmed">• Thời gian: {appointmentAt ? (() => { try { return formatDateTime(appointmentAt); } catch { return appointmentAt; } })() : "—"}</Text>
         </div>
 
         <Textarea

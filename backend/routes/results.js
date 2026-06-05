@@ -83,7 +83,7 @@ router.get(
         slot_id,
         status,
         notes,
-        profiles:patient_id (
+        profiles!fk_appointments_patient (
           fullname,
           phone
         )

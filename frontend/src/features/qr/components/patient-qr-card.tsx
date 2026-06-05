@@ -96,6 +96,9 @@ export function PatientQrCard({
                   size={150}
                   value={qr.qrValue}
                 />
+                <Text size="xs" fw={700} c="dimmed" mt="xs">
+                  Mã check-in: {qr.appointmentId ? qr.appointmentId.substring(0, 8).toUpperCase() : "—"}
+                </Text>
 
                 {qr.status === "active" && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl">
@@ -238,6 +241,9 @@ export function PatientQrCard({
               size={260}
               value={qr.qrValue}
             />
+            <Text size="sm" fw={800} c="blue.9" mt="xs">
+              MÃ CHECK-IN: {qr.appointmentId ? qr.appointmentId.substring(0, 8).toUpperCase() : "—"}
+            </Text>
           </Paper>
 
           <Stack gap="xs" align="center" className="text-center">
