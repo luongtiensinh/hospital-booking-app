@@ -1,8 +1,12 @@
 const express = require("express");
+const dayjs = require("dayjs");
+const utc = require("dayjs/plugin/utc");
 const router = express.Router();
 const supabaseClient = require("../utils/supabaseClient");
 const requireAuth = require("../middleware/requireAuth");
 const requireRole = require("../middleware/requireRole");
+
+dayjs.extend(utc);
 
 router.use(requireAuth);
 
@@ -82,8 +86,7 @@ router.get(
       const supabase = supabaseClient.getSupabaseClient(req);
       const { role, id: userId } = req.user;
 
-      const todayVN = new Date()
-        .toLocaleDateString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh" });
+      const todayVN = dayjs().utcOffset(7).format("YYYY-MM-DD");
 
       let query = supabase
         .from("appointments")

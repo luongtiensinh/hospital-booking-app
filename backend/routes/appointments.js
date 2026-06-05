@@ -674,7 +674,8 @@ router.post("/verify-qr", async (req, res) => {
       .from("appointments")
       .select("id")
       .in("status", ["confirmed", "checked-in"])
-      .ilike("id", `${shortCode}%`)
+      .gte("id", `${shortCode}-0000-0000-0000-000000000000`)
+      .lte("id", `${shortCode}-ffff-ffff-ffff-ffffffffffff`)
       .limit(1);
     
     if (fetchErr) {
@@ -867,7 +868,8 @@ router.post("/:id/check-in", requireRole(["admin", "doctor"]), async (req, res) 
   const { error: updateError } = await supabase
     .from("appointments")
     .update({ status: "checked-in", qr_scanned_at: now, updated_at: now })
-    .eq("id", appointmentId);
+    .eq("id", appointmentId)
+    .eq("status", "confirmed");
 
   if (updateError) {
     return res.status(500).json({
