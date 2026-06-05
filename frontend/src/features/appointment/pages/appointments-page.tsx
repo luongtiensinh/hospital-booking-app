@@ -583,7 +583,12 @@ export function AppointmentsPage() {
                         ? undefined
                         : "linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)",
                     border: 0,
-                    color: "white",
+                    color:
+                      (activeStep === 0 && !selectedCounter) ||
+                      (activeStep === 1 &&
+                        (!draft.appointmentDate || !draft.slotId))
+                        ? undefined
+                        : "white",
                     boxShadow:
                       (activeStep === 0 && !selectedCounter) ||
                       (activeStep === 1 &&

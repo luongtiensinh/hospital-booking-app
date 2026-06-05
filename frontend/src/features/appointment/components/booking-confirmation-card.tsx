@@ -105,7 +105,7 @@ export function BookingConfirmationCard({
           style={{
             background: canConfirm && !isPending ? 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)' : undefined,
             border: 0,
-            color: 'white',
+            color: canConfirm && !isPending ? 'white' : undefined,
             boxShadow: canConfirm && !isPending ? '0 8px 20px rgba(37, 99, 235, 0.25)' : undefined,
             transition: 'all 0.2s ease',
           }}

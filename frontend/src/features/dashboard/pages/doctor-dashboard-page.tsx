@@ -339,7 +339,7 @@ export function DoctorDashboardPage() {
   });
 
   // Filter & Search appointments
-  const filteredAppointments = appointments.filter((appt) => {
+  const filteredAppointments = todayAppointments.filter((appt) => {
     // 1. Queue Tab Filter
     if (activeQueueTab !== "all" && appt.status !== activeQueueTab) {
       return false;

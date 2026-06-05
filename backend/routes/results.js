@@ -82,6 +82,9 @@ router.get(
       const supabase = supabaseClient.getSupabaseClient(req);
       const { role, id: userId } = req.user;
 
+      const todayVN = new Date()
+        .toLocaleDateString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh" });
+
       let query = supabase
         .from("appointments")
         .select(
@@ -93,6 +96,10 @@ router.get(
         slot_id,
         status,
         notes,
+        counters (
+          name,
+          room
+        ),
         profiles!fk_appointments_patient (
           fullname,
           phone
@@ -100,9 +107,9 @@ router.get(
       `,
         )
         .in("status", ["confirmed", "checked-in", "completed"])
-        .order("appointment_date", { ascending: true })
+        .eq("appointment_date", todayVN)
         .order("slot_id", { ascending: true });
-      // admin: không filter → lấy tất cả
+      // admin: không filter theo bác sĩ → lấy tất cả lịch hôm nay
 
       const { data, error } = await query;
       if (error) {
