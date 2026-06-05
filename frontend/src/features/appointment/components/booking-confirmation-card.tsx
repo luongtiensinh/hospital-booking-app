@@ -97,26 +97,28 @@ export function BookingConfirmationCard({
           fullWidth
           size="md"
           radius="md"
-          color="sky"
           disabled={!canConfirm || isPending}
           loading={isPending}
           onClick={onConfirm}
           type="button"
-          variant="default"
+          variant="filled"
           style={{
-            boxShadow: canConfirm && !isPending ? '0 10px 25px rgba(15,111,236,0.25)' : undefined,
-            transition: 'all 150ms ease',
+            background: canConfirm && !isPending ? 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)' : undefined,
+            border: 0,
+            color: 'white',
+            boxShadow: canConfirm && !isPending ? '0 8px 20px rgba(37, 99, 235, 0.25)' : undefined,
+            transition: 'all 0.2s ease',
           }}
           onMouseEnter={(e) => {
             if (!canConfirm || isPending) return;
             const el = e.currentTarget;
-            el.style.boxShadow = '0 14px 35px rgba(15,111,236,0.35)';
-            el.style.transform = 'translateY(-1px)';
+            el.style.boxShadow = '0 12px 28px rgba(37, 99, 235, 0.35)';
+            el.style.transform = 'translateY(-1.5px)';
           }}
           onMouseLeave={(e) => {
             if (!canConfirm || isPending) return;
             const el = e.currentTarget;
-            el.style.boxShadow = '0 10px 25px rgba(15,111,236,0.25)';
+            el.style.boxShadow = '0 8px 20px rgba(37, 99, 235, 0.25)';
             el.style.transform = 'translateY(0)';
           }}
         >

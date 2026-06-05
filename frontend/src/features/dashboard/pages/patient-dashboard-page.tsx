@@ -69,11 +69,6 @@ export function PatientDashboardPage() {
             eyebrow="Xin chào"
             title="Cổng thông tin Bệnh nhân"
           />
-          <HospitalLogo
-            height={76}
-            className="hidden md:inline-flex"
-            containerStyle={{ padding: 14 }}
-          />
         </Group>
       </Box>
 
@@ -84,10 +79,10 @@ export function PatientDashboardPage() {
         </Alert>
       ) : null}
 
-      <SimpleGrid cols={{ base: 1, sm: 2, xl: 4 }} spacing="md">
+      <SimpleGrid cols={{ base: 2, sm: 2, xl: 4 }} spacing="sm">
         {isLoading || !data
           ? Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} height={160} radius="lg" />
+              <Skeleton key={i} height={80} radius="lg" />
             ))
           : stats.map((stat) => <StatCard key={stat.label} {...stat} />)}
       </SimpleGrid>

@@ -184,17 +184,18 @@ function AppointmentMobileCard({
       p="md"
       style={{
         borderColor: "var(--mantine-color-gray-2)",
-        transition: "box-shadow 0.15s ease",
+        backgroundColor: "var(--mantine-color-white)",
+        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.01)",
       }}
     >
-      {/* Header row: Avatar + Name + Badge */}
-      <Group justify="space-between" align="flex-start" wrap="nowrap" mb="xs">
+      {/* Header: Name & Avatar + Status Badge */}
+      <Group justify="space-between" align="flex-start" wrap="nowrap" mb="sm">
         <Group gap="sm" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
           <Avatar size="md" radius="xl" color="blue" variant="light" style={{ flexShrink: 0 }}>
             {patientName.charAt(0).toUpperCase()}
           </Avatar>
           <Box style={{ minWidth: 0 }}>
-            <Text size="sm" fw={700} c="dark.8" truncate>
+            <Text size="sm" fw={750} c="dark.8" truncate>
               {patientName}
             </Text>
             <Text size="xs" c="dimmed" truncate>
@@ -214,39 +215,45 @@ function AppointmentMobileCard({
         </Badge>
       </Group>
 
-      <Divider my="xs" />
+      <Divider my="xs" style={{ opacity: 0.6 }} />
 
-      {/* Info grid */}
-      <SimpleGrid cols={2} spacing="xs" mb="sm">
+      {/* Info Rows */}
+      <Stack gap="xs" my="xs">
+        <Group justify="space-between" align="flex-start" wrap="nowrap">
+          <Box style={{ minWidth: 0 }}>
+            <Text size="10px" c="dimmed" fw={700} tt="uppercase" style={{ letterSpacing: "0.05em" }}>
+              Dịch vụ &amp; Phòng
+            </Text>
+            <Text size="xs" fw={600} c="blue.8" lineClamp={1}>
+              {counterName}
+            </Text>
+            <Text size="10px" c="dimmed">
+              {counterRoom}
+            </Text>
+          </Box>
+          <Box style={{ textAlign: "right", flexShrink: 0 }}>
+            <Text size="10px" c="dimmed" fw={700} tt="uppercase" style={{ letterSpacing: "0.05em" }}>
+              Mã Check-in
+            </Text>
+            <Badge variant="outline" color="gray" radius="sm" size="xs" mt={2} style={{ fontFamily: "monospace", fontSize: "11px" }}>
+              {shortCode}
+            </Badge>
+          </Box>
+        </Group>
+
         <Box>
           <Text size="10px" c="dimmed" fw={700} tt="uppercase" style={{ letterSpacing: "0.05em" }}>
-            Dịch vụ
+            Thời gian hẹn
           </Text>
-          <Text size="xs" fw={600} c="blue.8" lineClamp={1}>
-            {counterName}
+          <Text size="xs" fw={600} c="dark.7">
+            {time} — ngày {date}
           </Text>
-          <Text size="10px" c="dimmed">{counterRoom}</Text>
         </Box>
-        <Box>
-          <Text size="10px" c="dimmed" fw={700} tt="uppercase" style={{ letterSpacing: "0.05em" }}>
-            Thời gian
-          </Text>
-          <Text size="xs" fw={600}>{time}</Text>
-          <Text size="10px" c="dimmed">{date}</Text>
-        </Box>
-        <Box>
-          <Text size="10px" c="dimmed" fw={700} tt="uppercase" style={{ letterSpacing: "0.05em" }}>
-            Mã Check-in
-          </Text>
-          <Badge variant="outline" color="gray" radius="sm" size="xs">
-            {shortCode}
-          </Badge>
-        </Box>
-      </SimpleGrid>
+      </Stack>
 
       {/* Action buttons */}
       {appt.status === "confirmed" && (
-        <Group gap="xs" grow mt="xs">
+        <Group gap="xs" grow mt="md">
           <Button
             size="xs"
             color="teal"
@@ -412,8 +419,8 @@ export function AdminDashboardPage() {
       <SimpleGrid cols={{ base: 2, sm: 2, xl: 4 }} spacing="md" mb="xl">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} height={120} radius="lg" />
-            ))
+            <Skeleton key={i} height={120} radius="lg" />
+          ))
           : stats.map((s) => <AdminStatCard key={s.label} {...s} />)}
       </SimpleGrid>
 
@@ -439,7 +446,7 @@ export function AdminDashboardPage() {
                 </Text>
               </Box>
             </Group>
-            
+
             <Button
               size="xs"
               variant="subtle"
@@ -477,38 +484,38 @@ export function AdminDashboardPage() {
               />
 
               {/* Status filter — Select on mobile, SegmentedControl on desktop */}
-              {isMobile ? (
-                <Select
-                  value={statusFilter}
-                  onChange={(v) => setStatusFilter(v ?? "all")}
-                  data={[
-                    { label: "Tất cả trạng thái", value: "all" },
-                    { label: "Chờ khám", value: "confirmed" },
-                    { label: "Đã check-in", value: "checked-in" },
-                    { label: "Đã khám xong", value: "completed" },
-                    { label: "Đã hủy", value: "cancelled" },
-                  ]}
-                  radius="md"
-                  size="xs"
-                  style={{ flex: 1, minWidth: 160 }}
-                  checkIconPosition="right"
-                />
-              ) : (
-                <SegmentedControl
-                  value={statusFilter}
-                  onChange={setStatusFilter}
-                  data={[
-                    { label: "Tất cả", value: "all" },
-                    { label: "Chờ khám", value: "confirmed" },
-                    { label: "Checked-in", value: "checked-in" },
-                    { label: "Đã khám", value: "completed" },
-                    { label: "Đã hủy", value: "cancelled" },
-                  ]}
-                  color="blue"
-                  radius="md"
-                  size="xs"
-                />
-              )}
+              <Select
+                value={statusFilter}
+                onChange={(v) => setStatusFilter(v ?? "all")}
+                data={[
+                  { label: "Tất cả trạng thái", value: "all" },
+                  { label: "Chờ khám", value: "confirmed" },
+                  { label: "Đã check-in", value: "checked-in" },
+                  { label: "Đã khám xong", value: "completed" },
+                  { label: "Đã hủy", value: "cancelled" },
+                ]}
+                radius="md"
+                size="xs"
+                style={{ flex: 1, minWidth: 160 }}
+                checkIconPosition="right"
+                hiddenFrom="sm"
+              />
+
+              <SegmentedControl
+                value={statusFilter}
+                onChange={setStatusFilter}
+                data={[
+                  { label: "Tất cả", value: "all" },
+                  { label: "Chờ khám", value: "confirmed" },
+                  { label: "Checked-in", value: "checked-in" },
+                  { label: "Đã khám", value: "completed" },
+                  { label: "Đã hủy", value: "cancelled" },
+                ]}
+                color="blue"
+                radius="md"
+                size="xs"
+                visibleFrom="sm"
+              />
             </Group>
           </Stack>
 
@@ -522,159 +529,161 @@ export function AdminDashboardPage() {
             <Box py="xl" style={{ textAlign: "center" }}>
               <Text c="dimmed" size="sm">Không tìm thấy lịch hẹn nào phù hợp.</Text>
             </Box>
-          ) : isMobile ? (
-            /* ── Mobile: card list ── */
-            <Stack gap="sm">
-              {filteredAppointments.map((appt) => (
-                <AppointmentMobileCard
-                  key={appt.id}
-                  appt={appt}
-                  onCheckIn={(id) => checkInMutation.mutate(id)}
-                  onCancel={handleCancelClick}
-                  isCheckingIn={
-                    checkInMutation.isPending && checkInMutation.variables === appt.id
-                  }
-                />
-              ))}
-            </Stack>
           ) : (
-            /* ── Desktop: table ── */
-            <ScrollArea>
-              <Table
-                highlightOnHover
-                verticalSpacing="md"
-                style={{ minWidth: 700 }}
-              >
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>Bệnh nhân</Table.Th>
-                    <Table.Th>Dịch vụ / Quầy khám</Table.Th>
-                    <Table.Th>Thời gian khám</Table.Th>
-                    <Table.Th>Mã Check-in</Table.Th>
-                    <Table.Th>Trạng thái</Table.Th>
-                    <Table.Th style={{ textAlign: "right" }}>Thao tác nhanh</Table.Th>
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {filteredAppointments.map((appt) => {
-                    const badge = STATUS_BADGE[appt.status] ?? {
-                      label: appt.status,
-                      color: "gray",
-                      icon: Clock,
-                    };
-                    const StatusIcon = badge.icon;
-                    const patientName = appt.profiles?.fullname ?? "Bệnh nhân";
-                    const patientPhone = appt.profiles?.phone ?? "Không có SĐT";
-                    const counterName = appt.counterName || appt.counters?.name || "Khám bệnh";
-                    const counterRoom = appt.counterRoom || appt.counters?.room || "Phòng khám";
-                    
-                    const time = appt.slot_id?.substring(0, 5) || "—";
-                    const date = dayjs(appt.appointment_date).format("DD/MM/YYYY");
-                    const shortCode = appt.id.substring(0, 8).toUpperCase();
+            <>
+              {/* ── Mobile: card list ── */}
+              <Stack gap="sm" hiddenFrom="sm">
+                {filteredAppointments.map((appt) => (
+                  <AppointmentMobileCard
+                    key={appt.id}
+                    appt={appt}
+                    onCheckIn={(id) => checkInMutation.mutate(id)}
+                    onCancel={handleCancelClick}
+                    isCheckingIn={
+                      checkInMutation.isPending && checkInMutation.variables === appt.id
+                    }
+                  />
+                ))}
+              </Stack>
 
-                    return (
-                      <Table.Tr key={appt.id}>
-                        {/* 1. Patient details */}
-                        <Table.Td>
-                          <Group gap="xs">
-                            <Avatar size="md" radius="xl" color="blue" variant="light">
-                              {patientName.charAt(0).toUpperCase()}
-                            </Avatar>
+              {/* ── Desktop: table ── */}
+              <ScrollArea visibleFrom="sm">
+                <Table
+                  highlightOnHover
+                  verticalSpacing="md"
+                  style={{ minWidth: 700 }}
+                >
+                  <Table.Thead>
+                    <Table.Tr>
+                      <Table.Th>Bệnh nhân</Table.Th>
+                      <Table.Th>Dịch vụ / Quầy khám</Table.Th>
+                      <Table.Th>Thời gian khám</Table.Th>
+                      <Table.Th>Mã Check-in</Table.Th>
+                      <Table.Th>Trạng thái</Table.Th>
+                      <Table.Th style={{ textAlign: "right" }}>Thao tác nhanh</Table.Th>
+                    </Table.Tr>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {filteredAppointments.map((appt) => {
+                      const badge = STATUS_BADGE[appt.status] ?? {
+                        label: appt.status,
+                        color: "gray",
+                        icon: Clock,
+                      };
+                      const StatusIcon = badge.icon;
+                      const patientName = appt.profiles?.fullname ?? "Bệnh nhân";
+                      const patientPhone = appt.profiles?.phone ?? "Không có SĐT";
+                      const counterName = appt.counterName || appt.counters?.name || "Khám bệnh";
+                      const counterRoom = appt.counterRoom || appt.counters?.room || "Phòng khám";
+
+                      const time = appt.slot_id?.substring(0, 5) || "—";
+                      const date = dayjs(appt.appointment_date).format("DD/MM/YYYY");
+                      const shortCode = appt.id.substring(0, 8).toUpperCase();
+
+                      return (
+                        <Table.Tr key={appt.id}>
+                          {/* 1. Patient details */}
+                          <Table.Td>
+                            <Group gap="xs">
+                              <Avatar size="md" radius="xl" color="blue" variant="light">
+                                {patientName.charAt(0).toUpperCase()}
+                              </Avatar>
+                              <Box>
+                                <Text size="sm" fw={700} c="dark.8">
+                                  {patientName}
+                                </Text>
+                                <Text size="xs" c="dimmed">
+                                  {patientPhone}
+                                </Text>
+                              </Box>
+                            </Group>
+                          </Table.Td>
+
+                          {/* 2. Medical service / Counter */}
+                          <Table.Td>
                             <Box>
-                              <Text size="sm" fw={700} c="dark.8">
-                                {patientName}
+                              <Text size="sm" fw={600} c="blue.8">
+                                {counterName}
                               </Text>
                               <Text size="xs" c="dimmed">
-                                {patientPhone}
+                                {counterRoom}
                               </Text>
                             </Box>
-                          </Group>
-                        </Table.Td>
+                          </Table.Td>
 
-                        {/* 2. Medical service / Counter */}
-                        <Table.Td>
-                          <Box>
-                            <Text size="sm" fw={600} c="blue.8">
-                              {counterName}
-                            </Text>
-                            <Text size="xs" c="dimmed">
-                              {counterRoom}
-                            </Text>
-                          </Box>
-                        </Table.Td>
+                          {/* 3. Appointment Date & Time */}
+                          <Table.Td>
+                            <Box>
+                              <Text size="sm" fw={600}>
+                                {time}
+                              </Text>
+                              <Text size="xs" c="dimmed">
+                                {date}
+                              </Text>
+                            </Box>
+                          </Table.Td>
 
-                        {/* 3. Appointment Date & Time */}
-                        <Table.Td>
-                          <Box>
-                            <Text size="sm" fw={600}>
-                              {time}
-                            </Text>
-                            <Text size="xs" c="dimmed">
-                              {date}
-                            </Text>
-                          </Box>
-                        </Table.Td>
+                          {/* 4. Short code */}
+                          <Table.Td>
+                            <Badge variant="outline" color="gray" radius="sm" size="sm">
+                              {shortCode}
+                            </Badge>
+                          </Table.Td>
 
-                        {/* 4. Short code */}
-                        <Table.Td>
-                          <Badge variant="outline" color="gray" radius="sm" size="sm">
-                            {shortCode}
-                          </Badge>
-                        </Table.Td>
+                          {/* 5. Status Badge */}
+                          <Table.Td>
+                            <Badge
+                              color={badge.color}
+                              variant="light"
+                              radius="sm"
+                              leftSection={<StatusIcon size={12} />}
+                            >
+                              {badge.label}
+                            </Badge>
+                          </Table.Td>
 
-                        {/* 5. Status Badge */}
-                        <Table.Td>
-                          <Badge
-                            color={badge.color}
-                            variant="light"
-                            radius="sm"
-                            leftSection={<StatusIcon size={12} />}
-                          >
-                            {badge.label}
-                          </Badge>
-                        </Table.Td>
+                          {/* 6. Quick Action buttons */}
+                          <Table.Td>
+                            <Group gap="xs" justify="flex-end">
+                              {appt.status === "confirmed" && (
+                                <Tooltip label="Check-in trực tiếp">
+                                  <Button
+                                    size="xs"
+                                    color="teal"
+                                    variant="light"
+                                    radius="md"
+                                    leftSection={<Check size={14} />}
+                                    loading={checkInMutation.isPending && checkInMutation.variables === appt.id}
+                                    onClick={() => checkInMutation.mutate(appt.id)}
+                                  >
+                                    Check-in
+                                  </Button>
+                                </Tooltip>
+                              )}
 
-                        {/* 6. Quick Action buttons */}
-                        <Table.Td>
-                          <Group gap="xs" justify="flex-end">
-                            {appt.status === "confirmed" && (
-                              <Tooltip label="Check-in trực tiếp">
-                                <Button
-                                  size="xs"
-                                  color="teal"
-                                  variant="light"
-                                  radius="md"
-                                  leftSection={<Check size={14} />}
-                                  loading={checkInMutation.isPending && checkInMutation.variables === appt.id}
-                                  onClick={() => checkInMutation.mutate(appt.id)}
-                                >
-                                  Check-in
-                                </Button>
-                              </Tooltip>
-                            )}
-
-                            {appt.status === "confirmed" && (
-                              <Tooltip label="Hủy lịch hẹn">
-                                <Button
-                                  size="xs"
-                                  color="red"
-                                  variant="light"
-                                  radius="md"
-                                  leftSection={<XCircle size={14} />}
-                                  onClick={() => handleCancelClick(appt)}
-                                >
-                                  Hủy lịch
-                                </Button>
-                              </Tooltip>
-                            )}
-                          </Group>
-                        </Table.Td>
-                      </Table.Tr>
-                    );
-                  })}
-                </Table.Tbody>
-              </Table>
-            </ScrollArea>
+                              {appt.status === "confirmed" && (
+                                <Tooltip label="Hủy lịch hẹn">
+                                  <Button
+                                    size="xs"
+                                    color="red"
+                                    variant="light"
+                                    radius="md"
+                                    leftSection={<XCircle size={14} />}
+                                    onClick={() => handleCancelClick(appt)}
+                                  >
+                                    Hủy lịch
+                                  </Button>
+                                </Tooltip>
+                              )}
+                            </Group>
+                          </Table.Td>
+                        </Table.Tr>
+                      );
+                    })}
+                  </Table.Tbody>
+                </Table>
+              </ScrollArea>
+            </>
           )}
         </Stack>
       </Card>

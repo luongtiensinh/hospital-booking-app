@@ -77,4 +77,5 @@ export type CreatedAppointment = {
   appointmentAt: string;
   counterName: string;
   counterRoom: string;
+  qrCodeUrl?: string | null;
 };
