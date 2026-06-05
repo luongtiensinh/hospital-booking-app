@@ -4,8 +4,9 @@ import {
   MapPin,
   RefreshCcw,
   Maximize2,
+  Download,
 } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
+import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
 import {
   Card,
   Button,
@@ -17,8 +18,10 @@ import {
   ThemeIcon,
   Badge,
   Box,
+  Tooltip,
 } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
+import { useCallback, useRef } from "react";
 
 import { formatDateTime } from "@/shared/utils/formatters";
 import type { LatestAppointmentQr } from "@/features/qr/types/qr.types";
@@ -36,6 +39,7 @@ export function PatientQrCard({
 }: PatientQrCardProps) {
   const [opened, { open, close }] = useDisclosure(false);
   const isMobile = useMediaQuery("(max-width: 768px)");
+  const downloadCanvasRef = useRef<HTMLDivElement>(null);
 
   // Map backend status to Mantine Badge colors
   const statusColorMap: Record<string, string> = {
@@ -53,8 +57,36 @@ export function PatientQrCard({
     pending: "yellow",
   };
 
+  const handleDownloadQr = useCallback(() => {
+    // Find the canvas element rendered by QRCodeCanvas (hidden download version)
+    const container = downloadCanvasRef.current;
+    if (!container) return;
+
+    const canvas = container.querySelector("canvas");
+    if (!canvas) return;
+
+    const url = canvas.toDataURL("image/png");
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `qr-checkin-${qr.appointmentId?.substring(0, 8).toUpperCase() ?? "unknown"}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [qr.appointmentId]);
+
   return (
     <>
+      {/* Hidden canvas for download (not visible in UI) */}
+      <div ref={downloadCanvasRef} style={{ display: "none" }}>
+        <QRCodeCanvas
+          bgColor="#ffffff"
+          fgColor="#11314d"
+          includeMargin
+          size={512}
+          value={qr.qrValue || " "}
+        />
+      </div>
+
       <Card
         padding="xl"
         radius="lg"
@@ -96,7 +128,7 @@ export function PatientQrCard({
                   fgColor={qr.status === "active" ? "#11314d" : "#7d8a96"}
                   includeMargin
                   size={isMobile ? 84 : 150}
-                  value={qr.qrValue}
+                  value={qr.qrValue || " "}
                 />
                 <Text size="10px" fw={700} c="dimmed" mt="xs" style={{ textAlign: "center" }}>
                   Mã check-in: {qr.appointmentId ? qr.appointmentId.substring(0, 8).toUpperCase() : "—"}
@@ -236,23 +268,37 @@ export function PatientQrCard({
             </div>
           </div>
 
-          {onRefresh && (
-            <Button
-              disabled={isRefreshing}
-              onClick={onRefresh}
-              variant="light"
-              color="blue"
-              radius="md"
-              leftSection={
-                <RefreshCcw
-                  className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
-                />
-              }
-              className="w-full mt-2"
-            >
-              {isRefreshing ? "Đang làm mới..." : "Làm mới QR"}
-            </Button>
-          )}
+          <Group gap="xs" grow mt={2}>
+            {onRefresh && (
+              <Button
+                disabled={isRefreshing}
+                onClick={onRefresh}
+                variant="light"
+                color="blue"
+                radius="md"
+                leftSection={
+                  <RefreshCcw
+                    className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+                  />
+                }
+              >
+                {isRefreshing ? "Đang làm mới..." : "Làm mới QR"}
+              </Button>
+            )}
+            {qr.status === "active" && (
+              <Tooltip label="Tải xuống QR dạng PNG" withArrow position="top">
+                <Button
+                  onClick={handleDownloadQr}
+                  variant="outline"
+                  color="teal"
+                  radius="md"
+                  leftSection={<Download className="h-4 w-4" />}
+                >
+                  Tải xuống
+                </Button>
+              </Tooltip>
+            )}
+          </Group>
         </Stack>
       </Card>
 
@@ -283,7 +329,7 @@ export function PatientQrCard({
               fgColor="#11314d"
               includeMargin
               size={260}
-              value={qr.qrValue}
+              value={qr.qrValue || " "}
             />
             <Text size="sm" fw={800} c="blue.9" mt="xs">
               MÃ CHECK-IN: {qr.appointmentId ? qr.appointmentId.substring(0, 8).toUpperCase() : "—"}
@@ -336,15 +382,27 @@ export function PatientQrCard({
             Đưa mã này vào máy quét tại quầy đón tiếp để tự động check-in.
           </Text>
 
-          <Button
-            onClick={close}
-            variant="filled"
-            color="blue"
-            radius="md"
-            className="w-full"
-          >
-            Đóng
-          </Button>
+          <Group gap="xs" w="100%">
+            <Button
+              flex={1}
+              onClick={handleDownloadQr}
+              variant="outline"
+              color="teal"
+              radius="md"
+              leftSection={<Download className="h-4 w-4" />}
+            >
+              Tải xuống PNG
+            </Button>
+            <Button
+              flex={1}
+              onClick={close}
+              variant="filled"
+              color="blue"
+              radius="md"
+            >
+              Đóng
+            </Button>
+          </Group>
         </Stack>
       </Modal>
     </>

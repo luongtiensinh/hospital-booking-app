@@ -33,8 +33,6 @@ import {
   Select,
   Divider,
 } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
-
 import { PageContainer } from "@/app/layouts/page-container";
 import { PageHeader } from "@/app/layouts/page-header";
 import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
@@ -146,7 +144,10 @@ function AdminStatCard({
   );
 }
 
-const STATUS_BADGE: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+const STATUS_BADGE: Record<
+  string,
+  { label: string; color: string; icon: React.ElementType }
+> = {
   confirmed: { label: "Đã xác nhận", color: "blue", icon: Clock },
   "checked-in": { label: "Đã check-in", color: "teal", icon: Activity },
   completed: { label: "Đã khám", color: "green", icon: CheckCircle2 },
@@ -167,7 +168,11 @@ function AppointmentMobileCard({
   onCancel: (appt: Appointment) => void;
   isCheckingIn: boolean;
 }) {
-  const badge = STATUS_BADGE[appt.status] ?? { label: appt.status, color: "gray", icon: Clock };
+  const badge = STATUS_BADGE[appt.status] ?? {
+    label: appt.status,
+    color: "gray",
+    icon: Clock,
+  };
   const StatusIcon = badge.icon;
   const patientName = appt.profiles?.fullname ?? "Bệnh nhân";
   const patientPhone = appt.profiles?.phone ?? "Không có SĐT";
@@ -191,7 +196,13 @@ function AppointmentMobileCard({
       {/* Header: Name & Avatar + Status Badge */}
       <Group justify="space-between" align="flex-start" wrap="nowrap" mb="sm">
         <Group gap="sm" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
-          <Avatar size="md" radius="xl" color="blue" variant="light" style={{ flexShrink: 0 }}>
+          <Avatar
+            size="md"
+            radius="xl"
+            color="blue"
+            variant="light"
+            style={{ flexShrink: 0 }}
+          >
             {patientName.charAt(0).toUpperCase()}
           </Avatar>
           <Box style={{ minWidth: 0 }}>
@@ -221,7 +232,13 @@ function AppointmentMobileCard({
       <Stack gap="xs" my="xs">
         <Group justify="space-between" align="flex-start" wrap="nowrap">
           <Box style={{ minWidth: 0 }}>
-            <Text size="10px" c="dimmed" fw={700} tt="uppercase" style={{ letterSpacing: "0.05em" }}>
+            <Text
+              size="10px"
+              c="dimmed"
+              fw={700}
+              tt="uppercase"
+              style={{ letterSpacing: "0.05em" }}
+            >
               Dịch vụ &amp; Phòng
             </Text>
             <Text size="xs" fw={600} c="blue.8" lineClamp={1}>
@@ -232,17 +249,36 @@ function AppointmentMobileCard({
             </Text>
           </Box>
           <Box style={{ textAlign: "right", flexShrink: 0 }}>
-            <Text size="10px" c="dimmed" fw={700} tt="uppercase" style={{ letterSpacing: "0.05em" }}>
+            <Text
+              size="10px"
+              c="dimmed"
+              fw={700}
+              tt="uppercase"
+              style={{ letterSpacing: "0.05em" }}
+            >
               Mã Check-in
             </Text>
-            <Badge variant="outline" color="gray" radius="sm" size="xs" mt={2} style={{ fontFamily: "monospace", fontSize: "11px" }}>
+            <Badge
+              variant="outline"
+              color="gray"
+              radius="sm"
+              size="xs"
+              mt={2}
+              style={{ fontFamily: "monospace", fontSize: "11px" }}
+            >
               {shortCode}
             </Badge>
           </Box>
         </Group>
 
         <Box>
-          <Text size="10px" c="dimmed" fw={700} tt="uppercase" style={{ letterSpacing: "0.05em" }}>
+          <Text
+            size="10px"
+            c="dimmed"
+            fw={700}
+            tt="uppercase"
+            style={{ letterSpacing: "0.05em" }}
+          >
             Thời gian hẹn
           </Text>
           <Text size="xs" fw={600} c="dark.7">
@@ -293,8 +329,6 @@ export function AdminDashboardPage() {
     isError,
     refetch,
   } = useAdminAppointments();
-
-  const isMobile = useMediaQuery("(max-width: 768px)");
 
   // Search & Filter state
   const [search, setSearch] = useState("");
@@ -362,7 +396,8 @@ export function AdminDashboardPage() {
       queryClient.invalidateQueries({ queryKey: ["admin", "appointments"] });
     },
     onError: (err: any) => {
-      const errMsg = err?.response?.data?.message || "Không thể check-in bệnh nhân.";
+      const errMsg =
+        err?.response?.data?.message || "Không thể check-in bệnh nhân.";
       toast.error(errMsg);
     },
   });
@@ -380,7 +415,11 @@ export function AdminDashboardPage() {
     // 3. Search query
     const patientName = appt.profiles?.fullname?.toLowerCase() || "bệnh nhân";
     const patientPhone = appt.profiles?.phone || "";
-    const counterName = (appt.counterName || appt.counters?.name || "").toLowerCase();
+    const counterName = (
+      appt.counterName ||
+      appt.counters?.name ||
+      ""
+    ).toLowerCase();
     const shortCode = appt.id.substring(0, 8).toLowerCase();
     const query = search.toLowerCase();
 
@@ -419,8 +458,8 @@ export function AdminDashboardPage() {
       <SimpleGrid cols={{ base: 2, sm: 2, xl: 4 }} spacing="md" mb="xl">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} height={120} radius="lg" />
-          ))
+              <Skeleton key={i} height={120} radius="lg" />
+            ))
           : stats.map((s) => <AdminStatCard key={s.label} {...s} />)}
       </SimpleGrid>
 
@@ -429,7 +468,10 @@ export function AdminDashboardPage() {
         withBorder
         radius="lg"
         p={{ base: "md", sm: "lg" }}
-        style={{ borderColor: "var(--mantine-color-gray-1)", boxShadow: "0 4px 20px rgba(0,0,0,0.01)" }}
+        style={{
+          borderColor: "var(--mantine-color-gray-1)",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.01)",
+        }}
       >
         <Stack gap="md">
           <Group justify="space-between" align="center" wrap="wrap">
@@ -527,7 +569,9 @@ export function AdminDashboardPage() {
             </Stack>
           ) : filteredAppointments.length === 0 ? (
             <Box py="xl" style={{ textAlign: "center" }}>
-              <Text c="dimmed" size="sm">Không tìm thấy lịch hẹn nào phù hợp.</Text>
+              <Text c="dimmed" size="sm">
+                Không tìm thấy lịch hẹn nào phù hợp.
+              </Text>
             </Box>
           ) : (
             <>
@@ -540,7 +584,8 @@ export function AdminDashboardPage() {
                     onCheckIn={(id) => checkInMutation.mutate(id)}
                     onCancel={handleCancelClick}
                     isCheckingIn={
-                      checkInMutation.isPending && checkInMutation.variables === appt.id
+                      checkInMutation.isPending &&
+                      checkInMutation.variables === appt.id
                     }
                   />
                 ))}
@@ -560,7 +605,9 @@ export function AdminDashboardPage() {
                       <Table.Th>Thời gian khám</Table.Th>
                       <Table.Th>Mã Check-in</Table.Th>
                       <Table.Th>Trạng thái</Table.Th>
-                      <Table.Th style={{ textAlign: "right" }}>Thao tác nhanh</Table.Th>
+                      <Table.Th style={{ textAlign: "right" }}>
+                        Thao tác nhanh
+                      </Table.Th>
                     </Table.Tr>
                   </Table.Thead>
                   <Table.Tbody>
@@ -571,13 +618,19 @@ export function AdminDashboardPage() {
                         icon: Clock,
                       };
                       const StatusIcon = badge.icon;
-                      const patientName = appt.profiles?.fullname ?? "Bệnh nhân";
-                      const patientPhone = appt.profiles?.phone ?? "Không có SĐT";
-                      const counterName = appt.counterName || appt.counters?.name || "Khám bệnh";
-                      const counterRoom = appt.counterRoom || appt.counters?.room || "Phòng khám";
+                      const patientName =
+                        appt.profiles?.fullname ?? "Bệnh nhân";
+                      const patientPhone =
+                        appt.profiles?.phone ?? "Không có SĐT";
+                      const counterName =
+                        appt.counterName || appt.counters?.name || "Khám bệnh";
+                      const counterRoom =
+                        appt.counterRoom || appt.counters?.room || "Phòng khám";
 
                       const time = appt.slot_id?.substring(0, 5) || "—";
-                      const date = dayjs(appt.appointment_date).format("DD/MM/YYYY");
+                      const date = dayjs(appt.appointment_date).format(
+                        "DD/MM/YYYY",
+                      );
                       const shortCode = appt.id.substring(0, 8).toUpperCase();
 
                       return (
@@ -585,7 +638,12 @@ export function AdminDashboardPage() {
                           {/* 1. Patient details */}
                           <Table.Td>
                             <Group gap="xs">
-                              <Avatar size="md" radius="xl" color="blue" variant="light">
+                              <Avatar
+                                size="md"
+                                radius="xl"
+                                color="blue"
+                                variant="light"
+                              >
                                 {patientName.charAt(0).toUpperCase()}
                               </Avatar>
                               <Box>
@@ -625,7 +683,12 @@ export function AdminDashboardPage() {
 
                           {/* 4. Short code */}
                           <Table.Td>
-                            <Badge variant="outline" color="gray" radius="sm" size="sm">
+                            <Badge
+                              variant="outline"
+                              color="gray"
+                              radius="sm"
+                              size="sm"
+                            >
                               {shortCode}
                             </Badge>
                           </Table.Td>
@@ -653,8 +716,13 @@ export function AdminDashboardPage() {
                                     variant="light"
                                     radius="md"
                                     leftSection={<Check size={14} />}
-                                    loading={checkInMutation.isPending && checkInMutation.variables === appt.id}
-                                    onClick={() => checkInMutation.mutate(appt.id)}
+                                    loading={
+                                      checkInMutation.isPending &&
+                                      checkInMutation.variables === appt.id
+                                    }
+                                    onClick={() =>
+                                      checkInMutation.mutate(appt.id)
+                                    }
                                   >
                                     Check-in
                                   </Button>

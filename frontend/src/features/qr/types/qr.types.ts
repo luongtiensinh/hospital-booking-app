@@ -39,4 +39,6 @@ export type ScanLifecycleState =
   | "success"
   | "duplicate"
   | "invalid"
+  | "expired"
   | "error";
+

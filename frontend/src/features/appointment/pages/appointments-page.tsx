@@ -3,8 +3,6 @@ import {
   ShieldCheck,
   Activity,
   CheckCircle2,
-  MapPin,
-  Clock,
   Calendar,
 } from "lucide-react";
 import { useState } from "react";

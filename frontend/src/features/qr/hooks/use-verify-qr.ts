@@ -27,6 +27,9 @@ export function useVerifyQr() {
       } else if (result.outcome === "duplicate") {
         setStatus("duplicate");
         toast.warning(result.message);
+      } else if (result.outcome === "expired") {
+        setStatus("expired");
+        toast.warning(result.message);
       } else {
         setStatus("invalid");
         toast.error(result.message);

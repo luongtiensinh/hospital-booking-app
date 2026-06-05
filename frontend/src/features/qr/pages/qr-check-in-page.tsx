@@ -1,5 +1,5 @@
 import { QrCode, ScanLine, ShieldCheck } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 
 import {
   Alert,
@@ -153,6 +153,12 @@ function StaffQrScanView() {
     elementId: scannerElementId,
     onDetected: handleDetected,
   });
+
+  // Auto-start camera when staff enters the page
+  useEffect(() => {
+    void startScanner();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleManualSubmit = useCallback(
     (value: string) => {
