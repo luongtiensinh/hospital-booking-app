@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, CopyCheck, RefreshCcw, ShieldAlert, Ban } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CopyCheck, RefreshCcw, ShieldAlert, Ban, Clock } from "lucide-react";
 import { Card, Button, Text, Stack, Group, Paper, ThemeIcon, Badge } from "@mantine/core";
 
 import { formatDateTime } from "@/shared/utils/formatters";
@@ -26,6 +26,7 @@ export function QrVerifyResultCard({
     success: "green",
     duplicate: "yellow",
     invalid: "red",
+    expired: "orange",
     error: "red",
   } as const;
 
@@ -44,6 +45,13 @@ export function QrVerifyResultCard({
           color: colorMap.duplicate,
           title: "Đã check-in rồi",
           badgeLabel: "Quét trùng",
+        };
+      case "expired":
+        return {
+          icon: Clock,
+          color: colorMap.expired,
+          title: "QR đã hết hạn",
+          badgeLabel: "Hết hạn",
         };
       case "invalid":
         return {
@@ -101,9 +109,11 @@ export function QrVerifyResultCard({
               ? "bg-emerald-50/50 border-emerald-100"
               : status === "duplicate"
                 ? "bg-amber-50/50 border-amber-100"
-                : status === "invalid" || status === "error"
-                  ? "bg-rose-50/50 border-rose-100"
-                  : "bg-slate-50 border-slate-100"
+                : status === "expired"
+                  ? "bg-orange-50/50 border-orange-100"
+                  : status === "invalid" || status === "error"
+                    ? "bg-rose-50/50 border-rose-100"
+                    : "bg-slate-50 border-slate-100"
               }`}
           >
             <Group gap="md" align="flex-start" wrap="nowrap">

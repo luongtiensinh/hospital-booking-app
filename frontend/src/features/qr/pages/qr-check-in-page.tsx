@@ -1,5 +1,5 @@
 import { QrCode, ScanLine, ShieldCheck } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 
 import {
   Alert,
@@ -154,6 +154,20 @@ function StaffQrScanView() {
     onDetected: handleDetected,
   });
 
+  // Auto-start camera when staff enters the page
+  useEffect(() => {
+    void startScanner();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleManualSubmit = useCallback(
+    (value: string) => {
+      if (value === lastProcessedValue) return;
+      verifyQrMutation.mutate({ value });
+    },
+    [lastProcessedValue, verifyQrMutation],
+  );
+
   const handleRetry = useCallback(() => {
     resetScanState();
     verifyQrMutation.reset();
@@ -196,6 +210,7 @@ function StaffQrScanView() {
               isActive={isActive}
               onRetry={handleRetry}
               onStart={() => void startScanner()}
+              onManualSubmit={handleManualSubmit}
               permission={permission}
               status={status}
             />

@@ -4,8 +4,9 @@ import {
   MapPin,
   RefreshCcw,
   Maximize2,
+  Download,
 } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
+import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
 import {
   Card,
   Button,
@@ -16,8 +17,11 @@ import {
   Paper,
   ThemeIcon,
   Badge,
+  Box,
+  Tooltip,
 } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
+import { useDisclosure, useMediaQuery } from "@mantine/hooks";
+import { useCallback, useRef } from "react";
 
 import { formatDateTime } from "@/shared/utils/formatters";
 import type { LatestAppointmentQr } from "@/features/qr/types/qr.types";
@@ -34,6 +38,8 @@ export function PatientQrCard({
   isRefreshing = false,
 }: PatientQrCardProps) {
   const [opened, { open, close }] = useDisclosure(false);
+  const isMobile = useMediaQuery("(max-width: 768px)");
+  const downloadCanvasRef = useRef<HTMLDivElement>(null);
 
   // Map backend status to Mantine Badge colors
   const statusColorMap: Record<string, string> = {
@@ -51,8 +57,36 @@ export function PatientQrCard({
     pending: "yellow",
   };
 
+  const handleDownloadQr = useCallback(() => {
+    // Find the canvas element rendered by QRCodeCanvas (hidden download version)
+    const container = downloadCanvasRef.current;
+    if (!container) return;
+
+    const canvas = container.querySelector("canvas");
+    if (!canvas) return;
+
+    const url = canvas.toDataURL("image/png");
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `qr-checkin-${qr.appointmentId?.substring(0, 8).toUpperCase() ?? "unknown"}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [qr.appointmentId]);
+
   return (
     <>
+      {/* Hidden canvas for download (not visible in UI) */}
+      <div ref={downloadCanvasRef} style={{ display: "none" }}>
+        <QRCodeCanvas
+          bgColor="#ffffff"
+          fgColor="#11314d"
+          includeMargin
+          size={512}
+          value={qr.qrValue || " "}
+        />
+      </div>
+
       <Card
         padding="xl"
         radius="lg"
@@ -79,11 +113,11 @@ export function PatientQrCard({
               </Group>
             </Group>
 
-            <div className="grid gap-5 md:grid-cols-[200px_1fr]">
+            <div className="grid gap-4 grid-cols-[100px_1fr] sm:grid-cols-[120px_1fr] md:grid-cols-[200px_1fr]">
               {/* Interactive QR Code Container */}
               <div
                 onClick={qr.status === "active" ? open : undefined}
-                className={`relative group flex flex-col items-center justify-center rounded-2xl border border-border bg-white p-4 transition-all duration-300 ${
+                className={`relative group flex flex-col items-center justify-center rounded-2xl border border-border bg-white p-2 sm:p-4 transition-all duration-300 ${
                   qr.status === "active"
                     ? "cursor-pointer hover:border-blue-300 hover:scale-[1.02] hover:shadow-sm"
                     : "opacity-60 cursor-not-allowed"
@@ -93,11 +127,14 @@ export function PatientQrCard({
                   bgColor="#ffffff"
                   fgColor={qr.status === "active" ? "#11314d" : "#7d8a96"}
                   includeMargin
-                  size={150}
-                  value={qr.qrValue}
+                  size={isMobile ? 84 : 150}
+                  value={qr.qrValue || " "}
                 />
+                <Text size="10px" fw={700} c="dimmed" mt="xs" style={{ textAlign: "center" }}>
+                  Mã check-in: {qr.appointmentId ? qr.appointmentId.substring(0, 8).toUpperCase() : "—"}
+                </Text>
 
-                {qr.status === "active" && (
+                {qr.status === "active" && !isMobile && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl">
                     <Paper className="bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm border border-blue-100">
                       <Maximize2 className="h-3.5 w-3.5 text-blue-600" />
@@ -111,101 +148,157 @@ export function PatientQrCard({
 
               {/* Details Stack */}
               <Stack gap="xs" justify="center">
-                <Paper
-                  p="sm"
-                  radius="md"
-                  className="bg-slate-50 border border-slate-100/50"
-                >
-                  <Group gap="xs">
-                    <ThemeIcon
-                      color="blue"
-                      variant="light"
-                      size="sm"
-                      radius="md"
-                    >
-                      <CalendarRange className="h-3.5 w-3.5" />
-                    </ThemeIcon>
-                    <div>
-                      <Text size="xs" fw={500} c="dimmed">
-                        Lịch khám
-                      </Text>
-                      <Text size="xs" fw={700}>
-                        {formatDateTime(qr.appointmentAt)}
-                      </Text>
-                    </div>
-                  </Group>
-                </Paper>
+                {/* Mobile View: Flat list of text */}
+                <Box hiddenFrom="sm">
+                  <Stack gap={6}>
+                    <Group gap={6} wrap="nowrap">
+                      <ThemeIcon color="blue" variant="light" size={20} radius="md" style={{ flexShrink: 0 }}>
+                        <CalendarRange className="h-3.5 w-3.5" />
+                      </ThemeIcon>
+                      <div style={{ minWidth: 0 }}>
+                        <Text size="9px" fw={500} c="dimmed" lh={1.1}>Lịch khám</Text>
+                        <Text size="10px" fw={700} truncate>{formatDateTime(qr.appointmentAt)}</Text>
+                      </div>
+                    </Group>
 
-                <Paper
-                  p="sm"
-                  radius="md"
-                  className="bg-slate-50 border border-slate-100/50"
-                >
-                  <Group gap="xs">
-                    <ThemeIcon
-                      color="orange"
-                      variant="light"
-                      size="sm"
-                      radius="md"
-                    >
-                      <Clock3 className="h-3.5 w-3.5" />
-                    </ThemeIcon>
-                    <div>
-                      <Text size="xs" fw={500} c="dimmed">
-                        Hạn sử dụng mã
-                      </Text>
-                      <Text size="xs" fw={700}>
-                        {formatDateTime(qr.expiresAt)}
-                      </Text>
-                    </div>
-                  </Group>
-                </Paper>
+                    <Group gap={6} wrap="nowrap">
+                      <ThemeIcon color="orange" variant="light" size={20} radius="md" style={{ flexShrink: 0 }}>
+                        <Clock3 className="h-3.5 w-3.5" />
+                      </ThemeIcon>
+                      <div style={{ minWidth: 0 }}>
+                        <Text size="9px" fw={500} c="dimmed" lh={1.1}>Hạn sử dụng mã</Text>
+                        <Text size="10px" fw={700} truncate>{formatDateTime(qr.expiresAt)}</Text>
+                      </div>
+                    </Group>
 
-                <Paper
-                  p="sm"
-                  radius="md"
-                  className="bg-slate-50 border border-slate-100/50"
-                >
-                  <Group gap="xs">
-                    <ThemeIcon
-                      color="teal"
-                      variant="light"
-                      size="sm"
+                    <Group gap={6} wrap="nowrap">
+                      <ThemeIcon color="teal" variant="light" size={20} radius="md" style={{ flexShrink: 0 }}>
+                        <MapPin className="h-3.5 w-3.5" />
+                      </ThemeIcon>
+                      <div style={{ minWidth: 0 }}>
+                        <Text size="9px" fw={500} c="dimmed" lh={1.1}>Địa điểm</Text>
+                        <Text size="10px" fw={700} truncate className="line-clamp-1">
+                          {qr.counterName} • {qr.counterRoom}
+                        </Text>
+                      </div>
+                    </Group>
+                  </Stack>
+                </Box>
+
+                {/* Desktop View: Bulky paper elements */}
+                <Box visibleFrom="sm">
+                  <Stack gap="xs">
+                    <Paper
+                      p="sm"
                       radius="md"
+                      className="bg-slate-50 border border-slate-100/50"
                     >
-                      <MapPin className="h-3.5 w-3.5" />
-                    </ThemeIcon>
-                    <div>
-                      <Text size="xs" fw={500} c="dimmed">
-                        Địa điểm tiếp nhận
-                      </Text>
-                      <Text size="xs" fw={700} className="line-clamp-1">
-                        {qr.counterName} • {qr.counterRoom}
-                      </Text>
-                    </div>
-                  </Group>
-                </Paper>
+                      <Group gap="xs">
+                        <ThemeIcon
+                          color="blue"
+                          variant="light"
+                          size="sm"
+                          radius="md"
+                        >
+                          <CalendarRange className="h-3.5 w-3.5" />
+                        </ThemeIcon>
+                        <div>
+                          <Text size="xs" fw={500} c="dimmed">
+                            Lịch khám
+                          </Text>
+                          <Text size="xs" fw={700}>
+                            {formatDateTime(qr.appointmentAt)}
+                          </Text>
+                        </div>
+                      </Group>
+                    </Paper>
+
+                    <Paper
+                      p="sm"
+                      radius="md"
+                      className="bg-slate-50 border border-slate-100/50"
+                    >
+                      <Group gap="xs">
+                        <ThemeIcon
+                          color="orange"
+                          variant="light"
+                          size="sm"
+                          radius="md"
+                        >
+                          <Clock3 className="h-3.5 w-3.5" />
+                        </ThemeIcon>
+                        <div>
+                          <Text size="xs" fw={500} c="dimmed">
+                            Hạn sử dụng mã
+                          </Text>
+                          <Text size="xs" fw={700}>
+                            {formatDateTime(qr.expiresAt)}
+                          </Text>
+                        </div>
+                      </Group>
+                    </Paper>
+
+                    <Paper
+                      p="sm"
+                      radius="md"
+                      className="bg-slate-50 border border-slate-100/50"
+                    >
+                      <Group gap="xs">
+                        <ThemeIcon
+                          color="teal"
+                          variant="light"
+                          size="sm"
+                          radius="md"
+                        >
+                          <MapPin className="h-3.5 w-3.5" />
+                        </ThemeIcon>
+                        <div>
+                          <Text size="xs" fw={500} c="dimmed">
+                            Địa điểm tiếp nhận
+                          </Text>
+                          <Text size="xs" fw={700} className="line-clamp-1">
+                            {qr.counterName} • {qr.counterRoom}
+                          </Text>
+                        </div>
+                      </Group>
+                    </Paper>
+                  </Stack>
+                </Box>
               </Stack>
             </div>
           </div>
 
-          {onRefresh && (
-            <Button
-              disabled={isRefreshing}
-              onClick={onRefresh}
-              variant="light"
-              color="blue"
-              radius="md"
-              leftSection={
-                <RefreshCcw
-                  className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
-                />
-              }
-              className="w-full mt-2"
-            >
-              {isRefreshing ? "Đang làm mới..." : "Làm mới QR"}
-            </Button>
-          )}
+          <Group gap="xs" grow mt={2}>
+            {onRefresh && (
+              <Button
+                disabled={isRefreshing}
+                onClick={onRefresh}
+                variant="light"
+                color="blue"
+                radius="md"
+                leftSection={
+                  <RefreshCcw
+                    className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+                  />
+                }
+              >
+                {isRefreshing ? "Đang làm mới..." : "Làm mới QR"}
+              </Button>
+            )}
+            {qr.status === "active" && (
+              <Tooltip label="Tải xuống QR dạng PNG" withArrow position="top">
+                <Button
+                  onClick={handleDownloadQr}
+                  variant="outline"
+                  color="teal"
+                  radius="md"
+                  leftSection={<Download className="h-4 w-4" />}
+                >
+                  Tải xuống
+                </Button>
+              </Tooltip>
+            )}
+          </Group>
         </Stack>
       </Card>
 
@@ -236,8 +329,11 @@ export function PatientQrCard({
               fgColor="#11314d"
               includeMargin
               size={260}
-              value={qr.qrValue}
+              value={qr.qrValue || " "}
             />
+            <Text size="sm" fw={800} c="blue.9" mt="xs">
+              MÃ CHECK-IN: {qr.appointmentId ? qr.appointmentId.substring(0, 8).toUpperCase() : "—"}
+            </Text>
           </Paper>
 
           <Stack gap="xs" align="center" className="text-center">
@@ -286,15 +382,27 @@ export function PatientQrCard({
             Đưa mã này vào máy quét tại quầy đón tiếp để tự động check-in.
           </Text>
 
-          <Button
-            onClick={close}
-            variant="filled"
-            color="blue"
-            radius="md"
-            className="w-full"
-          >
-            Đóng
-          </Button>
+          <Group gap="xs" w="100%">
+            <Button
+              flex={1}
+              onClick={handleDownloadQr}
+              variant="outline"
+              color="teal"
+              radius="md"
+              leftSection={<Download className="h-4 w-4" />}
+            >
+              Tải xuống PNG
+            </Button>
+            <Button
+              flex={1}
+              onClick={close}
+              variant="filled"
+              color="blue"
+              radius="md"
+            >
+              Đóng
+            </Button>
+          </Group>
         </Stack>
       </Modal>
     </>

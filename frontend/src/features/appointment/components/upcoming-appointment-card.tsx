@@ -65,6 +65,7 @@ export function UpcomingAppointmentCard({ appointment }: UpcomingAppointmentCard
             <div>
               <Text fw={700} size="sm" c="dark.8">{appointment.counterName}</Text>
               <Text size="xs" c="dimmed">Phòng: {appointment.counterRoom}</Text>
+              <Text size="xs" fw={700} c="sky.8">Mã khám: {appointment.id.substring(0, 8).toUpperCase()}</Text>
             </div>
             <Badge
               color={statusColorMap[appointment.status] ?? "blue"}
@@ -153,6 +154,9 @@ export function UpcomingAppointmentCard({ appointment }: UpcomingAppointmentCard
                 size={240}
                 value={appointment.qrCodeUrl}
               />
+              <Text size="sm" fw={800} c="blue.9" mt="xs" style={{ textAlign: "center" }}>
+                MÃ CHECK-IN: {appointment.id.substring(0, 8).toUpperCase()}
+              </Text>
               {qrStatus !== "active" && (
                 <div 
                   style={{

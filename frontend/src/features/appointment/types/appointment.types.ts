@@ -21,6 +21,10 @@ export type AppointmentSummary = {
   status: AppointmentStatus;
   statusLabel: string;
   qrCodeUrl?: string | null;
+  profiles?: {
+    fullname: string;
+    phone: string;
+  } | null;
 };
 
 export type AppointmentHistory = AppointmentSummary & {
@@ -73,4 +77,5 @@ export type CreatedAppointment = {
   appointmentAt: string;
   counterName: string;
   counterRoom: string;
+  qrCodeUrl?: string | null;
 };

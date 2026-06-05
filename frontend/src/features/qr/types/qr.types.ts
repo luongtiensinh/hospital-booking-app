@@ -30,7 +30,7 @@ export type VerifyQrResponse = {
   checkedInAt?: string;
 };
 
-export type CameraPermissionState = "unknown" | "requesting" | "granted" | "denied";
+export type CameraPermissionState = "unknown" | "requesting" | "granted" | "denied" | "not_found";
 
 export type ScanLifecycleState =
   | "idle"
@@ -39,4 +39,6 @@ export type ScanLifecycleState =
   | "success"
   | "duplicate"
   | "invalid"
+  | "expired"
   | "error";
+

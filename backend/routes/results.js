@@ -1,8 +1,12 @@
 const express = require("express");
+const dayjs = require("dayjs");
+const utc = require("dayjs/plugin/utc");
 const router = express.Router();
 const supabaseClient = require("../utils/supabaseClient");
 const requireAuth = require("../middleware/requireAuth");
 const requireRole = require("../middleware/requireRole");
+
+dayjs.extend(utc);
 
 router.use(requireAuth);
 
@@ -29,7 +33,17 @@ router.get("/", async (req, res) => {
         id,
         patient_id,
         appointment_date,
-        status
+        status,
+        counters (
+          id,
+          name,
+          room
+        ),
+        profiles!fk_appointments_patient (
+          id,
+          fullname,
+          phone
+        )
       )
     `;
 
@@ -72,6 +86,8 @@ router.get(
       const supabase = supabaseClient.getSupabaseClient(req);
       const { role, id: userId } = req.user;
 
+      const todayVN = dayjs().utcOffset(7).format("YYYY-MM-DD");
+
       let query = supabase
         .from("appointments")
         .select(
@@ -83,16 +99,20 @@ router.get(
         slot_id,
         status,
         notes,
-        profiles:patient_id (
+        counters (
+          name,
+          room
+        ),
+        profiles!fk_appointments_patient (
           fullname,
           phone
         )
       `,
         )
         .in("status", ["confirmed", "checked-in", "completed"])
-        .order("appointment_date", { ascending: true })
+        .eq("appointment_date", todayVN)
         .order("slot_id", { ascending: true });
-      // admin: không filter → lấy tất cả
+      // admin: không filter theo bác sĩ → lấy tất cả lịch hôm nay
 
       const { data, error } = await query;
       if (error) {
@@ -203,6 +223,65 @@ router.post("/", requireRole(["doctor", "admin"]), async (req, res) => {
     });
   } catch (err) {
     console.error("[POST /results]", err);
+    return res.status(500).json({ success: false, message: "Lỗi server." });
+  }
+});
+
+// ---------------------------------------------------------------
+// PUT /api/results/:id
+// Bác sĩ hoặc admin sửa kết quả khám bệnh
+// Body: { diagnosis, result }
+// ---------------------------------------------------------------
+router.put("/:id", requireRole(["doctor", "admin"]), async (req, res) => {
+  try {
+    const supabase = supabaseClient.getSupabaseClient(req);
+    const { diagnosis, result } = req.body || {};
+    const { id } = req.params;
+
+    if (!diagnosis) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Thiếu chẩn đoán (diagnosis)." });
+    }
+
+    // Kiểm tra kết quả tồn tại
+    const { data: existingResult, error: findError } = await supabase
+      .from("test_results")
+      .select("id")
+      .eq("id", id)
+      .single();
+
+    if (findError || !existingResult) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy kết quả khám bệnh." });
+    }
+
+    // Cập nhật test_results
+    const { data: updatedResult, error: updateError } = await supabase
+      .from("test_results")
+      .update({
+        diagnosis: String(diagnosis).trim(),
+        result: result || null,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (updateError) {
+      return res
+        .status(500)
+        .json({ success: false, message: updateError.message });
+    }
+
+    return res.json({
+      success: true,
+      message: "Cập nhật kết quả khám thành công.",
+      result: updatedResult,
+    });
+  } catch (err) {
+    console.error("[PUT /results/:id]", err);
     return res.status(500).json({ success: false, message: "Lỗi server." });
   }
 });

@@ -1,9 +1,7 @@
 import { AppShell, Box, ScrollArea, Stack, Text } from "@mantine/core";
 import { Outlet } from "react-router-dom";
-
 import { AppHeader } from "@/app/layouts/app-header";
 import { SideNav } from "@/app/layouts/side-nav";
-import { HospitalLogo } from "@/shared/ui/hospital-logo";
 
 const BOTTOM_NAV_HEIGHT = 68;
 
