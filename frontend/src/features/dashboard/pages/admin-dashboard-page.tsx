@@ -30,7 +30,10 @@ import {
   SegmentedControl,
   Button,
   Tooltip,
+  Select,
+  Divider,
 } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 
 import { PageContainer } from "@/app/layouts/page-container";
 import { PageHeader } from "@/app/layouts/page-header";
@@ -151,6 +154,127 @@ const STATUS_BADGE: Record<string, { label: string; color: string; icon: React.E
 };
 
 // ---------------------------------------------------------------
+// Mobile appointment card
+// ---------------------------------------------------------------
+function AppointmentMobileCard({
+  appt,
+  onCheckIn,
+  onCancel,
+  isCheckingIn,
+}: {
+  appt: Appointment;
+  onCheckIn: (id: string) => void;
+  onCancel: (appt: Appointment) => void;
+  isCheckingIn: boolean;
+}) {
+  const badge = STATUS_BADGE[appt.status] ?? { label: appt.status, color: "gray", icon: Clock };
+  const StatusIcon = badge.icon;
+  const patientName = appt.profiles?.fullname ?? "Bệnh nhân";
+  const patientPhone = appt.profiles?.phone ?? "Không có SĐT";
+  const counterName = appt.counterName || appt.counters?.name || "Khám bệnh";
+  const counterRoom = appt.counterRoom || appt.counters?.room || "Phòng khám";
+  const time = appt.slot_id?.substring(0, 5) || "—";
+  const date = dayjs(appt.appointment_date).format("DD/MM/YYYY");
+  const shortCode = appt.id.substring(0, 8).toUpperCase();
+
+  return (
+    <Card
+      withBorder
+      radius="lg"
+      p="md"
+      style={{
+        borderColor: "var(--mantine-color-gray-2)",
+        transition: "box-shadow 0.15s ease",
+      }}
+    >
+      {/* Header row: Avatar + Name + Badge */}
+      <Group justify="space-between" align="flex-start" wrap="nowrap" mb="xs">
+        <Group gap="sm" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
+          <Avatar size="md" radius="xl" color="blue" variant="light" style={{ flexShrink: 0 }}>
+            {patientName.charAt(0).toUpperCase()}
+          </Avatar>
+          <Box style={{ minWidth: 0 }}>
+            <Text size="sm" fw={700} c="dark.8" truncate>
+              {patientName}
+            </Text>
+            <Text size="xs" c="dimmed" truncate>
+              {patientPhone}
+            </Text>
+          </Box>
+        </Group>
+        <Badge
+          color={badge.color}
+          variant="light"
+          radius="sm"
+          size="sm"
+          leftSection={<StatusIcon size={10} />}
+          style={{ flexShrink: 0 }}
+        >
+          {badge.label}
+        </Badge>
+      </Group>
+
+      <Divider my="xs" />
+
+      {/* Info grid */}
+      <SimpleGrid cols={2} spacing="xs" mb="sm">
+        <Box>
+          <Text size="10px" c="dimmed" fw={700} tt="uppercase" style={{ letterSpacing: "0.05em" }}>
+            Dịch vụ
+          </Text>
+          <Text size="xs" fw={600} c="blue.8" lineClamp={1}>
+            {counterName}
+          </Text>
+          <Text size="10px" c="dimmed">{counterRoom}</Text>
+        </Box>
+        <Box>
+          <Text size="10px" c="dimmed" fw={700} tt="uppercase" style={{ letterSpacing: "0.05em" }}>
+            Thời gian
+          </Text>
+          <Text size="xs" fw={600}>{time}</Text>
+          <Text size="10px" c="dimmed">{date}</Text>
+        </Box>
+        <Box>
+          <Text size="10px" c="dimmed" fw={700} tt="uppercase" style={{ letterSpacing: "0.05em" }}>
+            Mã Check-in
+          </Text>
+          <Badge variant="outline" color="gray" radius="sm" size="xs">
+            {shortCode}
+          </Badge>
+        </Box>
+      </SimpleGrid>
+
+      {/* Action buttons */}
+      {appt.status === "confirmed" && (
+        <Group gap="xs" grow mt="xs">
+          <Button
+            size="xs"
+            color="teal"
+            variant="light"
+            radius="md"
+            leftSection={<Check size={13} />}
+            loading={isCheckingIn}
+            onClick={() => onCheckIn(appt.id)}
+          >
+            Check-in
+          </Button>
+          <Button
+            size="xs"
+            color="red"
+            variant="light"
+            radius="md"
+            leftSection={<XCircle size={13} />}
+            onClick={() => onCancel(appt)}
+          >
+            Hủy lịch
+          </Button>
+        </Group>
+      )}
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------
 export function AdminDashboardPage() {
@@ -162,6 +286,8 @@ export function AdminDashboardPage() {
     isError,
     refetch,
   } = useAdminAppointments();
+
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   // Search & Filter state
   const [search, setSearch] = useState("");
@@ -283,7 +409,7 @@ export function AdminDashboardPage() {
       )}
 
       {/* Stats */}
-      <SimpleGrid cols={{ base: 1, sm: 2, xl: 4 }} spacing="md" mb="xl">
+      <SimpleGrid cols={{ base: 2, sm: 2, xl: 4 }} spacing="md" mb="xl">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} height={120} radius="lg" />
@@ -295,7 +421,7 @@ export function AdminDashboardPage() {
       <Card
         withBorder
         radius="lg"
-        p="lg"
+        p={{ base: "md", sm: "lg" }}
         style={{ borderColor: "var(--mantine-color-gray-1)", boxShadow: "0 4px 20px rgba(0,0,0,0.01)" }}
       >
         <Stack gap="md">
@@ -306,7 +432,7 @@ export function AdminDashboardPage() {
               </ThemeIcon>
               <Box>
                 <Text fw={700} size="lg" c="dark.8">
-                  Danh sách tiếp đón & quản lý lịch hẹn
+                  Danh sách tiếp đón &amp; quản lý lịch hẹn
                 </Text>
                 <Text size="xs" c="dimmed">
                   Tìm kiếm, check-in hoặc hủy lịch nhanh cho bệnh nhân
@@ -325,8 +451,8 @@ export function AdminDashboardPage() {
             </Button>
           </Group>
 
-          {/* Search & Filter controls */}
-          <SimpleGrid cols={{ base: 1, md: 3 }} spacing="sm" mt="xs">
+          {/* Search & Filter controls — responsive */}
+          <Stack gap="sm" mt="xs">
             <TextInput
               placeholder="Tìm kiếm tên, SĐT, quầy, mã check-in..."
               leftSection={<Search size={16} />}
@@ -334,32 +460,57 @@ export function AdminDashboardPage() {
               onChange={(e) => setSearch(e.currentTarget.value)}
               radius="md"
             />
-            
-            <SegmentedControl
-              value={dateFilter}
-              onChange={setDateFilter}
-              data={[
-                { label: "Hôm nay", value: "today" },
-                { label: "Tất cả các ngày", value: "all" },
-              ]}
-              color="blue"
-              radius="md"
-            />
 
-            <SegmentedControl
-              value={statusFilter}
-              onChange={setStatusFilter}
-              data={[
-                { label: "Tất cả", value: "all" },
-                { label: "Chờ khám", value: "confirmed" },
-                { label: "Checked-in", value: "checked-in" },
-                { label: "Đã khám", value: "completed" },
-                { label: "Đã hủy", value: "cancelled" },
-              ]}
-              color="blue"
-              radius="md"
-            />
-          </SimpleGrid>
+            <Group gap="sm" wrap="wrap">
+              {/* Date filter — SegmentedControl (compact) */}
+              <SegmentedControl
+                value={dateFilter}
+                onChange={setDateFilter}
+                data={[
+                  { label: "Hôm nay", value: "today" },
+                  { label: "Tất cả", value: "all" },
+                ]}
+                color="blue"
+                radius="md"
+                size="xs"
+                style={{ flex: "0 0 auto" }}
+              />
+
+              {/* Status filter — Select on mobile, SegmentedControl on desktop */}
+              {isMobile ? (
+                <Select
+                  value={statusFilter}
+                  onChange={(v) => setStatusFilter(v ?? "all")}
+                  data={[
+                    { label: "Tất cả trạng thái", value: "all" },
+                    { label: "Chờ khám", value: "confirmed" },
+                    { label: "Đã check-in", value: "checked-in" },
+                    { label: "Đã khám xong", value: "completed" },
+                    { label: "Đã hủy", value: "cancelled" },
+                  ]}
+                  radius="md"
+                  size="xs"
+                  style={{ flex: 1, minWidth: 160 }}
+                  checkIconPosition="right"
+                />
+              ) : (
+                <SegmentedControl
+                  value={statusFilter}
+                  onChange={setStatusFilter}
+                  data={[
+                    { label: "Tất cả", value: "all" },
+                    { label: "Chờ khám", value: "confirmed" },
+                    { label: "Checked-in", value: "checked-in" },
+                    { label: "Đã khám", value: "completed" },
+                    { label: "Đã hủy", value: "cancelled" },
+                  ]}
+                  color="blue"
+                  radius="md"
+                  size="xs"
+                />
+              )}
+            </Group>
+          </Stack>
 
           {isLoading ? (
             <Stack gap="xs">
@@ -371,7 +522,23 @@ export function AdminDashboardPage() {
             <Box py="xl" style={{ textAlign: "center" }}>
               <Text c="dimmed" size="sm">Không tìm thấy lịch hẹn nào phù hợp.</Text>
             </Box>
+          ) : isMobile ? (
+            /* ── Mobile: card list ── */
+            <Stack gap="sm">
+              {filteredAppointments.map((appt) => (
+                <AppointmentMobileCard
+                  key={appt.id}
+                  appt={appt}
+                  onCheckIn={(id) => checkInMutation.mutate(id)}
+                  onCancel={handleCancelClick}
+                  isCheckingIn={
+                    checkInMutation.isPending && checkInMutation.variables === appt.id
+                  }
+                />
+              ))}
+            </Stack>
           ) : (
+            /* ── Desktop: table ── */
             <ScrollArea>
               <Table
                 highlightOnHover
@@ -407,7 +574,7 @@ export function AdminDashboardPage() {
 
                     return (
                       <Table.Tr key={appt.id}>
-                        {/* 1. Patient details (Tên, SĐT) */}
+                        {/* 1. Patient details */}
                         <Table.Td>
                           <Group gap="xs">
                             <Avatar size="md" radius="xl" color="blue" variant="light">

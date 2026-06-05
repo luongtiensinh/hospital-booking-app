@@ -28,8 +28,10 @@ import {
   SegmentedControl,
   Button,
   Tooltip,
+  Select,
+  Divider,
 } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
+import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { httpClient } from "@/shared/services/http-client";
 import { appointmentsService } from "@/features/appointment/services/appointments-service";
@@ -144,6 +146,123 @@ function DoctorStatCard({
 }
 
 // ---------------------------------------------------------------
+// Mobile appointment card for doctor
+// ---------------------------------------------------------------
+function DoctorAppointmentCard({
+  appt,
+  onCheckIn,
+  onEnterResult,
+  isCheckingIn,
+}: {
+  appt: AppointmentForDoctor;
+  onCheckIn: (id: string) => void;
+  onEnterResult: (appt: AppointmentForDoctor) => void;
+  isCheckingIn: boolean;
+}) {
+  const cfg = getStatusConfig(appt.status);
+  const StatusIcon = cfg.icon;
+  const name = appt.profiles?.fullname ?? "Bệnh nhân";
+  const phone = appt.profiles?.phone ?? "Không có SĐT";
+  const time = appt.slot_id
+    ? appt.slot_id.substring(0, 5)
+    : (appt.appointment_time?.substring(0, 5) ?? "--:--");
+  const date = dayjs(appt.appointment_date).format("DD/MM/YYYY");
+  const shortCode = appt.id.substring(0, 8).toUpperCase();
+  const counterName = appt.counterName || appt.counters?.name || "Khám bệnh";
+  const counterRoom = appt.counterRoom || appt.counters?.room || "Phòng khám";
+
+  return (
+    <Card
+      withBorder
+      radius="lg"
+      p="md"
+      style={{ borderColor: "var(--mantine-color-gray-2)" }}
+    >
+      <Group justify="space-between" align="flex-start" wrap="nowrap" mb="xs">
+        <Group gap="sm" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
+          <Avatar color="blue" radius="xl" size="md" style={{ flexShrink: 0 }}>
+            {name.charAt(0).toUpperCase()}
+          </Avatar>
+          <Box style={{ minWidth: 0 }}>
+            <Text fw={750} size="sm" c="dark.8" truncate>
+              {name}
+            </Text>
+            <Text size="xs" c="dimmed" truncate>
+              {phone}
+            </Text>
+          </Box>
+        </Group>
+        <Badge
+          color={cfg.color}
+          radius="sm"
+          variant="light"
+          size="sm"
+          leftSection={<StatusIcon size={10} />}
+          style={{ flexShrink: 0 }}
+        >
+          {cfg.label}
+        </Badge>
+      </Group>
+
+      <Divider my="xs" />
+
+      <SimpleGrid cols={2} spacing="xs" mb="sm">
+        <Box>
+          <Text size="10px" c="dimmed" fw={700} tt="uppercase" style={{ letterSpacing: "0.05em" }}>
+            Dịch vụ
+          </Text>
+          <Text size="xs" fw={600} c="blue.7" lineClamp={1}>
+            {counterName}
+          </Text>
+          <Text size="10px" c="dimmed">{counterRoom}</Text>
+        </Box>
+        <Box>
+          <Text size="10px" c="dimmed" fw={700} tt="uppercase" style={{ letterSpacing: "0.05em" }}>
+            Thời gian
+          </Text>
+          <Text size="xs" fw={600}>{time} — {date}</Text>
+        </Box>
+        <Box>
+          <Text size="10px" c="dimmed" fw={700} tt="uppercase" style={{ letterSpacing: "0.05em" }}>
+            Mã khám
+          </Text>
+          <Text size="xs" fw={700} style={{ fontFamily: "monospace", color: "var(--mantine-color-gray-6)" }}>
+            {shortCode}
+          </Text>
+        </Box>
+      </SimpleGrid>
+
+      {(appt.status === "confirmed" || appt.status === "checked-in") && (
+        <Group gap="xs" grow mt="xs">
+          {appt.status === "confirmed" && (
+            <Button
+              size="xs"
+              variant="light"
+              color="teal"
+              radius="md"
+              leftSection={<Check size={13} />}
+              loading={isCheckingIn}
+              onClick={() => onCheckIn(appt.id)}
+            >
+              Check-in
+            </Button>
+          )}
+          <Button
+            size="xs"
+            radius="md"
+            color="blue"
+            leftSection={<ClipboardList size={13} />}
+            onClick={() => onEnterResult(appt)}
+          >
+            Khám &amp; Nhập KQ
+          </Button>
+        </Group>
+      )}
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------
 export function DoctorDashboardPage() {
@@ -155,6 +274,8 @@ export function DoctorDashboardPage() {
     isError,
     refetch,
   } = useDoctorAppointments();
+
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   const [search, setSearch] = useState("");
   const [activeQueueTab, setActiveQueueTab] = useState<string>("checked-in");
@@ -257,7 +378,7 @@ export function DoctorDashboardPage() {
       )}
 
       {/* Stats */}
-      <SimpleGrid cols={{ base: 1, sm: 2, xl: 4 }} spacing="md" mb="xl">
+      <SimpleGrid cols={{ base: 2, sm: 2, xl: 4 }} spacing="md" mb="xl">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} height={100} radius="lg" />
@@ -269,7 +390,7 @@ export function DoctorDashboardPage() {
       <Card
         withBorder
         radius="lg"
-        p="lg"
+        p={{ base: "md", sm: "lg" }}
         style={{ borderColor: "var(--mantine-color-gray-1)", boxShadow: "0 4px 20px rgba(0,0,0,0.01)" }}
       >
         <Stack gap="md">
@@ -299,8 +420,8 @@ export function DoctorDashboardPage() {
             </Button>
           </Group>
 
-          {/* Search & Tabs */}
-          <SimpleGrid cols={{ base: 1, md: 2 }} spacing="sm" mt="xs">
+          {/* Search & Tabs — responsive */}
+          <Stack gap="sm" mt="xs">
             <TextInput
               placeholder="Tìm bệnh nhân bằng tên, SĐT, mã check-in..."
               leftSection={<Search size={16} />}
@@ -308,20 +429,37 @@ export function DoctorDashboardPage() {
               onChange={(e) => setSearch(e.currentTarget.value)}
               radius="md"
             />
-            
-            <SegmentedControl
-              value={activeQueueTab}
-              onChange={setActiveQueueTab}
-              data={[
-                { label: "Đang chờ khám", value: "checked-in" },
-                { label: "Chờ check-in", value: "confirmed" },
-                { label: "Đã khám xong", value: "completed" },
-                { label: "Tất cả", value: "all" },
-              ]}
-              color="teal"
-              radius="md"
-            />
-          </SimpleGrid>
+
+            {/* Queue tab filter — Select on mobile, SegmentedControl on desktop */}
+            {isMobile ? (
+              <Select
+                value={activeQueueTab}
+                onChange={(v) => setActiveQueueTab(v ?? "checked-in")}
+                data={[
+                  { label: "Đang chờ khám", value: "checked-in" },
+                  { label: "Chờ check-in", value: "confirmed" },
+                  { label: "Đã khám xong", value: "completed" },
+                  { label: "Tất cả", value: "all" },
+                ]}
+                radius="md"
+                size="sm"
+                checkIconPosition="right"
+              />
+            ) : (
+              <SegmentedControl
+                value={activeQueueTab}
+                onChange={setActiveQueueTab}
+                data={[
+                  { label: "Đang chờ khám", value: "checked-in" },
+                  { label: "Chờ check-in", value: "confirmed" },
+                  { label: "Đã khám xong", value: "completed" },
+                  { label: "Tất cả", value: "all" },
+                ]}
+                color="teal"
+                radius="md"
+              />
+            )}
+          </Stack>
 
           {isLoading ? (
             <Stack gap="sm">
@@ -345,7 +483,23 @@ export function DoctorDashboardPage() {
                 Không có bệnh nhân nào trong hàng đợi này.
               </Text>
             </Box>
+          ) : isMobile ? (
+            /* ── Mobile: card list ── */
+            <Stack gap="sm">
+              {filteredAppointments.map((appt) => (
+                <DoctorAppointmentCard
+                  key={appt.id}
+                  appt={appt}
+                  onCheckIn={(id) => checkInMutation.mutate(id)}
+                  onEnterResult={handleEnterResultClick}
+                  isCheckingIn={
+                    checkInMutation.isPending && checkInMutation.variables === appt.id
+                  }
+                />
+              ))}
+            </Stack>
           ) : (
+            /* ── Desktop: existing row layout ── */
             <Stack gap="sm">
               {filteredAppointments.map((appt) => {
                 const cfg = getStatusConfig(appt.status);
@@ -434,7 +588,7 @@ export function DoctorDashboardPage() {
                           leftSection={<ClipboardList size={14} />}
                           onClick={() => handleEnterResultClick(appt)}
                         >
-                          Khám & Nhập KQ
+                          Khám &amp; Nhập KQ
                         </Button>
                       )}
                     </Group>

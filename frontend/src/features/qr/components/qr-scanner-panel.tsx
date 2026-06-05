@@ -1,5 +1,17 @@
-import { Camera, RotateCcw, ScanLine } from "lucide-react";
-import { Card, Button, Text, Stack, Group, Paper, ThemeIcon } from "@mantine/core";
+import { Camera, RotateCcw, ScanLine, KeyboardIcon, ArrowRight } from "lucide-react";
+import { useState } from "react";
+import {
+  Card,
+  Button,
+  Text,
+  Stack,
+  Group,
+  Paper,
+  ThemeIcon,
+  TextInput,
+  Divider,
+  ActionIcon,
+} from "@mantine/core";
 
 import type {
   CameraPermissionState,
@@ -13,6 +25,7 @@ type QrScannerPanelProps = {
   isActive: boolean;
   onStart: () => void;
   onRetry: () => void;
+  onManualSubmit?: (value: string) => void;
 };
 
 export function QrScannerPanel({
@@ -22,13 +35,29 @@ export function QrScannerPanel({
   isActive,
   onStart,
   onRetry,
+  onManualSubmit,
 }: QrScannerPanelProps) {
+  const [manualCode, setManualCode] = useState("");
+
   const description =
     permission === "denied"
       ? "Camera đã bị từ chối. Hãy cấp quyền truy cập camera trong cài đặt trình duyệt rồi thử lại."
       : status === "verifying"
         ? "Đang xác thực mã QR với máy chủ..."
         : "Hướng camera của thiết bị vào mã QR lịch hẹn để check-in tự động.";
+
+  const handleManualSubmit = () => {
+    const trimmed = manualCode.trim();
+    if (!trimmed) return;
+    onManualSubmit?.(trimmed);
+    setManualCode("");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") handleManualSubmit();
+  };
+
+  const isVerifying = status === "verifying";
 
   return (
     <Card
@@ -48,12 +77,13 @@ export function QrScannerPanel({
             </Text>
           </div>
 
+          {/* Camera viewport */}
           <Paper
             radius="xl"
             className="overflow-hidden border border-slate-900 bg-slate-950 shadow-inner shadow-black/40"
           >
             <div
-              className="flex min-h-[320px] items-center justify-center text-white"
+              className="flex min-h-[260px] items-center justify-center text-white"
               id={containerId}
             >
               {!isActive ? (
@@ -78,10 +108,11 @@ export function QrScannerPanel({
           </Paper>
         </div>
 
+        {/* Camera action buttons */}
         <Group gap="sm" grow className="mt-2">
           <Button
             onClick={onStart}
-            disabled={isActive || status === "verifying"}
+            disabled={isActive || isVerifying}
             variant="filled"
             color="blue"
             radius="md"
@@ -102,6 +133,58 @@ export function QrScannerPanel({
             Quét mới
           </Button>
         </Group>
+
+        {/* Divider — manual input section */}
+        <Divider
+          label={
+            <Group gap={6}>
+              <KeyboardIcon size={13} />
+              <Text size="xs" fw={600} c="dimmed">
+                HOẶC NHẬP MÃ THỦ CÔNG
+              </Text>
+            </Group>
+          }
+          labelPosition="center"
+          my={2}
+        />
+
+        {/* Manual code input */}
+        <Stack gap="xs">
+          <Text size="xs" c="dimmed" ta="center">
+            Dùng khi không mở được camera — nhập mã check-in của bệnh nhân
+          </Text>
+          <Group gap="xs" align="flex-end">
+            <TextInput
+              flex={1}
+              placeholder="Nhập mã QR hoặc mã check-in..."
+              value={manualCode}
+              onChange={(e) => setManualCode(e.currentTarget.value)}
+              onKeyDown={handleKeyDown}
+              disabled={isVerifying}
+              radius="md"
+              size="sm"
+              leftSection={<KeyboardIcon size={15} />}
+              styles={{
+                input: {
+                  fontFamily: "monospace",
+                  fontSize: 13,
+                  letterSpacing: "0.03em",
+                },
+              }}
+            />
+            <ActionIcon
+              size={36}
+              radius="md"
+              variant="filled"
+              color="teal"
+              disabled={!manualCode.trim() || isVerifying}
+              onClick={handleManualSubmit}
+              title="Xác nhận mã"
+            >
+              <ArrowRight size={17} />
+            </ActionIcon>
+          </Group>
+        </Stack>
       </Stack>
     </Card>
   );

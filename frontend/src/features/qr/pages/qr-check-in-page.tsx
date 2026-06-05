@@ -154,6 +154,14 @@ function StaffQrScanView() {
     onDetected: handleDetected,
   });
 
+  const handleManualSubmit = useCallback(
+    (value: string) => {
+      if (value === lastProcessedValue) return;
+      verifyQrMutation.mutate({ value });
+    },
+    [lastProcessedValue, verifyQrMutation],
+  );
+
   const handleRetry = useCallback(() => {
     resetScanState();
     verifyQrMutation.reset();
@@ -196,6 +204,7 @@ function StaffQrScanView() {
               isActive={isActive}
               onRetry={handleRetry}
               onStart={() => void startScanner()}
+              onManualSubmit={handleManualSubmit}
               permission={permission}
               status={status}
             />
