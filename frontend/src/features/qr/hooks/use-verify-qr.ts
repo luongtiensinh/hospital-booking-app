@@ -39,7 +39,7 @@ export function useVerifyQr() {
     onError: (error) => {
       console.error("QR verify failed", error);
       setStatus("error");
-      toast.error("Khong the verify QR. Vui long thu lai.");
+      toast.error("Không thể xác thực QR. Vui lòng thử lại.");
     },
   });
 }

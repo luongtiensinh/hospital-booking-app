@@ -1,6 +1,7 @@
 import { AlertOctagon, RefreshCcw } from "lucide-react";
 import { isRouteErrorResponse, useRouteError } from "react-router-dom";
 
+import { HospitalLogo } from "@/shared/ui/hospital-logo";
 import { Button } from "@/shared/ui/button";
 
 export function RouterErrorPage() {
@@ -8,14 +9,19 @@ export function RouterErrorPage() {
 
   const title = isRouteErrorResponse(error)
     ? `${error.status} - ${error.statusText}`
-    : "Da xay ra loi khi tai trang";
+    : "Đã xảy ra lỗi khi tải trang";
   const description = isRouteErrorResponse(error)
-    ? "Route hien tai khong the hien thi. Ban co the tai lai de thu lai."
-    : "Ung dung khong the dung route nay. Vui long tai lai trinh duyet hoac kiem tra cau hinh dieu huong.";
+    ? "Route hiện tại không thể hiển thị. Bạn có thể tải lại để thử lại."
+    : "Ứng dụng không thể dựng route này. Vui lòng tải lại trình duyệt hoặc kiểm tra cấu hình điều hướng.";
 
   return (
     <div className="flex min-h-screen items-center justify-center p-6">
       <div className="surface-panel max-w-xl space-y-5 p-8 text-center">
+        <HospitalLogo
+          height={44}
+          className="mx-auto mb-4"
+          imageClassName="grayscale opacity-50"
+        />
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-danger/10 text-danger">
           <AlertOctagon className="h-8 w-8" />
         </div>
@@ -25,7 +31,7 @@ export function RouterErrorPage() {
         </div>
         <Button onClick={() => window.location.reload()}>
           <RefreshCcw className="mr-2 h-4 w-4" />
-          Tai lai route
+          Tải lại route
         </Button>
       </div>
     </div>

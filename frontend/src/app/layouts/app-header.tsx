@@ -12,6 +12,7 @@ import { Bell, ChevronDown, LogOut, ShieldCheck, User } from "lucide-react";
 
 import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
 import { useLogout } from "@/features/auth/hooks/use-logout";
+import { HospitalLogo } from "@/shared/ui/hospital-logo";
 
 export function AppHeader() {
   const { displayName, initials, roleLabel, role } = useAuthSession();
@@ -38,49 +39,34 @@ export function AppHeader() {
         justify="space-between"
         wrap="nowrap"
       >
-        {/* Left — Portal info (desktop only) */}
-        <Stack gap={2} visibleFrom="lg">
-          <Text
-            size="xs"
-            fw={700}
-            tt="uppercase"
-            style={{
-              letterSpacing: "0.22em",
-              color: "var(--mantine-color-blue-6)",
-            }}
-          >
-            MedCare Portal
-          </Text>
-          <Text size="sm" fw={700} c="dark.8" lh={1.2}>
-            Hệ thống quản lý khám bệnh
-          </Text>
-        </Stack>
-
-        {/* Mobile left — logo + current page hint */}
-        <Group gap="xs" hiddenFrom="lg">
-          <Box
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: 8,
-              background: "var(--mantine-color-blue-6)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Text c="white" fw={800} size="sm">
-              M
+        <Group gap="md" visibleFrom="lg" wrap="nowrap">
+          <HospitalLogo height={34} />
+          <Stack gap={2}>
+            <Text
+              size="xs"
+              fw={700}
+              tt="uppercase"
+              style={{
+                letterSpacing: "0.22em",
+                color: "var(--mantine-color-blue-6)",
+              }}
+            >
+              Hệ thống y tế số
             </Text>
-          </Box>
+            <Text size="sm" fw={700} c="dark.8" lh={1.2}>
+              Bệnh viện Ung bướu Đà Nẵng
+            </Text>
+          </Stack>
+        </Group>
+
+        <Group gap="xs" hiddenFrom="lg">
+          <HospitalLogo height={22} />
           <Text fw={700} size="md" c="blue.7">
-            MedCare
+            BV Ung bướu Đà Nẵng
           </Text>
         </Group>
 
-        {/* Right — Actions */}
         <Group gap="sm" wrap="nowrap">
-          {/* Bell (desktop only) */}
           <ActionIcon
             variant="default"
             size="lg"
@@ -91,12 +77,9 @@ export function AppHeader() {
             <Bell size={18} />
           </ActionIcon>
 
-          {/* User menu — unified for both desktop and mobile */}
           <Menu shadow="lg" width={220} radius="md" withinPortal>
             <Menu.Target>
-              {/* Desktop: full button with name + role badge */}
               <Group gap="sm" style={{ cursor: "pointer" }} wrap="nowrap">
-                {/* Desktop version: avatar + name + chevron */}
                 <Group
                   gap="xs"
                   wrap="nowrap"
@@ -130,7 +113,6 @@ export function AppHeader() {
                   <ChevronDown size={14} color="var(--mantine-color-gray-5)" />
                 </Group>
 
-                {/* Mobile version: just the avatar */}
                 <Avatar
                   color={roleColor}
                   radius="xl"
@@ -144,7 +126,6 @@ export function AppHeader() {
             </Menu.Target>
 
             <Menu.Dropdown>
-              {/* User info header */}
               <Box px="sm" py="xs" mb={4}>
                 <Text fw={700} size="sm" c="dark.8" truncate>
                   {displayName}

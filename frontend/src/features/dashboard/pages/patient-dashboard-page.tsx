@@ -8,8 +8,10 @@ import {
 
 import {
   Alert,
+  Box,
   Card,
   Grid,
+  Group,
   SimpleGrid,
   Skeleton,
   Stack,
@@ -25,6 +27,7 @@ import { useDashboardOverview } from "@/features/dashboard/hooks/use-dashboard-o
 import { PatientQrCard } from "@/features/qr/components/patient-qr-card";
 import { useLatestPatientQr } from "@/features/qr/hooks/use-latest-patient-qr";
 import { EmptyState } from "@/shared/components/feedback/empty-state";
+import { HospitalLogo } from "@/shared/ui/hospital-logo";
 import { formatCurrency } from "@/shared/utils/formatters";
 
 export function PatientDashboardPage() {
@@ -59,11 +62,20 @@ export function PatientDashboardPage() {
 
   return (
     <PageContainer>
-      <PageHeader
-        description=""
-        eyebrow="Patient Overview"
-        title="Tổng quan chăm sóc y tế"
-      />
+      <Box mb="xl">
+        <Group justify="space-between" align="center" wrap="nowrap">
+          <PageHeader
+            description="Theo dõi lịch khám, kết quả cần đọc và các thông tin sức khỏe quan trọng tại một nơi."
+            eyebrow="Xin chào"
+            title="Cổng thông tin Bệnh nhân"
+          />
+          <HospitalLogo
+            height={76}
+            className="hidden md:inline-flex"
+            containerStyle={{ padding: 14 }}
+          />
+        </Group>
+      </Box>
 
       {isError ? (
         <Alert color="red" radius="md" variant="light">
@@ -72,7 +84,6 @@ export function PatientDashboardPage() {
         </Alert>
       ) : null}
 
-      {/* Stat Cards */}
       <SimpleGrid cols={{ base: 1, sm: 2, xl: 4 }} spacing="md">
         {isLoading || !data
           ? Array.from({ length: 4 }).map((_, i) => (
@@ -81,9 +92,7 @@ export function PatientDashboardPage() {
           : stats.map((stat) => <StatCard key={stat.label} {...stat} />)}
       </SimpleGrid>
 
-      {/* Main content grid */}
       <Grid>
-        {/* Next appointment */}
         <Grid.Col span={{ base: 12, xl: 5 }}>
           {isLoading ? (
             <Skeleton height={280} radius="lg" />
@@ -98,7 +107,6 @@ export function PatientDashboardPage() {
           )}
         </Grid.Col>
 
-        {/* Latest QR */}
         <Grid.Col span={{ base: 12, xl: 3 }}>
           {latestQrQuery.isLoading ? (
             <Skeleton height={280} radius="lg" />
@@ -117,41 +125,27 @@ export function PatientDashboardPage() {
           )}
         </Grid.Col>
 
-        {/* Recent results */}
         <Grid.Col span={{ base: 12, xl: 4 }}>
-          <Card
-            radius="lg"
-            withBorder
-            h="100%"
-            style={{ borderColor: "var(--mantine-color-gray-2)" }}
-          >
-            <Stack gap="md">
-              <div>
-                <Text fw={700} size="lg" c="dark.8">
-                  Kết quả mới nhất
+          {isLoading ? (
+            <Skeleton height={280} radius="lg" />
+          ) : data?.recentResults?.length ? (
+            <Card radius="lg" withBorder p="lg">
+              <Stack gap="md">
+                <Text fw={700} size="sm">
+                  Kết quả cần chú ý
                 </Text>
-              </div>
-
-              {isLoading ? (
-                <Stack gap="sm">
-                  <Skeleton height={112} radius="md" />
-                  <Skeleton height={112} radius="md" />
-                </Stack>
-              ) : data && data.recentResults.length > 0 ? (
-                <Stack gap="sm">
-                  {data.recentResults.map((result) => (
-                    <ResultHighlightCard item={result} key={result.id} />
-                  ))}
-                </Stack>
-              ) : (
-                <EmptyState
-                  description="Kết quả xét nghiệm mới sẽ xuất hiện tại đây ngay khi bác sĩ xác nhận và phát hành."
-                  icon={FlaskConical}
-                  title="Chưa có kết quả để hiển thị"
-                />
-              )}
-            </Stack>
-          </Card>
+                {data.recentResults.slice(0, 3).map((result) => (
+                  <ResultHighlightCard key={result.id} item={result} />
+                ))}
+              </Stack>
+            </Card>
+          ) : (
+            <EmptyState
+              description="Các kết quả xét nghiệm và chẩn đoán hình ảnh mới sẽ xuất hiện tại đây để bạn theo dõi."
+              icon={FlaskConical}
+              title="Chưa có kết quả mới"
+            />
+          )}
         </Grid.Col>
       </Grid>
     </PageContainer>

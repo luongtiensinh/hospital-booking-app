@@ -19,9 +19,9 @@ export function ForbiddenPage() {
           Về trang an toàn
         </Button>
       }
-      description="Tai khoan hien tai khong co quyen truy cap chuc nang nay. Hay lien he quan tri vien neu ban cho rang day la nham lan."
+      description="Tài khoản hiện tại không có quyền truy cập chức năng này. Hãy liên hệ quản trị viên nếu bạn cho rằng đây là nhầm lẫn."
       icon={LockKeyhole}
-      title="403 - Truy cap bi tu choi"
+      title="403 - Truy cập bị từ chối"
     />
   );
 }
