@@ -15,9 +15,14 @@ export function useCreateAppointment() {
       toast.success("Đặt lịch thành công.");
       resetBooking();
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["appointments", "upcoming"] }),
-        queryClient.invalidateQueries({ queryKey: ["appointment", "calendar"] }),
+        queryClient.invalidateQueries({
+          queryKey: ["appointments", "upcoming"],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["appointment", "calendar"],
+        }),
         queryClient.invalidateQueries({ queryKey: ["appointment", "slots"] }),
+        queryClient.invalidateQueries({ queryKey: ["qr", "latest-patient"] }),
       ]);
     },
     onError: (error) => {
