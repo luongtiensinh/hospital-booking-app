@@ -4,14 +4,14 @@ import dayjs from "dayjs";
 import type { BackendResult } from "@/features/result/api/result-api";
 
 export async function generateResultPdf(result: BackendResult): Promise<void> {
-  const patientName = result.appointments?.profiles?.fullname ?? "—";
-  const patientPhone = result.appointments?.profiles?.phone ?? "—";
+  const patientName = escapeHtml(result.appointments?.profiles?.fullname ?? "—");
+  const patientPhone = escapeHtml(result.appointments?.profiles?.phone ?? "—");
   const date = result.appointments?.appointment_date
-    ? dayjs(result.appointments.appointment_date).format("DD/MM/YYYY")
+    ? escapeHtml(dayjs(result.appointments.appointment_date).format("DD/MM/YYYY"))
     : "—";
-  const counterName = result.appointments?.counters?.name ?? "—";
-  const counterRoom = result.appointments?.counters?.room ?? "—";
-  const resultCode = result.appointment_id.substring(0, 8).toUpperCase();
+  const counterName = escapeHtml(result.appointments?.counters?.name ?? "—");
+  const counterRoom = escapeHtml(result.appointments?.counters?.room ?? "—");
+  const resultCode = escapeHtml(result.appointment_id.substring(0, 8).toUpperCase());
   const now = dayjs();
 
   // ── Dựng container ẩn ──────────────────────────────────────
