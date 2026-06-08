@@ -209,10 +209,10 @@ export function AppointmentsPage() {
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         <div className="xl:col-span-8">
           <Box
-            p={isMobile ? "sm" : "md"}
+            p={isMobile ? "sm" : "sm"}
             bg="white"
             style={{
               borderRadius: "var(--mantine-radius-lg)",
@@ -240,9 +240,9 @@ export function AppointmentsPage() {
               <Stepper.Step
                 label="Chọn quầy"
                 description="Quầy tiếp nhận"
-                icon={<Activity size={18} />}
+                icon={<Activity size={16} />}
               >
-                <Box mt="xl" mih={300}>
+                <Box mt="md" mih={240}>
                   <CounterSelector onSelect={nextStep} />
                 </Box>
               </Stepper.Step>
@@ -250,10 +250,10 @@ export function AppointmentsPage() {
               <Stepper.Step
                 label="Thời gian"
                 description="Ngày & Giờ khám"
-                icon={<CalendarPlus size={18} />}
+                icon={<CalendarPlus size={16} />}
                 allowStepSelect={activeStep > 1 || selectedCounter !== null}
               >
-                <Box mt="xl">
+                <Box mt="md">
                   {selectedCounter ? (
                     <Stack gap="md">
                       {/* Mobile View: Horizontal Date Strip */}
@@ -335,11 +335,13 @@ export function AppointmentsPage() {
                         </Stack>
                       </Box>
 
-                      {/* Desktop View: Side-by-side Calendar and SlotSelector */}
                       <Box visibleFrom="sm">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div
+                          className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch"
+                          style={{ minHeight: 340 }}
+                        >
                           {calendarQuery.isLoading ? (
-                            <Skeleton height={400} radius="lg" />
+                            <Skeleton height={340} radius="lg" />
                           ) : (
                             <BookingCalendar
                               currentMonth={visibleMonth}
@@ -372,10 +374,10 @@ export function AppointmentsPage() {
               <Stepper.Step
                 label="Xác nhận"
                 description="Hoàn tất đặt lịch"
-                icon={<ShieldCheck size={18} />}
+                icon={<ShieldCheck size={16} />}
                 allowStepSelect={canConfirm}
               >
-                <Box mt="xl" maw={500} mx="auto">
+                <Box mt="md" maw={460} mx="auto">
                   <BookingConfirmationCard
                     canConfirm={canConfirm}
                     draft={draft}
@@ -388,26 +390,26 @@ export function AppointmentsPage() {
               <Stepper.Completed>
                 {successAppointment ? (
                   <Stack
-                    gap="lg"
+                    gap="sm"
                     align="center"
-                    py="md"
+                    py="xs"
                     className="animate-fade-in"
                   >
                     <Box style={{ textAlign: "center" }}>
                       <ThemeIcon
                         color="green"
-                        size={56}
+                        size={44}
                         radius="xl"
                         variant="light"
-                        mb="sm"
+                        mb="xs"
                         mx="auto"
                       >
-                        <CheckCircle2 size={36} />
+                        <CheckCircle2 size={28} />
                       </ThemeIcon>
-                      <Text fw={850} size="xl" c="green.8">
+                      <Text fw={850} size="lg" c="green.8">
                         ĐẶT LỊCH THÀNH CÔNG!
                       </Text>
-                      <Text size="sm" c="dimmed" mt={4}>
+                      <Text size="xs" c="dimmed" mt={2}>
                         Vui lòng lưu lại thông tin vé khám bệnh dưới đây
                       </Text>
                     </Box>
@@ -416,10 +418,10 @@ export function AppointmentsPage() {
                     <Card
                       withBorder
                       radius="xl"
-                      p="xl"
+                      p="md"
                       style={{
                         width: "100%",
-                        maxWidth: 420,
+                        maxWidth: 380,
                         borderColor: "var(--mantine-color-gray-3)",
                         backgroundColor: "#fafcff",
                         backgroundImage:
@@ -428,10 +430,10 @@ export function AppointmentsPage() {
                         backgroundSize: "100% 100%",
                         backgroundRepeat: "no-repeat",
                         position: "relative",
-                        boxShadow: "0 10px 30px rgba(0, 0, 0, 0.03)",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.03)",
                       }}
                     >
-                      <Stack gap="md" align="center">
+                      <Stack gap="sm" align="center">
                         <div style={{ textAlign: "center" }}>
                           <Text fw={800} size="lg" c="blue.9">
                             VÉ KHÁM BỆNH
@@ -440,7 +442,7 @@ export function AppointmentsPage() {
 
                         <Divider
                           style={{ width: "100%", borderStyle: "dashed" }}
-                          my="xs"
+                          my={4}
                         />
 
                         {successAppointment.qrCodeUrl && (
@@ -457,7 +459,7 @@ export function AppointmentsPage() {
                               bgColor="#ffffff"
                               fgColor="#11314d"
                               includeMargin
-                              size={160}
+                              size={130}
                               value={successAppointment.qrCodeUrl}
                             />
                             <Text
@@ -477,7 +479,7 @@ export function AppointmentsPage() {
 
                         <Divider
                           style={{ width: "100%", borderStyle: "dashed" }}
-                          my="xs"
+                          my={4}
                         />
 
                         <Stack gap="xs" style={{ width: "100%" }}>
@@ -554,7 +556,7 @@ export function AppointmentsPage() {
               </Stepper.Completed>
             </Stepper>
 
-            <Group justify="space-between" mt="xl">
+            <Group justify="space-between" mt="md">
               <Button
                 variant="default"
                 onClick={prevStep}
@@ -578,21 +580,21 @@ export function AppointmentsPage() {
                   style={{
                     background:
                       (activeStep === 0 && !selectedCounter) ||
-                      (activeStep === 1 &&
-                        (!draft.appointmentDate || !draft.slotId))
+                        (activeStep === 1 &&
+                          (!draft.appointmentDate || !draft.slotId))
                         ? undefined
                         : "linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)",
                     border: 0,
                     color:
                       (activeStep === 0 && !selectedCounter) ||
-                      (activeStep === 1 &&
-                        (!draft.appointmentDate || !draft.slotId))
+                        (activeStep === 1 &&
+                          (!draft.appointmentDate || !draft.slotId))
                         ? undefined
                         : "white",
                     boxShadow:
                       (activeStep === 0 && !selectedCounter) ||
-                      (activeStep === 1 &&
-                        (!draft.appointmentDate || !draft.slotId))
+                        (activeStep === 1 &&
+                          (!draft.appointmentDate || !draft.slotId))
                         ? undefined
                         : "0 8px 16px rgba(37, 99, 235, 0.15)",
                   }}
@@ -605,7 +607,7 @@ export function AppointmentsPage() {
         </div>
 
         <div className="xl:col-span-4">
-          <Stack gap="md">
+          <Stack gap="sm">
             <Group gap="xs">
               <ShieldCheck size={20} color="var(--mantine-color-sky-6)" />
               <div>

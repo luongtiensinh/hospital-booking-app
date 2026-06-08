@@ -17,21 +17,29 @@ export function CounterSelector({ onSelect }: { onSelect?: () => void }) {
   }
 
   if (!counters || counters.length === 0) {
-    return <div className="text-center p-8 text-slate-500">Không có quầy tiếp nhận nào hoạt động.</div>;
+    return (
+      <div className="text-center p-8 text-slate-500">
+        Không có quầy tiếp nhận nào hoạt động.
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-slate-800">Chọn Quầy Khám</h2>
-        <p className="text-slate-500 mt-2">Vui lòng chọn quầy tiếp nhận phù hợp với nhu cầu của bạn</p>
+    <div className="space-y-4 animate-fade-in">
+      <div className="text-center mb-4">
+        <h2 className="text-xl font-bold text-slate-800">Chọn Quầy Khám</h2>
+        <p className="text-slate-500 mt-1 text-sm">
+          Vui lòng chọn quầy tiếp nhận phù hợp với nhu cầu của bạn
+        </p>
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {counters.map((counter) => {
           const isSelected = selectedCounter?.id === counter.id;
-          const Icon = counter.name.toLowerCase().includes("tổng quát") ? Activity : Stethoscope;
-          
+          const Icon = counter.name.toLowerCase().includes("ổng quát")
+            ? Activity
+            : Stethoscope;
+
           return (
             <button
               key={counter.id}
@@ -39,33 +47,39 @@ export function CounterSelector({ onSelect }: { onSelect?: () => void }) {
                 selectCounter(counter);
                 onSelect?.();
               }}
-              className={`relative p-6 rounded-2xl text-left transition-all duration-300 border-2 outline-none group ${
+              className={`relative p-4 rounded-xl text-left transition-all duration-300 border-2 outline-none group ${
                 isSelected
-                  ? "border-sky-500 bg-sky-50 shadow-md ring-4 ring-sky-500/20 -translate-y-1"
-                  : "border-slate-200 hover:border-sky-400 hover:shadow-md hover:-translate-y-1 bg-white"
+                  ? "border-sky-500 bg-sky-50 shadow-md ring-4 ring-sky-500/20 -translate-y-0.5"
+                  : "border-slate-200 hover:border-sky-400 hover:shadow-md hover:-translate-y-0.5 bg-white"
               }`}
               style={{
-                boxShadow: isSelected ? "0 10px 20px rgba(14, 165, 233, 0.1)" : undefined
+                boxShadow: isSelected
+                  ? "0 8px 16px rgba(14, 165, 233, 0.08)"
+                  : undefined,
               }}
             >
-              <div className="flex items-start gap-4">
-                <div className={`p-4 rounded-xl ${isSelected ? "bg-sky-500 text-white" : "bg-slate-100 text-slate-600 group-hover:bg-sky-100 group-hover:text-sky-600"} transition-colors`}>
-                  <Icon className="w-8 h-8" />
+              <div className="flex items-start gap-3">
+                <div
+                  className={`p-3 rounded-lg ${isSelected ? "bg-sky-500 text-white" : "bg-slate-100 text-slate-600 group-hover:bg-sky-100 group-hover:text-sky-600"} transition-colors`}
+                >
+                  <Icon className="w-6 h-6" />
                 </div>
                 <div className="flex-1">
-                  <h3 className={`text-lg font-bold ${isSelected ? "text-sky-900" : "text-slate-900"}`}>
+                  <h3
+                    className={`text-base font-bold ${isSelected ? "text-sky-900" : "text-slate-900"}`}
+                  >
                     {counter.name}
                   </h3>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
                       {counter.room}
                     </span>
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       Hoạt động
                     </span>
                   </div>
-                  <p className="text-sm text-slate-500 mt-3 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">
                     {counter.description}
                   </p>
                 </div>

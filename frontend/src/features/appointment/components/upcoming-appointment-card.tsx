@@ -25,7 +25,7 @@ export function UpcomingAppointmentCard({ appointment }: UpcomingAppointmentCard
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
   const isConfirmed = appointment.status === "confirmed";
-  
+
   // Calculate if it's eligible for cancellation (must be > 24h away)
   const isEligibleForCancel = isConfirmed && dayjs(appointment.appointmentAt).diff(dayjs(), "hour") >= 24;
 
@@ -94,7 +94,7 @@ export function UpcomingAppointmentCard({ appointment }: UpcomingAppointmentCard
                   QR Check-in
                 </Button>
               )}
-              
+
               {isConfirmed && (
                 <Tooltip
                   label={!isEligibleForCancel ? "Chỉ được phép hủy trước 24 giờ so với giờ khám" : ""}
@@ -158,7 +158,7 @@ export function UpcomingAppointmentCard({ appointment }: UpcomingAppointmentCard
                 MÃ CHECK-IN: {appointment.id.substring(0, 8).toUpperCase()}
               </Text>
               {qrStatus !== "active" && (
-                <div 
+                <div
                   style={{
                     position: "absolute",
                     inset: 0,

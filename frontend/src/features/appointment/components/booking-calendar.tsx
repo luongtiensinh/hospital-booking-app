@@ -93,9 +93,10 @@ export function BookingCalendar({
     <Card
       radius="lg"
       withBorder
-      style={{ borderColor: "var(--mantine-color-gray-2)" }}
+      p="sm"
+      style={{ borderColor: "var(--mantine-color-gray-2)", height: "100%" }}
     >
-      <Stack gap="sm">
+      <Stack gap="xs">
         {/* Header */}
         <Group justify="space-between" align="center">
           <div>
@@ -180,7 +181,13 @@ export function BookingCalendar({
           }}
         >
           {DAY_LABELS.map((label) => (
-            <Text key={label} size="xs" fw={600} c={label === "CN" ? "red.6" : "dimmed"} tt="uppercase">
+            <Text
+              key={label}
+              size="xs"
+              fw={600}
+              c={label === "CN" ? "red.6" : "dimmed"}
+              tt="uppercase"
+            >
               {label}
             </Text>
           ))}
@@ -198,14 +205,14 @@ export function BookingCalendar({
             const availStatus = cell.availability?.status;
             const isClosed = availStatus === "closed";
             const isFull = availStatus === "full";
-            
+
             const isDisabled =
               cell.isPast ||
               !cell.isCurrentMonth ||
               !cell.availability ||
               isClosed ||
               isFull;
-              
+
             const isSelected = selectedDate === cell.isoDate;
 
             let bgColor = "white";
@@ -230,14 +237,14 @@ export function BookingCalendar({
                 disabled={isDisabled}
                 onClick={() => onSelectDate(cell.isoDate)}
                 style={{
-                  borderRadius: 8,
+                  borderRadius: 6,
                   border: `1.5px solid ${borderColor}`,
                   background: bgColor,
-                  padding: "6px 4px",
+                  padding: "4px 2px",
                   opacity: !cell.isCurrentMonth ? 0.35 : 1,
                   cursor: isDisabled ? "not-allowed" : "pointer",
                   textAlign: "center",
-                  minHeight: 52,
+                  minHeight: 42,
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
@@ -248,7 +255,13 @@ export function BookingCalendar({
                 <Text
                   size="xs"
                   fw={700}
-                  style={{ color: isSelected ? "white" : isClosed ? "var(--mantine-color-red-5)" : undefined }}
+                  style={{
+                    color: isSelected
+                      ? "white"
+                      : isClosed
+                        ? "var(--mantine-color-red-5)"
+                        : undefined,
+                  }}
                 >
                   {cell.dayOfMonth}
                 </Text>
