@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Alert,
   Avatar,
@@ -27,7 +27,7 @@ import {
   User,
   Phone,
   FileText,
-  Download,
+  FileDown,
   Stethoscope,
   Pencil,
 } from "lucide-react";
@@ -35,6 +35,7 @@ import { useDisclosure } from "@mantine/hooks";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import dayjs from "dayjs";
+import { generateResultPdf } from "@/shared/utils/generate-result-pdf";
 
 import { PageContainer } from "@/app/layouts/page-container";
 import { PageHeader } from "@/app/layouts/page-header";
@@ -76,6 +77,7 @@ function PatientResultCard({
 }) {
   const { role } = useAuthSession();
   const isDoctorOrAdmin = role === "doctor" || role === "admin";
+  const [downloading, setDownloading] = useState(false);
 
   const date = result.appointments?.appointment_date
     ? dayjs(result.appointments.appointment_date).format("DD/MM/YYYY")
@@ -86,32 +88,17 @@ function PatientResultCard({
   const counterName = result.appointments?.counters?.name ?? "—";
   const counterRoom = result.appointments?.counters?.room ?? "—";
 
-  const handleDownload = () => {
-    const content = `BỆNH VIỆN MEDCARE - PHIẾU KẾT QUẢ KHÁM BỆNH
-================================================
-Bệnh nhân:       ${patientName}
-Số điện thoại:   ${patientPhone}
-Ngày khám:       ${date}
-Phòng khám:      ${counterName} (${counterRoom})
-
-CHẨN ĐOÁN:
-${result.diagnosis ?? "Chưa có chẩn đoán"}
-
-KẾT LUẬN / GHI CHÚ BÁC SĨ:
-${result.result ?? "Chưa có kết luận"}
-
-------------------------------------------------
-Cảm ơn bạn đã tin tưởng dịch vụ của MedCare!`;
-
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Ket_qua_kham_${patientName.replace(/\s+/g, "_")}_${dayjs(result.appointments?.appointment_date).format("YYYYMMDD")}.txt`;
-    link.click();
-    URL.revokeObjectURL(url);
-    toast.success("Tải kết quả khám thành công.");
-  };
+  const handleDownload = useCallback(async () => {
+    setDownloading(true);
+    try {
+      await generateResultPdf(result);
+      toast.success("Tải phiếu kết quả PDF thành công.");
+    } catch {
+      toast.error("Không thể tạo PDF. Vui lòng thử lại.");
+    } finally {
+      setDownloading(false);
+    }
+  }, [result]);
 
   return (
     <Card
@@ -165,10 +152,11 @@ Cảm ơn bạn đã tin tưởng dịch vụ của MedCare!`;
               color="blue"
               size="xs"
               radius="md"
-              leftSection={<Download size={14} />}
+              leftSection={<FileDown size={14} />}
               onClick={handleDownload}
+              loading={downloading}
             >
-              Tải kết quả
+              Tải PDF
             </Button>
           </Group>
         </Group>
