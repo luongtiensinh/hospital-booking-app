@@ -42,6 +42,7 @@ import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { httpClient } from "@/shared/services/http-client";
 import { appointmentsService } from "@/features/appointment/services/appointments-service";
+import { useRealtimeAppointments } from "@/features/appointment/hooks/use-realtime-appointments";
 import { CancelAppointmentDialog } from "@/features/appointment/components/cancel-appointment-dialog";
 import { toast } from "sonner";
 import dayjs from "dayjs";
@@ -155,6 +156,7 @@ const STATUS_BADGE: Record<
   "checked-in": { label: "Đã check-in", color: "teal", icon: Activity },
   completed: { label: "Đã khám", color: "green", icon: CheckCircle2 },
   cancelled: { label: "Đã hủy", color: "red", icon: XCircle },
+  expired: { label: "Đã hết hạn", color: "gray", icon: XCircle },
 };
 
 // ---------------------------------------------------------------
@@ -332,6 +334,8 @@ export function AdminDashboardPage() {
     isError,
     refetch,
   } = useAdminAppointments();
+
+  useRealtimeAppointments([["admin", "appointments"]]);
 
   // Search & Filter state
   const [search, setSearch] = useState("");
@@ -640,6 +644,7 @@ export function AdminDashboardPage() {
                   { label: "Đã check-in", value: "checked-in" },
                   { label: "Đã khám xong", value: "completed" },
                   { label: "Đã hủy", value: "cancelled" },
+                  { label: "Đã hết hạn", value: "expired" },
                 ]}
                 radius="md"
                 size="sm"

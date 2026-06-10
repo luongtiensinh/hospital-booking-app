@@ -40,6 +40,7 @@ import { useCreateAppointment } from "@/features/appointment/hooks/use-create-ap
 import { useCounterCalendar } from "@/features/appointment/hooks/use-counter-calendar";
 import { useCounterSlots } from "@/features/appointment/hooks/use-counter-slots";
 import { useUpcomingAppointments } from "@/features/appointment/hooks/use-upcoming-appointments";
+import { useRealtimeAppointments } from "@/features/appointment/hooks/use-realtime-appointments";
 import { EmptyState } from "@/shared/components/feedback/empty-state";
 import type { DoctorCalendarDay } from "@/features/appointment/types/appointment.types";
 
@@ -165,6 +166,12 @@ export function AppointmentsPage() {
     counterId: selectedCounter?.id ?? null,
     date: draft.appointmentDate,
   });
+
+  useRealtimeAppointments([
+    ["appointments", "upcoming"],
+    ["appointment", "calendar", selectedCounter?.id ?? null, getMonthKey(visibleMonth)],
+    ["appointment", "slots", selectedCounter?.id ?? null, draft.appointmentDate],
+  ]);
 
   const createAppointmentMutation = useCreateAppointment();
 

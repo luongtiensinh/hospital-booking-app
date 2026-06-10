@@ -1,5 +1,15 @@
 import { useState } from "react";
-import { Badge, Button, Card, Group, Stack, Text, Tooltip, Modal, Paper } from "@mantine/core";
+import {
+  Badge,
+  Button,
+  Card,
+  Group,
+  Stack,
+  Text,
+  Tooltip,
+  Modal,
+  Paper,
+} from "@mantine/core";
 import { QrCode, XCircle } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import dayjs from "dayjs";
@@ -14,20 +24,24 @@ const statusColorMap: Record<string, string> = {
   completed: "teal",
   cancelled: "red",
   pending: "yellow",
+  expired: "gray",
 };
 
 type UpcomingAppointmentCardProps = {
   appointment: AppointmentSummary;
 };
 
-export function UpcomingAppointmentCard({ appointment }: UpcomingAppointmentCardProps) {
+export function UpcomingAppointmentCard({
+  appointment,
+}: UpcomingAppointmentCardProps) {
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
   const isConfirmed = appointment.status === "confirmed";
 
   // Calculate if it's eligible for cancellation (must be > 24h away)
-  const isEligibleForCancel = isConfirmed && dayjs(appointment.appointmentAt).diff(dayjs(), "hour") >= 24;
+  const isEligibleForCancel =
+    isConfirmed && dayjs(appointment.appointmentAt).diff(dayjs(), "hour") >= 24;
 
   // Determine QR status and statusLabel
   const nowDayjs = dayjs();
@@ -37,7 +51,12 @@ export function UpcomingAppointmentCard({ appointment }: UpcomingAppointmentCard
   let qrStatus: "active" | "used" | "expired" | "cancelled" = "active";
   if (appointment.status === "cancelled") {
     qrStatus = "cancelled";
-  } else if (appointment.status === "checked-in" || appointment.status === "completed") {
+  } else if (appointment.status === "expired") {
+    qrStatus = "expired";
+  } else if (
+    appointment.status === "checked-in" ||
+    appointment.status === "completed"
+  ) {
     qrStatus = "used";
   } else if (nowDayjs.isAfter(expiresAtDayjs)) {
     qrStatus = "expired";
@@ -59,13 +78,23 @@ export function UpcomingAppointmentCard({ appointment }: UpcomingAppointmentCard
 
   return (
     <>
-      <Card radius="lg" withBorder style={{ borderColor: "var(--mantine-color-gray-2)" }}>
+      <Card
+        radius="lg"
+        withBorder
+        style={{ borderColor: "var(--mantine-color-gray-2)" }}
+      >
         <Stack gap="sm">
           <Group justify="space-between" align="flex-start" wrap="nowrap">
             <div>
-              <Text fw={700} size="sm" c="dark.8">{appointment.counterName}</Text>
-              <Text size="xs" c="dimmed">Phòng: {appointment.counterRoom}</Text>
-              <Text size="xs" fw={700} c="sky.8">Mã khám: {appointment.id.substring(0, 8).toUpperCase()}</Text>
+              <Text fw={700} size="sm" c="dark.8">
+                {appointment.counterName}
+              </Text>
+              <Text size="xs" c="dimmed">
+                Phòng: {appointment.counterRoom}
+              </Text>
+              <Text size="xs" fw={700} c="sky.8">
+                Mã khám: {appointment.id.substring(0, 8).toUpperCase()}
+              </Text>
             </div>
             <Badge
               color={statusColorMap[appointment.status] ?? "blue"}
@@ -78,7 +107,9 @@ export function UpcomingAppointmentCard({ appointment }: UpcomingAppointmentCard
             </Badge>
           </Group>
 
-          <Text size="sm" fw={500} c="dark.7">{formatDateTime(appointment.appointmentAt)}</Text>
+          <Text size="sm" fw={500} c="dark.7">
+            {formatDateTime(appointment.appointmentAt)}
+          </Text>
 
           {(appointment.qrCodeUrl || isConfirmed) && (
             <Group gap="xs" mt="sm">
@@ -97,7 +128,11 @@ export function UpcomingAppointmentCard({ appointment }: UpcomingAppointmentCard
 
               {isConfirmed && (
                 <Tooltip
-                  label={!isEligibleForCancel ? "Chỉ được phép hủy trước 24 giờ so với giờ khám" : ""}
+                  label={
+                    !isEligibleForCancel
+                      ? "Chỉ được phép hủy trước 24 giờ so với giờ khám"
+                      : ""
+                  }
                   disabled={isEligibleForCancel}
                 >
                   <div>
@@ -154,7 +189,13 @@ export function UpcomingAppointmentCard({ appointment }: UpcomingAppointmentCard
                 size={240}
                 value={appointment.qrCodeUrl}
               />
-              <Text size="sm" fw={800} c="blue.9" mt="xs" style={{ textAlign: "center" }}>
+              <Text
+                size="sm"
+                fw={800}
+                c="blue.9"
+                mt="xs"
+                style={{ textAlign: "center" }}
+              >
                 MÃ CHECK-IN: {appointment.id.substring(0, 8).toUpperCase()}
               </Text>
               {qrStatus !== "active" && (
@@ -167,10 +208,14 @@ export function UpcomingAppointmentCard({ appointment }: UpcomingAppointmentCard
                     justifyContent: "center",
                     backgroundColor: "rgba(255, 255, 255, 0.7)",
                     borderRadius: "var(--mantine-radius-xl)",
-                    backdropFilter: "blur(1px)"
+                    backdropFilter: "blur(1px)",
                   }}
                 >
-                  <Badge color={qrStatusColorMap[qrStatus]} size="lg" variant="filled">
+                  <Badge
+                    color={qrStatusColorMap[qrStatus]}
+                    size="lg"
+                    variant="filled"
+                  >
                     {qrStatusLabelMap[qrStatus]}
                   </Badge>
                 </div>
@@ -212,7 +257,11 @@ export function UpcomingAppointmentCard({ appointment }: UpcomingAppointmentCard
                   <Text size="xs" c="dimmed">
                     Hạn quét mã:
                   </Text>
-                  <Text size="xs" fw={700} c={qrStatus === "active" ? "orange.7" : "dimmed"}>
+                  <Text
+                    size="xs"
+                    fw={700}
+                    c={qrStatus === "active" ? "orange.7" : "dimmed"}
+                  >
                     {formatDateTime(expiresAtDayjs.toISOString())}
                   </Text>
                 </Group>

@@ -17,6 +17,89 @@ const GENERAL_COUNTER_KEYWORD = "tổng quát".normalize("NFC");
 
 router.use(requireAuth);
 
+// Auto-expire appointments middleware
+let lastAutoExpireRun = 0;
+const AUTO_EXPIRE_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+
+function getExpiredSlotsToday(nowVN, todayStr) {
+  const expiredSlots = [];
+  
+  const checkSlots = (startHour, endHour) => {
+    for (let hour = startHour; hour < endHour; hour++) {
+      for (let minute = 0; minute < 60; minute += 10) {
+        const slotId = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+        const slotTime = dayjs(`${todayStr}T${slotId}:00+07:00`);
+        if (nowVN.isAfter(slotTime.add(30, "minute"))) {
+          expiredSlots.push(slotId);
+        }
+      }
+    }
+  };
+
+  checkSlots(8, 12);
+  checkSlots(13, 17);
+
+  return expiredSlots;
+}
+
+function autoExpireAppointments(req, res, next) {
+  // Only execute this logic for staff members who actually have permissions to write under RLS policies,
+  // and throttle it using an in-memory timestamp.
+  const isStaff = req.user && ["admin", "doctor", "receptionist"].includes(req.user.role);
+  const timeSinceLastRun = Date.now() - lastAutoExpireRun;
+
+  if (!isStaff || timeSinceLastRun < AUTO_EXPIRE_COOLDOWN_MS) {
+    return next();
+  }
+
+  try {
+    lastAutoExpireRun = Date.now();
+    const supabase = supabaseClient.getSupabaseClient(req);
+    const nowVN = dayjs().utcOffset(7);
+    const todayVNStr = nowVN.format("YYYY-MM-DD");
+
+    // Execute the database updates asynchronously in the background
+    (async () => {
+      try {
+        console.log("[Auto-Expire] Running scheduled database updates in background...");
+
+        // 1. Expire past confirmed appointments
+        const { error: errorPast } = await supabase
+          .from("appointments")
+          .update({ status: "expired", updated_at: new Date().toISOString() })
+          .eq("status", "confirmed")
+          .lt("appointment_date", todayVNStr);
+
+        if (errorPast) {
+          console.error("[Auto-Expire] Expiring past appointments failed:", errorPast.message);
+        }
+
+        // 2. Expire today's confirmed appointments whose slots are expired
+        const expiredSlotsToday = getExpiredSlotsToday(nowVN, todayVNStr);
+        if (expiredSlotsToday.length > 0) {
+          const { error: errorToday } = await supabase
+            .from("appointments")
+            .update({ status: "expired", updated_at: new Date().toISOString() })
+            .eq("status", "confirmed")
+            .eq("appointment_date", todayVNStr)
+            .in("slot_id", expiredSlotsToday);
+
+          if (errorToday) {
+            console.error("[Auto-Expire] Expiring today's appointments failed:", errorToday.message);
+          }
+        }
+      } catch (backgroundError) {
+        console.error("[Auto-Expire] Background updates failed:", backgroundError.message || backgroundError);
+      }
+    })();
+  } catch (err) {
+    console.error("[Auto-Expire] System error setting up background updates:", err);
+  }
+  next();
+}
+
+router.use(autoExpireAppointments);
+
 function getTodayVN() {
   return dayjs().utcOffset(7).format("YYYY-MM-DD");
 }
@@ -31,6 +114,8 @@ function getStatusLabel(status) {
       return "Đã hủy";
     case "completed":
       return "Đã khám";
+    case "expired":
+      return "Đã hết hạn";
     default:
       return "Đang xử lý";
   }
@@ -82,6 +167,16 @@ function toAppointmentSummary(appointment, counter) {
     startTimeStr,
   );
 
+  // Dynamic expiration check
+  let status = appointment.status;
+  const gracePeriodMinutes = 30;
+  if (
+    status === "confirmed" &&
+    dayjs().isAfter(dayjs(appointmentAt).add(gracePeriodMinutes, "minute"))
+  ) {
+    status = "expired";
+  }
+
   return {
     id: appointment.id,
     patient_id: appointment.patient_id,
@@ -89,8 +184,8 @@ function toAppointmentSummary(appointment, counter) {
     appointment_time: appointment.appointment_time || null,
     slot_id: appointment.slot_id || null,
     notes: appointment.notes || null,
-    status: appointment.status,
-    statusLabel: getStatusLabel(appointment.status),
+    status,
+    statusLabel: getStatusLabel(status),
     counterName: counter?.name || "Quầy",
     counterRoom: counter?.room || "Phòng",
     counters: counter ? { name: counter.name, room: counter.room } : null,
@@ -330,6 +425,8 @@ router.get("/latest-qr", async (req, res) => {
   let status = "active";
   if (appointment.status === "cancelled") {
     status = "cancelled";
+  } else if (appointment.status === "expired") {
+    status = "expired";
   } else if (
     appointment.status === "checked-in" ||
     appointment.status === "completed"
@@ -347,6 +444,8 @@ router.get("/latest-qr", async (req, res) => {
     cancelled: "Đã hủy",
   };
 
+  const appStatus = appointment.status === "confirmed" && dayjs().isAfter(dayjs(expiresAt).add(30, "minute")) ? "expired" : appointment.status;
+
   const responseData = {
     appointmentId: appointment.id,
     qrValue,
@@ -356,8 +455,8 @@ router.get("/latest-qr", async (req, res) => {
     counterName: appointment.counters?.name || "Quầy",
     counterRoom: appointment.counters?.room || "Phòng",
     appointmentAt,
-    appointmentStatus: appointment.status,
-    appointmentStatusLabel: getStatusLabel(appointment.status),
+    appointmentStatus: appStatus,
+    appointmentStatusLabel: getStatusLabel(appStatus),
   };
 
   return res.json({ success: true, data: responseData });
@@ -394,6 +493,46 @@ router.get("/:id", async (req, res, next) => {
 router.post("/", async (req, res) => {
   const supabase = supabaseClient.getSupabaseClient(req);
   const { counterId, appointmentDate, slotId } = req.body || {};
+
+  // Anti-abuse: Block booking if patient has >= 3 expired/no-show appointments (in the last 30 days)
+  const nowVN = dayjs().utcOffset(7);
+  const thirtyDaysAgoStr = nowVN.subtract(30, "day").format("YYYY-MM-DD");
+
+  const { data: patientAppts, error: countExpiredError } = await supabase
+    .from("appointments")
+    .select("id, appointment_date, slot_id, appointment_time, status")
+    .eq("patient_id", req.user.id)
+    .in("status", ["confirmed", "expired"])
+    .gte("appointment_date", thirtyDaysAgoStr);
+
+  if (countExpiredError) {
+    return res.status(500).json({
+      success: false,
+      message: countExpiredError.message
+    });
+  }
+
+  let expiredCount = 0;
+  if (patientAppts) {
+    for (const appt of patientAppts) {
+      if (appt.status === "expired") {
+        expiredCount++;
+      } else if (appt.status === "confirmed") {
+        const startTimeStr = getAppointmentStartTime(appt);
+        const apptDateTime = dayjs(`${appt.appointment_date}T${startTimeStr}:00+07:00`);
+        if (nowVN.isAfter(apptDateTime.add(30, "minute"))) {
+          expiredCount++;
+        }
+      }
+    }
+  }
+
+  if (expiredCount >= 3) {
+    return res.status(403).json({
+      success: false,
+      message: "Tài khoản của bạn đã bị khóa tính năng đặt lịch do không đến khám đúng hẹn từ 3 lần trở lên.",
+    });
+  }
 
   if (!counterId || !appointmentDate || !slotId) {
     return res.status(400).json({
@@ -764,12 +903,47 @@ router.post("/verify-qr", async (req, res) => {
     });
   }
 
+  if (appointment.status === "expired") {
+    return res.json({
+      success: true,
+      data: {
+        outcome: "expired",
+        message: "Mã QR này đã hết hạn do bệnh nhân không đến khám đúng giờ.",
+        appointmentAt: buildAppointmentDateTime(
+          appointment.appointment_date,
+          getAppointmentStartTime(appointment),
+        ),
+        patientName: appointment.profiles?.fullname || "Bệnh nhân",
+        counterName: appointment.counters?.name,
+        counterRoom: appointment.counters?.room,
+      },
+    });
+  }
+
   if (appointment.status === "cancelled") {
     return res.json({
       success: true,
       data: {
         outcome: "invalid",
         message: "Lịch khám này đã bị hủy bỏ trước đó.",
+      },
+    });
+  }
+
+  const todayVN = getTodayVN();
+  if (appointment.appointment_date > todayVN) {
+    return res.json({
+      success: true,
+      data: {
+        outcome: "invalid",
+        message: `Mã QR này dành cho lịch hẹn ngày ${dayjs(appointment.appointment_date).format('DD/MM/YYYY')}. Bạn không thể check-in trước ngày khám.`,
+        appointmentAt: buildAppointmentDateTime(
+          appointment.appointment_date,
+          getAppointmentStartTime(appointment),
+        ),
+        patientName: appointment.profiles?.fullname || "Bệnh nhân",
+        counterName: appointment.counters?.name,
+        counterRoom: appointment.counters?.room,
       },
     });
   }

@@ -34,6 +34,7 @@ import { PageContainer } from "@/app/layouts/page-container";
 import { PageHeader } from "@/app/layouts/page-header";
 import { UpcomingAppointmentCard } from "@/features/appointment/components/upcoming-appointment-card";
 import { appointmentsService } from "@/features/appointment/services/appointments-service";
+import { useRealtimeAppointments } from "@/features/appointment/hooks/use-realtime-appointments";
 import type { AppointmentStatus } from "@/features/appointment/types/appointment.types";
 import { EmptyState } from "@/shared/components/feedback/empty-state";
 import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
@@ -49,6 +50,7 @@ const STATUS_BADGE: Record<
   "checked-in": { label: "Đã check-in", color: "teal", icon: Activity },
   completed: { label: "Đã khám", color: "green", icon: CheckCircle2 },
   cancelled: { label: "Đã hủy", color: "red", icon: XCircle },
+  expired: { label: "Đã hết hạn", color: "gray", icon: XCircle },
 };
 
 export function AppointmentHistoryPage() {
@@ -73,6 +75,8 @@ export function AppointmentHistoryPage() {
     queryKey: ["appointments", "history"],
     queryFn: () => appointmentsService.getAppointmentHistory(),
   });
+
+  useRealtimeAppointments([["appointments", "history"]]);
 
   const countersQuery = useQuery({
     queryKey: ["counters"],
@@ -227,6 +231,7 @@ export function AppointmentHistoryPage() {
                     { label: "Check-in", value: "checked-in" },
                     { label: "Đã khám", value: "completed" },
                     { label: "Đã hủy", value: "cancelled" },
+                    { label: "Hết hạn", value: "expired" },
                   ]}
                   color="blue"
                   radius="md"
@@ -469,8 +474,9 @@ export function AppointmentHistoryPage() {
               { label: "Đã xác nhận", value: "confirmed" },
               { label: "Đã khám", value: "completed" },
               { label: "Đã hủy", value: "cancelled" },
+              { label: "Hết hạn", value: "expired" },
             ]}
-            color="sky"
+            color="blue"
             radius="md"
             fullWidth
             mb="xl"
