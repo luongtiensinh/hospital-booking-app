@@ -24,6 +24,7 @@ const statusColorMap: Record<string, string> = {
   completed: "teal",
   cancelled: "red",
   pending: "yellow",
+  expired: "gray",
 };
 
 type UpcomingAppointmentCardProps = {
