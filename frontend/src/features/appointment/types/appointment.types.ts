@@ -2,7 +2,8 @@ export type AppointmentStatus =
   | "confirmed"
   | "checked-in"
   | "completed"
-  | "cancelled";
+  | "cancelled"
+  | "expired";
 
 export type Counter = {
   id: string;

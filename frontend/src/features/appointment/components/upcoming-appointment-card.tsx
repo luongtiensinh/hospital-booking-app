@@ -50,6 +50,8 @@ export function UpcomingAppointmentCard({
   let qrStatus: "active" | "used" | "expired" | "cancelled" = "active";
   if (appointment.status === "cancelled") {
     qrStatus = "cancelled";
+  } else if (appointment.status === "expired") {
+    qrStatus = "expired";
   } else if (
     appointment.status === "checked-in" ||
     appointment.status === "completed"

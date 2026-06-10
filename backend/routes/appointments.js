@@ -24,27 +24,20 @@ const AUTO_EXPIRE_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
 function getExpiredSlotsToday(nowVN, todayStr) {
   const expiredSlots = [];
   
-  // Morning slots: 08:00 - 11:50 (every 10 minutes)
-  let m = dayjs().hour(8).minute(0).second(0);
-  while (m.hour() < 12) {
-    const slotId = m.format("HH:mm");
-    const slotTime = dayjs(`${todayStr}T${slotId}:00+07:00`);
-    if (nowVN.isAfter(slotTime.add(30, "minute"))) {
-      expiredSlots.push(slotId);
+  const checkSlots = (startHour, endHour) => {
+    for (let hour = startHour; hour < endHour; hour++) {
+      for (let minute = 0; minute < 60; minute += 10) {
+        const slotId = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+        const slotTime = dayjs(`${todayStr}T${slotId}:00+07:00`);
+        if (nowVN.isAfter(slotTime.add(30, "minute"))) {
+          expiredSlots.push(slotId);
+        }
+      }
     }
-    m = m.add(10, "minute");
-  }
+  };
 
-  // Afternoon slots: 13:00 - 16:50 (every 10 minutes)
-  let a = dayjs().hour(13).minute(0).second(0);
-  while (a.hour() < 17) {
-    const slotId = a.format("HH:mm");
-    const slotTime = dayjs(`${todayStr}T${slotId}:00+07:00`);
-    if (nowVN.isAfter(slotTime.add(30, "minute"))) {
-      expiredSlots.push(slotId);
-    }
-    a = a.add(10, "minute");
-  }
+  checkSlots(8, 12);
+  checkSlots(13, 17);
 
   return expiredSlots;
 }
@@ -500,7 +493,7 @@ router.post("/", async (req, res) => {
 
   const { data: patientAppts, error: countExpiredError } = await supabase
     .from("appointments")
-    .select("id, appointment_date, slot_id, status")
+    .select("id, appointment_date, slot_id, appointment_time, status")
     .eq("patient_id", req.user.id)
     .in("status", ["confirmed", "expired"])
     .gte("appointment_date", thirtyDaysAgoStr);

@@ -36,9 +36,6 @@ function createAuthenticatedClient(accessToken) {
       autoRefreshToken: false,
       detectSessionInUrl: false,
     },
-    realtime: {
-      transport: require("ws"),
-    },
   });
 }
 
