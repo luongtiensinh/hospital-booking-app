@@ -930,6 +930,24 @@ router.post("/verify-qr", async (req, res) => {
     });
   }
 
+  const todayVN = getTodayVN();
+  if (appointment.appointment_date > todayVN) {
+    return res.json({
+      success: true,
+      data: {
+        outcome: "invalid",
+        message: `Mã QR này dành cho lịch hẹn ngày ${dayjs(appointment.appointment_date).format('DD/MM/YYYY')}. Bạn không thể check-in trước ngày khám.`,
+        appointmentAt: buildAppointmentDateTime(
+          appointment.appointment_date,
+          getAppointmentStartTime(appointment),
+        ),
+        patientName: appointment.profiles?.fullname || "Bệnh nhân",
+        counterName: appointment.counters?.name,
+        counterRoom: appointment.counters?.room,
+      },
+    });
+  }
+
   const expiresAt = buildAppointmentDateTime(
     appointment.appointment_date,
     getAppointmentStartTime(appointment),
