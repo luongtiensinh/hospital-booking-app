@@ -39,6 +39,7 @@ import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { httpClient } from "@/shared/services/http-client";
 import { appointmentsService } from "@/features/appointment/services/appointments-service";
+import { useRealtimeAppointments } from "@/features/appointment/hooks/use-realtime-appointments";
 import { EnterResultModal } from "@/features/result/pages/medical-results-page";
 import { PageContainer } from "@/app/layouts/page-container";
 import { PageHeader } from "@/app/layouts/page-header";
@@ -285,6 +286,8 @@ export function DoctorDashboardPage() {
     isError,
     refetch,
   } = useDoctorAppointments();
+
+  useRealtimeAppointments([["results", "appointments"]]);
 
   const isMobile = useMediaQuery("(max-width: 768px)");
 

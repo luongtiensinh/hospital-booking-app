@@ -34,6 +34,7 @@ import { PageContainer } from "@/app/layouts/page-container";
 import { PageHeader } from "@/app/layouts/page-header";
 import { UpcomingAppointmentCard } from "@/features/appointment/components/upcoming-appointment-card";
 import { appointmentsService } from "@/features/appointment/services/appointments-service";
+import { useRealtimeAppointments } from "@/features/appointment/hooks/use-realtime-appointments";
 import type { AppointmentStatus } from "@/features/appointment/types/appointment.types";
 import { EmptyState } from "@/shared/components/feedback/empty-state";
 import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
@@ -74,6 +75,8 @@ export function AppointmentHistoryPage() {
     queryKey: ["appointments", "history"],
     queryFn: () => appointmentsService.getAppointmentHistory(),
   });
+
+  useRealtimeAppointments([["appointments", "history"]]);
 
   const countersQuery = useQuery({
     queryKey: ["counters"],
@@ -473,7 +476,7 @@ export function AppointmentHistoryPage() {
               { label: "Đã hủy", value: "cancelled" },
               { label: "Hết hạn", value: "expired" },
             ]}
-            color="sky"
+            color="blue"
             radius="md"
             fullWidth
             mb="xl"

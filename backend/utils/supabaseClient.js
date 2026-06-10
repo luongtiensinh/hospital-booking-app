@@ -19,6 +19,9 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
     autoRefreshToken: false,
     detectSessionInUrl: false,
   },
+  realtime: {
+    transport: require("ws"),
+  },
 });
 
 function createAuthenticatedClient(accessToken) {
@@ -32,6 +35,9 @@ function createAuthenticatedClient(accessToken) {
       persistSession: false,
       autoRefreshToken: false,
       detectSessionInUrl: false,
+    },
+    realtime: {
+      transport: require("ws"),
     },
   });
 }
