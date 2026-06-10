@@ -42,7 +42,7 @@ function getExpiredSlotsToday(nowVN, todayStr) {
   return expiredSlots;
 }
 
-async function autoExpireAppointments(req, res, next) {
+function autoExpireAppointments(req, res, next) {
   // Only execute this logic for staff members who actually have permissions to write under RLS policies,
   // and throttle it using an in-memory timestamp.
   const isStaff = req.user && ["admin", "doctor", "receptionist"].includes(req.user.role);
@@ -58,35 +58,42 @@ async function autoExpireAppointments(req, res, next) {
     const nowVN = dayjs().utcOffset(7);
     const todayVNStr = nowVN.format("YYYY-MM-DD");
 
-    console.log("[Auto-Expire] Running scheduled database updates directly...");
+    // Execute the database updates asynchronously in the background
+    (async () => {
+      try {
+        console.log("[Auto-Expire] Running scheduled database updates in background...");
 
-    // 1. Expire past confirmed appointments
-    const { error: errorPast } = await supabase
-      .from("appointments")
-      .update({ status: "expired", updated_at: new Date().toISOString() })
-      .eq("status", "confirmed")
-      .lt("appointment_date", todayVNStr);
+        // 1. Expire past confirmed appointments
+        const { error: errorPast } = await supabase
+          .from("appointments")
+          .update({ status: "expired", updated_at: new Date().toISOString() })
+          .eq("status", "confirmed")
+          .lt("appointment_date", todayVNStr);
 
-    if (errorPast) {
-      console.error("[Auto-Expire] Expiring past appointments failed:", errorPast.message);
-    }
+        if (errorPast) {
+          console.error("[Auto-Expire] Expiring past appointments failed:", errorPast.message);
+        }
 
-    // 2. Expire today's confirmed appointments whose slots are expired
-    const expiredSlotsToday = getExpiredSlotsToday(nowVN, todayVNStr);
-    if (expiredSlotsToday.length > 0) {
-      const { error: errorToday } = await supabase
-        .from("appointments")
-        .update({ status: "expired", updated_at: new Date().toISOString() })
-        .eq("status", "confirmed")
-        .eq("appointment_date", todayVNStr)
-        .in("slot_id", expiredSlotsToday);
+        // 2. Expire today's confirmed appointments whose slots are expired
+        const expiredSlotsToday = getExpiredSlotsToday(nowVN, todayVNStr);
+        if (expiredSlotsToday.length > 0) {
+          const { error: errorToday } = await supabase
+            .from("appointments")
+            .update({ status: "expired", updated_at: new Date().toISOString() })
+            .eq("status", "confirmed")
+            .eq("appointment_date", todayVNStr)
+            .in("slot_id", expiredSlotsToday);
 
-      if (errorToday) {
-        console.error("[Auto-Expire] Expiring today's appointments failed:", errorToday.message);
+          if (errorToday) {
+            console.error("[Auto-Expire] Expiring today's appointments failed:", errorToday.message);
+          }
+        }
+      } catch (backgroundError) {
+        console.error("[Auto-Expire] Background updates failed:", backgroundError.message || backgroundError);
       }
-    }
+    })();
   } catch (err) {
-    console.error("[Auto-Expire] System error:", err);
+    console.error("[Auto-Expire] System error setting up background updates:", err);
   }
   next();
 }
