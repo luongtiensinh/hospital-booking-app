@@ -8,12 +8,9 @@ let channelCounter = 0;
 export function useRealtimeAppointments(queryKeys: QueryKey[]) {
   const queryClient = useQueryClient();
   const keysRef = useRef(queryKeys);
+  keysRef.current = queryKeys;
   const accessToken = useAuthStore((state) => state.accessToken);
   const channelNameRef = useRef(`appointments-changes-${++channelCounter}`);
-
-  useEffect(() => {
-    keysRef.current = queryKeys;
-  }, [queryKeys]);
 
   useEffect(() => {
     if (!accessToken) return;

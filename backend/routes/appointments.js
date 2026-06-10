@@ -18,46 +18,78 @@ const GENERAL_COUNTER_KEYWORD = "tổng quát".normalize("NFC");
 router.use(requireAuth);
 
 // Auto-expire appointments middleware
+let lastAutoExpireRun = 0;
+const AUTO_EXPIRE_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+
+function getExpiredSlotsToday(nowVN, todayStr) {
+  const expiredSlots = [];
+  
+  // Morning slots: 08:00 - 11:50 (every 10 minutes)
+  let m = dayjs().hour(8).minute(0).second(0);
+  while (m.hour() < 12) {
+    const slotId = m.format("HH:mm");
+    const slotTime = dayjs(`${todayStr}T${slotId}:00+07:00`);
+    if (nowVN.isAfter(slotTime.add(30, "minute"))) {
+      expiredSlots.push(slotId);
+    }
+    m = m.add(10, "minute");
+  }
+
+  // Afternoon slots: 13:00 - 16:50 (every 10 minutes)
+  let a = dayjs().hour(13).minute(0).second(0);
+  while (a.hour() < 17) {
+    const slotId = a.format("HH:mm");
+    const slotTime = dayjs(`${todayStr}T${slotId}:00+07:00`);
+    if (nowVN.isAfter(slotTime.add(30, "minute"))) {
+      expiredSlots.push(slotId);
+    }
+    a = a.add(10, "minute");
+  }
+
+  return expiredSlots;
+}
+
 async function autoExpireAppointments(req, res, next) {
+  // Only execute this logic for staff members who actually have permissions to write under RLS policies,
+  // and throttle it using an in-memory timestamp.
+  const isStaff = req.user && ["admin", "doctor", "receptionist"].includes(req.user.role);
+  const timeSinceLastRun = Date.now() - lastAutoExpireRun;
+
+  if (!isStaff || timeSinceLastRun < AUTO_EXPIRE_COOLDOWN_MS) {
+    return next();
+  }
+
   try {
+    lastAutoExpireRun = Date.now();
     const supabase = supabaseClient.getSupabaseClient(req);
     const nowVN = dayjs().utcOffset(7);
     const todayVNStr = nowVN.format("YYYY-MM-DD");
 
-    const { data: appts, error } = await supabase
+    console.log("[Auto-Expire] Running scheduled database updates directly...");
+
+    // 1. Expire past confirmed appointments
+    const { error: errorPast } = await supabase
       .from("appointments")
-      .select("id, appointment_date, slot_id, patient_id")
+      .update({ status: "expired", updated_at: new Date().toISOString() })
       .eq("status", "confirmed")
-      .lte("appointment_date", todayVNStr);
+      .lt("appointment_date", todayVNStr);
 
-    if (error) {
-      console.error("[Auto-Expire] Fetching confirmed appointments failed:", error.message);
-      return next();
+    if (errorPast) {
+      console.error("[Auto-Expire] Expiring past appointments failed:", errorPast.message);
     }
 
-    const expiredIds = [];
-    if (appts && appts.length > 0) {
-      for (const appt of appts) {
-        const startTimeStr = getAppointmentStartTime(appt);
-        const apptDateTime = dayjs(`${appt.appointment_date}T${startTimeStr}:00+07:00`);
-        if (nowVN.isAfter(apptDateTime.add(30, "minute"))) {
-          if (req.user.role === "admin" || req.user.role === "doctor" || appt.patient_id === req.user.id) {
-            expiredIds.push(appt.id);
-          }
-        }
-      }
-    }
-
-    if (expiredIds.length > 0) {
-      const { error: updateError } = await supabase
+    // 2. Expire today's confirmed appointments whose slots are expired
+    const expiredSlotsToday = getExpiredSlotsToday(nowVN, todayVNStr);
+    if (expiredSlotsToday.length > 0) {
+      const { error: errorToday } = await supabase
         .from("appointments")
         .update({ status: "expired", updated_at: new Date().toISOString() })
-        .in("id", expiredIds);
-      
-      if (updateError) {
-        console.warn("[Auto-Expire] Updating appointments to expired failed (expected for patients due to RLS):", updateError.message);
-      } else {
-        console.log(`[Auto-Expire] Successfully expired ${expiredIds.length} appointments in DB.`);
+        .eq("status", "confirmed")
+        .eq("appointment_date", todayVNStr)
+        .in("slot_id", expiredSlotsToday);
+
+      if (errorToday) {
+        console.error("[Auto-Expire] Expiring today's appointments failed:", errorToday.message);
       }
     }
   } catch (err) {
@@ -462,15 +494,16 @@ router.post("/", async (req, res) => {
   const supabase = supabaseClient.getSupabaseClient(req);
   const { counterId, appointmentDate, slotId } = req.body || {};
 
-  // Anti-abuse: Block booking if patient has >= 3 expired/no-show appointments
+  // Anti-abuse: Block booking if patient has >= 3 expired/no-show appointments (in the last 30 days)
   const nowVN = dayjs().utcOffset(7);
-  const todayVNStr = nowVN.format("YYYY-MM-DD");
+  const thirtyDaysAgoStr = nowVN.subtract(30, "day").format("YYYY-MM-DD");
 
   const { data: patientAppts, error: countExpiredError } = await supabase
     .from("appointments")
     .select("id, appointment_date, slot_id, status")
     .eq("patient_id", req.user.id)
-    .in("status", ["confirmed", "expired"]);
+    .in("status", ["confirmed", "expired"])
+    .gte("appointment_date", thirtyDaysAgoStr);
 
   if (countExpiredError) {
     return res.status(500).json({
