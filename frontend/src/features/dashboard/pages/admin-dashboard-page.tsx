@@ -155,6 +155,7 @@ const STATUS_BADGE: Record<
   "checked-in": { label: "Đã check-in", color: "teal", icon: Activity },
   completed: { label: "Đã khám", color: "green", icon: CheckCircle2 },
   cancelled: { label: "Đã hủy", color: "red", icon: XCircle },
+  expired: { label: "Đã hết hạn", color: "gray", icon: XCircle },
 };
 
 // ---------------------------------------------------------------
@@ -640,6 +641,7 @@ export function AdminDashboardPage() {
                   { label: "Đã check-in", value: "checked-in" },
                   { label: "Đã khám xong", value: "completed" },
                   { label: "Đã hủy", value: "cancelled" },
+                  { label: "Đã hết hạn", value: "expired" },
                 ]}
                 radius="md"
                 size="sm"

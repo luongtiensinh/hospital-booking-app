@@ -17,6 +17,57 @@ const GENERAL_COUNTER_KEYWORD = "tổng quát".normalize("NFC");
 
 router.use(requireAuth);
 
+// Auto-expire appointments middleware
+async function autoExpireAppointments(req, res, next) {
+  try {
+    const supabase = supabaseClient.getSupabaseClient(req);
+    const nowVN = dayjs().utcOffset(7);
+    const todayVNStr = nowVN.format("YYYY-MM-DD");
+
+    const { data: appts, error } = await supabase
+      .from("appointments")
+      .select("id, appointment_date, slot_id, patient_id")
+      .eq("status", "confirmed")
+      .lte("appointment_date", todayVNStr);
+
+    if (error) {
+      console.error("[Auto-Expire] Fetching confirmed appointments failed:", error.message);
+      return next();
+    }
+
+    const expiredIds = [];
+    if (appts && appts.length > 0) {
+      for (const appt of appts) {
+        const startTimeStr = getAppointmentStartTime(appt);
+        const apptDateTime = dayjs(`${appt.appointment_date}T${startTimeStr}:00+07:00`);
+        if (nowVN.isAfter(apptDateTime.add(30, "minute"))) {
+          if (req.user.role === "admin" || req.user.role === "doctor" || appt.patient_id === req.user.id) {
+            expiredIds.push(appt.id);
+          }
+        }
+      }
+    }
+
+    if (expiredIds.length > 0) {
+      const { error: updateError } = await supabase
+        .from("appointments")
+        .update({ status: "expired", updated_at: new Date().toISOString() })
+        .in("id", expiredIds);
+      
+      if (updateError) {
+        console.warn("[Auto-Expire] Updating appointments to expired failed (expected for patients due to RLS):", updateError.message);
+      } else {
+        console.log(`[Auto-Expire] Successfully expired ${expiredIds.length} appointments in DB.`);
+      }
+    }
+  } catch (err) {
+    console.error("[Auto-Expire] System error:", err);
+  }
+  next();
+}
+
+router.use(autoExpireAppointments);
+
 function getTodayVN() {
   return dayjs().utcOffset(7).format("YYYY-MM-DD");
 }
@@ -31,6 +82,8 @@ function getStatusLabel(status) {
       return "Đã hủy";
     case "completed":
       return "Đã khám";
+    case "expired":
+      return "Đã hết hạn";
     default:
       return "Đang xử lý";
   }
@@ -82,6 +135,16 @@ function toAppointmentSummary(appointment, counter) {
     startTimeStr,
   );
 
+  // Dynamic expiration check
+  let status = appointment.status;
+  const gracePeriodMinutes = 30;
+  if (
+    status === "confirmed" &&
+    dayjs().isAfter(dayjs(appointmentAt).add(gracePeriodMinutes, "minute"))
+  ) {
+    status = "expired";
+  }
+
   return {
     id: appointment.id,
     patient_id: appointment.patient_id,
@@ -89,8 +152,8 @@ function toAppointmentSummary(appointment, counter) {
     appointment_time: appointment.appointment_time || null,
     slot_id: appointment.slot_id || null,
     notes: appointment.notes || null,
-    status: appointment.status,
-    statusLabel: getStatusLabel(appointment.status),
+    status,
+    statusLabel: getStatusLabel(status),
     counterName: counter?.name || "Quầy",
     counterRoom: counter?.room || "Phòng",
     counters: counter ? { name: counter.name, room: counter.room } : null,
@@ -330,6 +393,8 @@ router.get("/latest-qr", async (req, res) => {
   let status = "active";
   if (appointment.status === "cancelled") {
     status = "cancelled";
+  } else if (appointment.status === "expired") {
+    status = "expired";
   } else if (
     appointment.status === "checked-in" ||
     appointment.status === "completed"
@@ -347,6 +412,8 @@ router.get("/latest-qr", async (req, res) => {
     cancelled: "Đã hủy",
   };
 
+  const appStatus = appointment.status === "confirmed" && dayjs().isAfter(dayjs(expiresAt).add(30, "minute")) ? "expired" : appointment.status;
+
   const responseData = {
     appointmentId: appointment.id,
     qrValue,
@@ -356,8 +423,8 @@ router.get("/latest-qr", async (req, res) => {
     counterName: appointment.counters?.name || "Quầy",
     counterRoom: appointment.counters?.room || "Phòng",
     appointmentAt,
-    appointmentStatus: appointment.status,
-    appointmentStatusLabel: getStatusLabel(appointment.status),
+    appointmentStatus: appStatus,
+    appointmentStatusLabel: getStatusLabel(appStatus),
   };
 
   return res.json({ success: true, data: responseData });
@@ -394,6 +461,45 @@ router.get("/:id", async (req, res, next) => {
 router.post("/", async (req, res) => {
   const supabase = supabaseClient.getSupabaseClient(req);
   const { counterId, appointmentDate, slotId } = req.body || {};
+
+  // Anti-abuse: Block booking if patient has >= 3 expired/no-show appointments
+  const nowVN = dayjs().utcOffset(7);
+  const todayVNStr = nowVN.format("YYYY-MM-DD");
+
+  const { data: patientAppts, error: countExpiredError } = await supabase
+    .from("appointments")
+    .select("id, appointment_date, slot_id, status")
+    .eq("patient_id", req.user.id)
+    .in("status", ["confirmed", "expired"]);
+
+  if (countExpiredError) {
+    return res.status(500).json({
+      success: false,
+      message: countExpiredError.message
+    });
+  }
+
+  let expiredCount = 0;
+  if (patientAppts) {
+    for (const appt of patientAppts) {
+      if (appt.status === "expired") {
+        expiredCount++;
+      } else if (appt.status === "confirmed") {
+        const startTimeStr = getAppointmentStartTime(appt);
+        const apptDateTime = dayjs(`${appt.appointment_date}T${startTimeStr}:00+07:00`);
+        if (nowVN.isAfter(apptDateTime.add(30, "minute"))) {
+          expiredCount++;
+        }
+      }
+    }
+  }
+
+  if (expiredCount >= 3) {
+    return res.status(403).json({
+      success: false,
+      message: "Tài khoản của bạn đã bị khóa tính năng đặt lịch do không đến khám đúng hẹn từ 3 lần trở lên.",
+    });
+  }
 
   if (!counterId || !appointmentDate || !slotId) {
     return res.status(400).json({
@@ -760,6 +866,23 @@ router.post("/verify-qr", async (req, res) => {
           getAppointmentStartTime(appointment),
         ),
         checkedInAt: appointment.qr_scanned_at || new Date().toISOString(),
+      },
+    });
+  }
+
+  if (appointment.status === "expired") {
+    return res.json({
+      success: true,
+      data: {
+        outcome: "expired",
+        message: "Mã QR này đã hết hạn do bệnh nhân không đến khám đúng giờ.",
+        appointmentAt: buildAppointmentDateTime(
+          appointment.appointment_date,
+          getAppointmentStartTime(appointment),
+        ),
+        patientName: appointment.profiles?.fullname || "Bệnh nhân",
+        counterName: appointment.counters?.name,
+        counterRoom: appointment.counters?.room,
       },
     });
   }

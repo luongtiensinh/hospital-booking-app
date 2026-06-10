@@ -49,6 +49,7 @@ const STATUS_BADGE: Record<
   "checked-in": { label: "Đã check-in", color: "teal", icon: Activity },
   completed: { label: "Đã khám", color: "green", icon: CheckCircle2 },
   cancelled: { label: "Đã hủy", color: "red", icon: XCircle },
+  expired: { label: "Đã hết hạn", color: "gray", icon: XCircle },
 };
 
 export function AppointmentHistoryPage() {
@@ -227,6 +228,7 @@ export function AppointmentHistoryPage() {
                     { label: "Check-in", value: "checked-in" },
                     { label: "Đã khám", value: "completed" },
                     { label: "Đã hủy", value: "cancelled" },
+                    { label: "Hết hạn", value: "expired" },
                   ]}
                   color="blue"
                   radius="md"
@@ -469,6 +471,7 @@ export function AppointmentHistoryPage() {
               { label: "Đã xác nhận", value: "confirmed" },
               { label: "Đã khám", value: "completed" },
               { label: "Đã hủy", value: "cancelled" },
+              { label: "Hết hạn", value: "expired" },
             ]}
             color="sky"
             radius="md"
