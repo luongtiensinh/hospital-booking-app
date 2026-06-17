@@ -141,8 +141,11 @@ describe('Appointments API Routes', () => {
     it('should return 400 if cancelling within 24h', async () => {
       const today = new Date();
       today.setHours(today.getHours() + 1);
-      const apptDate = today.toISOString().split('T')[0];
-      const apptTime = `${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`;
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      const apptDate = yyyy + '-' + mm + '-' + dd;
+      const apptTime = String(today.getHours()).padStart(2, '0') + ':' + String(today.getMinutes()).padStart(2, '0');
 
       supabase.from = vi.fn((table) => {
         const q = createMockQuery();
