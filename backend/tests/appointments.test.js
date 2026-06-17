@@ -238,19 +238,9 @@ describe('Appointments API Routes', () => {
           q._data = [{ id: 'staff-uuid-123', role: 'doctor' }]; // doctor can check-in
         } else if (table === 'appointments') {
           q._data = [{ id: '11111111-2222-3333-4444-555555555555', status: 'confirmed', appointment_date: apptDate }];
-          q.update = vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                select: vi.fn().mockReturnValue({
-                  single: vi.fn().mockResolvedValue({
-                    data: { id: '11111111-2222-3333-4444-555555555555', status: 'checked-in' },
-                    error: null
-                  })
-                }),
-                then: function (resolve) { resolve({ data: [], error: null }); }
-              }),
-              then: function (resolve) { resolve({ data: [], error: null }); }
-            })
+          q.update = vi.fn().mockImplementation(() => {
+            q._data = [{ id: '11111111-2222-3333-4444-555555555555', status: 'checked-in' }];
+            return q;
           });
         }
         return q;
