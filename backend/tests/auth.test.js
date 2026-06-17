@@ -5,7 +5,8 @@ import express from 'express';
 // Override env vars before requiring anything
 process.env.SUPABASE_URL = 'http://localhost:9999';
 process.env.SUPABASE_KEY = 'dummy-key-for-test';
-import authRouter from '../routes/auth';
+
+const authRouter = require('../routes/auth');
 const supabase = require('../utils/supabaseClient');
 
 const app = express();
