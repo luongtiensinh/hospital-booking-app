@@ -57,4 +57,4 @@ jobs:
         working-directory: ./frontend
         env:
           VITE_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
