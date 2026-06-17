@@ -163,7 +163,10 @@ describe('Appointments API Routes', () => {
     it('should successfully cancel if > 24h and within cancel limit', async () => {
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 3);
-      const apptDate = futureDate.toISOString().split('T')[0];
+      const yyyy = futureDate.getFullYear();
+      const mm = String(futureDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(futureDate.getDate()).padStart(2, '0');
+      const apptDate = yyyy + '-' + mm + '-' + dd;
 
       supabase.from = vi.fn((table) => {
         const q = createMockQuery();
