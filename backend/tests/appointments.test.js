@@ -112,12 +112,9 @@ describe('Appointments API Routes', () => {
           q._data = [{ id: '11111111-2222-3333-4444-555555555555', name: 'Khám tổng quát' }];
         } else if (table === 'appointments') {
           q._data = []; // No existing conflicts
-          q.insert = vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnThis(),
-            single: vi.fn().mockResolvedValue({ 
-              data: { id: 'new-appt-id', appointment_date: '2029-01-01', slot_id: '08:00', status: 'confirmed' }, 
-              error: null 
-            })
+          q.insert = vi.fn().mockImplementation(() => {
+            q._data = [{ id: 'new-appt-id', appointment_date: '2029-01-01', slot_id: '08:00', status: 'confirmed' }];
+            return q;
           });
         }
         return q;
