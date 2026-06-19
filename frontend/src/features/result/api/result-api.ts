@@ -1,64 +1,92 @@
-import { MedicalResult, CreateResultInput } from "../types";
+import { httpClient } from "@/shared/services/http-client";
+
+export type BackendResult = {
+  id: string;
+  result: string | null;
+  diagnosis: string | null;
+  pdf_url: string | null;
+  created_at: string;
+  updated_at: string;
+  appointment_id: string;
+  appointments: {
+    id: string;
+    patient_id: string;
+    appointment_date: string;
+    status: string;
+    counters: {
+      id: string;
+      name: string;
+      room: string;
+    } | null;
+    profiles: {
+      id: string;
+      fullname: string;
+      phone: string;
+    } | null;
+  } | null;
+};
+
+export type DoctorAppointment = {
+  id: string;
+  patient_id: string;
+  appointment_date: string;
+  appointment_time: string | null;
+  slot_id: string;
+  status: string;
+  notes: string | null;
+  profiles: { fullname: string; phone: string } | null;
+};
 
 export const resultApi = {
+  /** Lấy tất cả kết quả — backend tự lọc theo role */
   getAll: async () => {
-    const list: MedicalResult[] = [
-      {
-        id: "res-1",
-        patientId: "mock-patient-id",
-        doctorId: "d1",
-        doctorName: "BS. Nguyễn Thị Lan",
-        specialty: "Nội khoa",
-        appointmentDate: "2026-05-18",
-        diagnosis: "Rối loạn mỡ máu nhẹ / Theo dõi huyết áp",
-        indicators: [
-          { label: "Cholesterol toàn phần", value: "5.8", unit: "mmol/L" },
-          { label: "Triglyceride", value: "1.9", unit: "mmol/L" },
-          { label: "Huyết áp tâm thu", value: "128", unit: "mmHg" },
-          { label: "Huyết áp tâm trương", value: "82", unit: "mmHg" },
-        ],
-        conclusion:
-          "Bệnh nhân có chỉ số Cholesterol hơi cao. Cần điều chỉnh chế độ ăn uống, giảm chất béo động vật, tăng cường thể dục. Tái khám sau 1 tháng.",
-        createdAt: "2026-05-18T10:30:00.000Z",
-      },
-    ];
-    return { data: list };
+    const { data } = await httpClient.get<{
+      success: boolean;
+      results: BackendResult[];
+    }>("/results");
+    return { data: data.results ?? [] };
   },
 
-  getById: async (id: string) => {
-    const data: MedicalResult = {
-      id,
-      patientId: "mock-patient-id",
-      doctorId: "d1",
-      doctorName: "BS. Nguyễn Thị Lan",
-      specialty: "Nội khoa",
-      appointmentDate: "2026-05-18",
-      diagnosis: "Rối loạn mỡ máu nhẹ / Theo dõi huyết áp",
-      indicators: [
-        { label: "Cholesterol toàn phần", value: "5.8", unit: "mmol/L" },
-        { label: "Triglyceride", value: "1.9", unit: "mmol/L" },
-        { label: "Huyết áp tâm thu", value: "128", unit: "mmHg" },
-        { label: "Huyết áp tâm trương", value: "82", unit: "mmHg" },
-      ],
-      conclusion:
-        "Bệnh nhân có chỉ số Cholesterol hơi cao. Cần điều chỉnh chế độ ăn uống, giảm chất béo động vật, tăng cường thể dục. Tái khám sau 1 tháng.",
-      createdAt: "2026-05-18T10:30:00.000Z",
-    };
-    return { data };
+  /** [Doctor/Admin] Lấy danh sách lịch hẹn để nhập kết quả */
+  getDoctorAppointments: async () => {
+    const { data } = await httpClient.get<{
+      success: boolean;
+      appointments: DoctorAppointment[];
+    }>("/results/appointments");
+    return data.appointments ?? [];
   },
 
-  create: async (data: CreateResultInput) => {
-    return {
-      data: {
-        id: `res-${Math.random().toString(36).substr(2, 9)}`,
-        ...data,
-        createdAt: new Date().toISOString(),
-      } as MedicalResult,
-    };
+  /** [Doctor/Admin] Nhập kết quả khám */
+  createResult: async (payload: {
+    appointmentId: string;
+    diagnosis: string;
+    result?: string;
+  }) => {
+    const { data } = await httpClient.post<{
+      success: boolean;
+      result: BackendResult;
+    }>("/results", payload);
+    return data.result;
   },
 
-  downloadPdf: async (id: string) => {
-    const dummyPdfContent = "%PDF-1.4 ... (Dummy MedCare Report PDF File content)";
+  /** [Doctor/Admin] Cập nhật kết quả khám */
+  updateResult: async (
+    id: string,
+    payload: {
+      diagnosis: string;
+      result?: string;
+    },
+  ) => {
+    const { data } = await httpClient.put<{
+      success: boolean;
+      result: BackendResult;
+    }>(`/results/${id}`, payload);
+    return data.result;
+  },
+
+  /** Tải PDF (placeholder — backend chưa implement) */
+  downloadPdf: async (_id: string) => {
+    const dummyPdfContent = "%PDF-1.4 ... (MedCare Report)";
     const blob = new Blob([dummyPdfContent], { type: "application/pdf" });
     return { data: blob };
   },

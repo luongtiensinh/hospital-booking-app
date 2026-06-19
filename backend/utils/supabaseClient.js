@@ -13,20 +13,39 @@ if (!supabaseKey) {
 }
 
 // Backend uses anon key (public) for Supabase access.
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+  },
+  realtime: {
+    transport: require("ws"),
+  },
+});
+
+function createAuthenticatedClient(accessToken) {
+  return createClient(supabaseUrl, supabaseKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+}
 
 function getSupabaseClient(req) {
   if (req && req.accessToken) {
-    return createClient(supabaseUrl, supabaseKey, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${req.accessToken}`,
-        },
-      },
-    });
+    return createAuthenticatedClient(req.accessToken);
   }
   return supabase;
 }
 
 module.exports = supabase;
 module.exports.getSupabaseClient = getSupabaseClient;
+module.exports.createAuthenticatedClient = createAuthenticatedClient;

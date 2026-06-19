@@ -12,7 +12,7 @@ export function LoginForm() {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
+      identifier: "",
       password: "",
     },
   });
@@ -25,14 +25,15 @@ export function LoginForm() {
     <form onSubmit={form.handleSubmit(onSubmit)}>
       <Stack gap="md">
         <TextInput
-          id="email"
-          label="Email"
-          placeholder="benhnhan@medcare.vn"
-          type="email"
+          id="identifier"
+          label="Số điện thoại hoặc CCCD"
+          placeholder="09xxxxxxxx hoặc 0xxxxxxxxxx..."
+          type="text"
           size="md"
           radius="md"
-          error={form.formState.errors.email?.message}
-          {...form.register("email")}
+          description="Nhập SĐT (9–11 số) hoặc số căn cước công dân (12 số)"
+          error={form.formState.errors.identifier?.message}
+          {...form.register("identifier")}
         />
 
         <PasswordInput

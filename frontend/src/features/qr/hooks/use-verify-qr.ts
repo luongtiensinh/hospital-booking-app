@@ -27,6 +27,9 @@ export function useVerifyQr() {
       } else if (result.outcome === "duplicate") {
         setStatus("duplicate");
         toast.warning(result.message);
+      } else if (result.outcome === "expired") {
+        setStatus("expired");
+        toast.warning(result.message);
       } else {
         setStatus("invalid");
         toast.error(result.message);
@@ -39,7 +42,7 @@ export function useVerifyQr() {
     onError: (error) => {
       console.error("QR verify failed", error);
       setStatus("error");
-      toast.error("Khong the verify QR. Vui long thu lai.");
+      toast.error("Không thể xác thực QR. Vui lòng thử lại.");
     },
   });
 }

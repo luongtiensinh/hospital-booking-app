@@ -6,10 +6,9 @@ export type LatestAppointmentQr = {
   expiresAt: string;
   status: "active" | "used" | "expired" | "cancelled";
   statusLabel: string;
-  doctorName: string;
-  specialty: string;
+  counterName: string;
+  counterRoom: string;
   appointmentAt: string;
-  location: string;
   appointmentStatus: AppointmentStatus;
   appointmentStatusLabel: string;
 };
@@ -25,14 +24,13 @@ export type VerifyQrResponse = {
   message: string;
   appointmentId?: string;
   patientName?: string;
-  doctorName?: string;
-  specialty?: string;
-  location?: string;
+  counterName?: string;
+  counterRoom?: string;
   appointmentAt?: string;
   checkedInAt?: string;
 };
 
-export type CameraPermissionState = "unknown" | "requesting" | "granted" | "denied";
+export type CameraPermissionState = "unknown" | "requesting" | "granted" | "denied" | "not_found";
 
 export type ScanLifecycleState =
   | "idle"
@@ -41,4 +39,6 @@ export type ScanLifecycleState =
   | "success"
   | "duplicate"
   | "invalid"
+  | "expired"
   | "error";
+

@@ -34,11 +34,14 @@ export function NextAppointmentCard({ appointment }: NextAppointmentCardProps) {
   const cancelMutation = useCancelAppointment();
 
   const handleCancel = () => {
-    cancelMutation.mutate(appointment.id, {
-      onSuccess: () => {
-        setIsCancelDialogOpen(false);
+    cancelMutation.mutate(
+      { id: appointment.id },
+      {
+        onSuccess: () => {
+          setIsCancelDialogOpen(false);
+        },
       },
-    });
+    );
   };
 
   return (
@@ -52,14 +55,14 @@ export function NextAppointmentCard({ appointment }: NextAppointmentCardProps) {
         <Stack gap="md">
           <Group justify="space-between" align="flex-start" wrap="nowrap">
             <Box>
-              <Text size="m" fw={700} c="dark.8">
+              <Text size="sm" fw={700} c="dark.8">
                 Lịch khám gần nhất
               </Text>
               <Text fw={700} size="lg" c="dark.8">
-                {appointment.doctorName}
+                {appointment.counterName}
               </Text>
               <Text size="sm" c="dimmed">
-                {appointment.specialty}
+                Phòng: {appointment.counterRoom}
               </Text>
             </Box>
             <Badge
@@ -111,7 +114,7 @@ export function NextAppointmentCard({ appointment }: NextAppointmentCardProps) {
                 </Text>
               </Group>
               <Text size="xs" c="dimmed">
-                {appointment.location}
+                {appointment.counterRoom}
               </Text>
             </Paper>
           </Group>

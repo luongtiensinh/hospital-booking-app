@@ -5,47 +5,73 @@ import {
   FileText,
   LayoutDashboard,
   QrCode,
-  ReceiptText,
+  Users,
 } from "lucide-react";
 
+import type { UserRole } from "@/features/auth/types/auth.types";
 import { APP_ROUTES } from "./routes";
 
 export type NavigationItem = {
   title: string;
-  description: string;
+  /** Tiêu đề ngắn dùng cho bottom nav mobile (compact mode) */
+  shortTitle: string;
+  description?: string;
   href: string;
   icon: LucideIcon;
+  /** Các role được phép thấy item này. Nếu không khai báo → tất cả role đều thấy. */
+  roles?: readonly UserRole[];
 };
 
 export const navigationItems: NavigationItem[] = [
   {
     title: "Tổng quan",
-    description: "Dashboard bệnh nhân",
+    shortTitle: "Tổng quan",
     href: APP_ROUTES.dashboard,
     icon: LayoutDashboard,
+    // Tất cả role đều thấy Dashboard
   },
   {
     title: "Lịch khám",
-    description: "Đặt lịch và theo dõi lịch hẹn",
+    shortTitle: "Lịch khám",
     href: APP_ROUTES.appointments,
     icon: CalendarDays,
+    roles: ["patient"],
   },
   {
-    title: "QR Check-in",
-    description: "QR gần nhất và trang scan camera",
+    title: "Lịch sử khám",
+    shortTitle: "Lịch sử",
+    href: APP_ROUTES.appointmentHistory,
+    icon: CalendarDays,
+    roles: ["patient"],
+  },
+  {
+    title: "Quản lý lịch hẹn",
+    shortTitle: "Quản lý",
+    href: APP_ROUTES.appointmentHistory,
+    icon: Users,
+    roles: ["admin"],
+  },
+  {
+    // Patient: xem mã QR của bản thân
+    title: "Mã QR của tôi",
+    shortTitle: "Mã QR",
     href: APP_ROUTES.qr,
     icon: QrCode,
+    roles: ["patient"],
   },
   {
-    title: "Kết quả",
-    description: "Xem xét nghiệm và hồ sơ khám",
+    // Staff: quét QR bệnh nhân check-in
+    title: "Quét QR bệnh nhân",
+    shortTitle: "Quét QR",
+    href: APP_ROUTES.qr,
+    icon: QrCode,
+    roles: ["doctor", "admin"],
+  },
+  {
+    title: "Kết quả khám bệnh",
+    shortTitle: "Kết quả",
     href: APP_ROUTES.results,
     icon: FileText,
-  },
-  {
-    title: "Hóa đơn",
-    description: "Chi phí và PDF hóa đơn",
-    href: APP_ROUTES.invoices,
-    icon: ReceiptText,
+    // Tất cả role (nội dung thay đổi theo role)
   },
 ];

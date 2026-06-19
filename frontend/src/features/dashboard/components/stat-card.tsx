@@ -1,12 +1,12 @@
 import type { LucideIcon } from "lucide-react";
 
-import { Box, Card, Stack, Text, ThemeIcon } from "@mantine/core";
+import { Box, Card, Group, Text, ThemeIcon } from "@mantine/core";
 
 type StatCardProps = {
   icon: LucideIcon;
   label: string;
   value: string;
-  helper: string;
+  helper?: string;
 };
 
 export function StatCard({ icon: Icon, label, value, helper }: StatCardProps) {
@@ -14,28 +14,34 @@ export function StatCard({ icon: Icon, label, value, helper }: StatCardProps) {
     <Card
       radius="lg"
       withBorder
-      h="100%"
+      p={{ base: "sm", sm: "md" }}
       style={{ borderColor: "var(--mantine-color-gray-2)" }}
     >
-      <Stack gap="md">
+      <Group gap="xs" wrap="nowrap" align="center">
         <ThemeIcon
-          size={48}
+          size={40}
           radius="md"
           variant="light"
           color="blue"
+          style={{ flexShrink: 0 }}
         >
-          <Icon size={22} />
+          <Icon size={18} />
         </ThemeIcon>
 
-        <Box>
-          <Text size="sm" fw={500} c="dimmed">{label}</Text>
-          <Text fw={800} style={{ fontSize: "1.75rem", lineHeight: 1.1 }} c="dark.8">
+        <Box style={{ minWidth: 0, flex: 1 }}>
+          <Text size="xs" fw={500} c="dimmed" truncate>
+            {label}
+          </Text>
+          <Text fw={800} style={{ fontSize: "clamp(1.1rem, 4.5vw, 1.6rem)", lineHeight: 1.1 }} c="dark.8" truncate>
             {value}
           </Text>
         </Box>
-
-        <Text size="xs" c="dimmed" lh={1.5}>{helper}</Text>
-      </Stack>
+      </Group>
+      {helper && (
+        <Text size="xs" c="dimmed" lh={1.5} mt="xs" visibleFrom="sm">
+          {helper}
+        </Text>
+      )}
     </Card>
   );
 }

@@ -1,41 +1,38 @@
 import { create } from "zustand";
 
-import type { AppointmentSlot, BookingDraft } from "@/features/appointment/types/appointment.types";
-import type { DoctorAvailability } from "@/features/doctor/types/doctor.types";
+import type { AppointmentSlot, BookingDraft, Counter } from "@/features/appointment/types/appointment.types";
 
 type BookingStore = {
   draft: BookingDraft;
-  selectedDoctor: DoctorAvailability | null;
-  selectDoctor: (doctor: DoctorAvailability) => void;
+  selectedCounter: Counter | null;
+  selectCounter: (counter: Counter) => void;
   selectDate: (date: string | null) => void;
   selectSlot: (slot: AppointmentSlot | null) => void;
   resetBooking: () => void;
 };
 
 const initialDraft: BookingDraft = {
-  doctorId: null,
-  doctorName: null,
-  specialty: null,
+  counterId: null,
+  counterName: null,
+  counterRoom: null,
   appointmentDate: null,
   slotId: null,
   slotLabel: null,
-  location: null,
 };
 
 export const useBookingStore = create<BookingStore>((set) => ({
   draft: initialDraft,
-  selectedDoctor: null,
-  selectDoctor: (doctor) =>
+  selectedCounter: null,
+  selectCounter: (counter) =>
     set(() => ({
-      selectedDoctor: doctor,
+      selectedCounter: counter,
       draft: {
-        doctorId: doctor.id,
-        doctorName: doctor.fullName,
-        specialty: doctor.specialty,
+        counterId: counter.id,
+        counterName: counter.name,
+        counterRoom: counter.room,
         appointmentDate: null,
         slotId: null,
         slotLabel: null,
-        location: doctor.clinicName,
       },
     })),
   selectDate: (date) =>
@@ -52,14 +49,12 @@ export const useBookingStore = create<BookingStore>((set) => ({
       draft: {
         ...state.draft,
         slotId: slot?.id ?? null,
-        slotLabel: slot
-          ? `${slot.startAt.slice(11, 16)} - ${slot.endAt.slice(11, 16)}`
-          : null,
+        slotLabel: slot ? `${slot.startAt} - ${slot.endAt}` : null,
       },
     })),
   resetBooking: () =>
     set({
       draft: initialDraft,
-      selectedDoctor: null,
+      selectedCounter: null,
     }),
 }));

@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { appointmentsApi } from '@/features/appointment/api/appointments-api';
+import { appointmentsService } from '@/features/appointment/services/appointments-service';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/shared/utils/error-utils';
 
@@ -7,15 +7,15 @@ export function useCancelAppointment() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (appointmentId: string) => 
-      appointmentsApi.cancelAppointment(appointmentId),
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) => 
+      appointmentsService.cancelAppointment(id, reason),
     onSuccess: () => {
       toast.success('Đã hủy lịch hẹn thành công');
-      queryClient.invalidateQueries({ queryKey: ['upcoming-appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['next-appointment'] });
+      queryClient.invalidateQueries({ queryKey: ['appointments', 'upcoming'] });
+      queryClient.invalidateQueries({ queryKey: ['appointments', 'history'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['doctor-calendar'] });
-      queryClient.invalidateQueries({ queryKey: ['doctor-slots'] });
+      queryClient.invalidateQueries({ queryKey: ['appointment', 'calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['appointment', 'slots'] });
     },
     onError: (error) => {
       toast.error('Hủy lịch thất bại', {

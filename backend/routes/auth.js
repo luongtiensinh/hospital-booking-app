@@ -3,57 +3,74 @@ const router = express.Router();
 const supabase = require("../utils/supabaseClient");
 const requireAuth = require("../middleware/requireAuth");
 
-function toAuthUser(supabaseUser) {
-  const metadata = supabaseUser?.user_metadata || {};
+// ---------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------
+
+/**
+ * Tạo địa chỉ email ảo dựa trên SĐT.
+ * Email này không bao giờ được hiển thị ra ngoài — chỉ dùng nội bộ với Supabase Auth.
+ */
+function buildDummyEmail(phone) {
+  return `${phone.trim()}@hospital.medcare`;
+}
+
+function toAuthUser(supabaseUser, profile) {
   return {
     id: supabaseUser.id,
-    fullName: metadata.fullname || metadata.fullName || "",
-    email: supabaseUser.email || "",
-    phoneNumber: metadata.phone || metadata.phoneNumber || "",
-    role: "patient",
-    avatarUrl: metadata.avatarUrl ?? null,
+    fullName: profile?.fullname || supabaseUser?.user_metadata?.fullname || "",
+    phoneNumber: profile?.phone || "",
+    cccd: profile?.cccd || "",
+    role: profile?.role || "patient",
+    avatarUrl: profile?.avatar_url ?? null,
   };
 }
 
-function toAuthSession(authData) {
+function toAuthSession(authData, profile) {
   if (!authData?.session || !authData?.user) return null;
   return {
     accessToken: authData.session.access_token,
     refreshToken: authData.session.refresh_token,
-    user: toAuthUser(authData.user),
+    user: toAuthUser(authData.user, profile),
   };
 }
 
+// ---------------------------------------------------------------
 // POST /api/auth/register
+// Body: { fullname, phone, cccd, password }
+// ---------------------------------------------------------------
 router.post("/register", async (req, res, next) => {
   try {
-    const { fullname, email, phone, password } = req.body || {};
+    const { fullname, phone, cccd, password } = req.body || {};
 
-    // --- Ép kiểu sang string để tránh TypeError khi gọi .trim() ---
     const fullnameStr =
-      typeof fullname === "string" ? fullname : String(fullname ?? "");
-    const emailStr = typeof email === "string" ? email : String(email ?? "");
-    const phoneStr = typeof phone === "string" ? phone : String(phone ?? "");
+      typeof fullname === "string"
+        ? fullname.trim()
+        : String(fullname ?? "").trim();
+    const phoneStr =
+      typeof phone === "string" ? phone.trim() : String(phone ?? "").trim();
+    const cccdStr =
+      typeof cccd === "string" ? cccd.trim() : String(cccd ?? "").trim();
     const passwordStr =
       typeof password === "string" ? password : String(password ?? "");
 
     // --- Server-side validation ---
     const errors = {};
 
-    if (fullnameStr.trim().length === 0) {
+    if (fullnameStr.length === 0) {
       errors.fullname = "Họ tên không được để trống.";
     }
 
-    // if (emailStr.trim().length === 0) {
-    //   errors.email = "Email không được để trống.";
-    // } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr)) {
-    //   errors.email = "Email không hợp lệ.";
-    // }
-
-    if (phoneStr.trim().length === 0) {
+    if (phoneStr.length === 0) {
       errors.phone = "Số điện thoại không được để trống.";
-    } else if (!/^[0-9]{9,11}$/.test(phoneStr.trim())) {
+    } else if (!/^[0-9]{9,11}$/.test(phoneStr)) {
       errors.phone = "Số điện thoại không hợp lệ (9–11 chữ số).";
+    }
+
+    if (cccdStr.length === 0) {
+      errors.cccd = "Số CCCD không được để trống.";
+    } else if (!/^[0-9]{12}$/.test(cccdStr)) {
+      errors.cccd = "Số CCCD không hợp lệ (phải đúng 12 chữ số).";
     }
 
     if (passwordStr.length === 0) {
@@ -66,14 +83,47 @@ router.post("/register", async (req, res, next) => {
       return res.status(400).json({ success: false, errors });
     }
 
+    // --- Kiểm tra trùng lặp SĐT hoặc CCCD trong profiles thông qua RPC SECURITY DEFINER để tránh RLS ---
+    const { data: existingProfiles, error: checkError } = await supabase.rpc(
+      "check_existing_profiles",
+      { phone_val: phoneStr, cccd_val: cccdStr },
+    );
+
+    if (checkError) {
+      return res
+        .status(500)
+        .json({ success: false, message: checkError.message });
+    }
+
+    if (existingProfiles && existingProfiles.length > 0) {
+      const dup = existingProfiles[0];
+      if (dup.phone === phoneStr) {
+        return res.status(409).json({
+          success: false,
+          errors: { phone: "Số điện thoại này đã được sử dụng." },
+        });
+      }
+      if (dup.cccd === cccdStr) {
+        return res.status(409).json({
+          success: false,
+          errors: { cccd: "Số CCCD này đã được sử dụng." },
+        });
+      }
+    }
+
+    // --- Tạo email ảo nội bộ ---
+    const dummyEmail = buildDummyEmail(phoneStr);
+
     // --- Tạo tài khoản trên Supabase Auth ---
     const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: emailStr.trim(),
+      email: dummyEmail,
       password: passwordStr,
       options: {
         data: {
-          fullname: fullnameStr.trim(),
-          phone: phoneStr.trim(),
+          fullname: fullnameStr,
+          phone: phoneStr,
+          cccd: cccdStr,
+          role: "patient",
         },
       },
     });
@@ -85,9 +135,7 @@ router.post("/register", async (req, res, next) => {
       ) {
         return res.status(409).json({
           success: false,
-          errors: {
-            email: "Email này đã được sử dụng. Vui lòng dùng email khác.",
-          },
+          errors: { phone: "Số điện thoại này đã được đăng ký tài khoản." },
         });
       }
       return res
@@ -95,7 +143,19 @@ router.post("/register", async (req, res, next) => {
         .json({ success: false, message: authError.message });
     }
 
-    const session = toAuthSession(authData);
+    // Profile được tạo tự động bởi trigger `on_auth_user_created` → handle_new_user()
+    // trên database (SECURITY DEFINER) khi signUp thành công — không cần upsert ở đây.
+
+    // Lấy profile vừa tạo để trả về session
+    const profile = {
+      fullname: fullnameStr,
+      phone: phoneStr,
+      cccd: cccdStr,
+      role: "patient",
+      avatar_url: null,
+    };
+
+    const session = toAuthSession(authData, profile);
     return res.status(201).json({
       success: true,
       message: "Đăng ký thành công!",
@@ -106,41 +166,72 @@ router.post("/register", async (req, res, next) => {
   }
 });
 
+// ---------------------------------------------------------------
 // POST /api/auth/login
+// Body: { identifier (SĐT hoặc CCCD), password }
+// ---------------------------------------------------------------
 router.post("/login", async (req, res, next) => {
   try {
-    const { email, password } = req.body || {};
+    const { identifier, password } = req.body || {};
 
-    // --- Ép kiểu sang string để tránh TypeError khi gọi .trim() ---
-    const emailStr = typeof email === "string" ? email : String(email ?? "");
+    const identifierStr =
+      typeof identifier === "string"
+        ? identifier.trim()
+        : String(identifier ?? "").trim();
     const passwordStr =
       typeof password === "string" ? password : String(password ?? "");
 
-    if (emailStr.trim().length === 0 || passwordStr.length === 0) {
+    if (identifierStr.length === 0 || passwordStr.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "Vui lòng nhập đầy đủ email và mật khẩu.",
+        message: "Vui lòng nhập đầy đủ SĐT/CCCD và mật khẩu.",
       });
     }
 
+    // --- Tìm profile bằng SĐT hoặc CCCD thông qua RPC SECURITY DEFINER để tránh RLS ---
+    const { data: profiles, error: profileError } = await supabase.rpc(
+      "find_profile_by_identifier",
+      { identifier: identifierStr },
+    );
+
+    if (profileError) {
+      return res
+        .status(500)
+        .json({ success: false, message: profileError.message });
+    }
+
+    if (!profiles || profiles.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Sai thông tin đăng nhập. Vui lòng kiểm tra lại SĐT/CCCD và mật khẩu.",
+      });
+    }
+
+    const profile = profiles[0];
+
+    // --- Tái tạo dummy email từ SĐT để đăng nhập qua Supabase Auth ---
+    const dummyEmail = buildDummyEmail(profile.phone);
+
     const { data: authData, error: authError } =
       await supabase.auth.signInWithPassword({
-        email: emailStr.trim(),
+        email: dummyEmail,
         password: passwordStr,
       });
 
     if (authError) {
       return res.status(401).json({
         success: false,
-        message: "Sai email hoặc mật khẩu.",
+        message:
+          "Sai thông tin đăng nhập. Vui lòng kiểm tra lại SĐT/CCCD và mật khẩu.",
       });
     }
 
-    const session = toAuthSession(authData);
+    const session = toAuthSession(authData, profile);
     if (!session) {
       return res
         .status(500)
-        .json({ success: false, message: "Khong the tao phien dang nhap." });
+        .json({ success: false, message: "Không thể tạo phiên đăng nhập." });
     }
 
     return res.status(200).json({
@@ -153,7 +244,9 @@ router.post("/login", async (req, res, next) => {
   }
 });
 
+// ---------------------------------------------------------------
 // POST /api/auth/refresh
+// ---------------------------------------------------------------
 router.post("/refresh", async (req, res, next) => {
   try {
     const refreshToken = req.body?.refreshToken;
@@ -175,12 +268,23 @@ router.post("/refresh", async (req, res, next) => {
       });
     }
 
+    // Lấy lại profile để cập nhật role mới nhất (sử dụng client tạm thời được xác thực bằng access token mới để vượt qua RLS)
+    const userClient = supabase.createAuthenticatedClient(
+      data.session.access_token,
+    );
+
+    const { data: profile } = await userClient
+      .from("profiles")
+      .select("id, fullname, phone, cccd, role, avatar_url")
+      .eq("id", data.user.id)
+      .single();
+
     return res.json({
       success: true,
       session: {
         accessToken: data.session.access_token,
         refreshToken: data.session.refresh_token,
-        user: toAuthUser(data.user),
+        user: toAuthUser(data.user, profile),
       },
     });
   } catch (err) {
@@ -188,14 +292,28 @@ router.post("/refresh", async (req, res, next) => {
   }
 });
 
+// ---------------------------------------------------------------
 // GET /api/auth/profile
+// ---------------------------------------------------------------
 router.get("/profile", requireAuth, async (req, res) => {
-  return res.json({ success: true, user: toAuthUser(req.user) });
+  return res.json({
+    success: true,
+    user: {
+      id: req.user.id,
+      fullName: req.user.fullname,
+      phoneNumber: req.user.phone,
+      cccd: req.user.cccd,
+      role: req.user.role,
+      avatarUrl: req.user.avatarUrl,
+    },
+  });
 });
 
+// ---------------------------------------------------------------
 // POST /api/auth/logout
+// ---------------------------------------------------------------
 router.post("/logout", (_req, res) => {
-  // With stateless JWT, client can just drop tokens.
+  // Với JWT stateless, client xóa token là đủ.
   return res.status(204).send();
 });
 

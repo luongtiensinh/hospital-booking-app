@@ -1,24 +1,26 @@
 import { ArrowLeft, SearchX } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import { Button } from "@mantine/core";
 import { FullscreenState } from "@/shared/components/feedback/fullscreen-state";
 import { APP_ROUTES } from "@/shared/constants/routes";
-import { Button } from "@/shared/ui/button";
 
 export function NotFoundPage() {
   return (
     <FullscreenState
       action={
-        <Button asChild>
-          <Link to={APP_ROUTES.dashboard}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Quay ve dashboard
-          </Link>
+        <Button
+          component={Link}
+          to={APP_ROUTES.dashboard}
+          leftSection={<ArrowLeft size={16} />}
+          radius="md"
+        >
+          Quay về trang chủ
         </Button>
       }
-      description="Lien ket ban mo khong ton tai hoac da duoc thay doi. Vui long quay lai khu vuc chinh de tiep tuc thao tac."
+      description="Liên kết bạn mở không tồn tại hoặc đã được thay đổi. Vui lòng quay lại khu vực chính để tiếp tục thao tác."
       icon={SearchX}
-      title="Khong tim thay trang"
+      title="Không tìm thấy trang"
     />
   );
 }

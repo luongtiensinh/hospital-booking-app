@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, CopyCheck, RefreshCcw, ShieldAlert, Ban } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CopyCheck, RefreshCcw, ShieldAlert, Ban, Clock } from "lucide-react";
 import { Card, Button, Text, Stack, Group, Paper, ThemeIcon, Badge } from "@mantine/core";
 
 import { formatDateTime } from "@/shared/utils/formatters";
@@ -26,6 +26,7 @@ export function QrVerifyResultCard({
     success: "green",
     duplicate: "yellow",
     invalid: "red",
+    expired: "orange",
     error: "red",
   } as const;
 
@@ -44,6 +45,13 @@ export function QrVerifyResultCard({
           color: colorMap.duplicate,
           title: "Đã check-in rồi",
           badgeLabel: "Quét trùng",
+        };
+      case "expired":
+        return {
+          icon: Clock,
+          color: colorMap.expired,
+          title: "QR đã hết hạn",
+          badgeLabel: "Hết hạn",
         };
       case "invalid":
         return {
@@ -101,9 +109,11 @@ export function QrVerifyResultCard({
               ? "bg-emerald-50/50 border-emerald-100"
               : status === "duplicate"
                 ? "bg-amber-50/50 border-amber-100"
-                : status === "invalid" || status === "error"
-                  ? "bg-rose-50/50 border-rose-100"
-                  : "bg-slate-50 border-slate-100"
+                : status === "expired"
+                  ? "bg-orange-50/50 border-orange-100"
+                  : status === "invalid" || status === "error"
+                    ? "bg-rose-50/50 border-rose-100"
+                    : "bg-slate-50 border-slate-100"
               }`}
           >
             <Group gap="md" align="flex-start" wrap="nowrap">
@@ -127,16 +137,16 @@ export function QrVerifyResultCard({
                   <Text size="xs" fw={700}>{result.patientName ?? "--"}</Text>
                 </Group>
                 <Group justify="space-between">
-                  <Text size="xs" c="dimmed">Bác sĩ:</Text>
-                  <Text size="xs" fw={700}>{result.doctorName ?? "--"}</Text>
-                </Group>
-                <Group justify="space-between">
                   <Text size="xs" c="dimmed">Thời gian hẹn:</Text>
                   <Text size="xs" fw={700}>{formatDateTime(result.appointmentAt)}</Text>
                 </Group>
                 <Group justify="space-between">
-                  <Text size="xs" c="dimmed">Phòng khám:</Text>
-                  <Text size="xs" fw={700}>{result.location ?? "--"}</Text>
+                  <Text size="xs" c="dimmed">Quầy & Phòng:</Text>
+                  <Text size="xs" fw={700}>
+                    {result.counterName && result.counterRoom
+                      ? `${result.counterName} (${result.counterRoom})`
+                      : "--"}
+                  </Text>
                 </Group>
                 {result.checkedInAt ? (
                   <Group justify="space-between">
