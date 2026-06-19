@@ -8,7 +8,7 @@ const envSchema = z.object({
 });
 
 export const env = envSchema.parse({
-  VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api",
-  VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
-  VITE_SUPABASE_KEY: import.meta.env.VITE_SUPABASE_KEY,
+  VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api",
+  VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL || "http://localhost:54321",
+  VITE_SUPABASE_KEY: import.meta.env.VITE_SUPABASE_KEY || "placeholder-anon-key",
 });
