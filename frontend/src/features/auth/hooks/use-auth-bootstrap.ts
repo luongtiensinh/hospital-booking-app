@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { useQuery } from "@tanstack/react-query";
 
@@ -13,24 +13,47 @@ export function useAuthBootstrap() {
   const markBootstrapped = useAuthStore((state) => state.markBootstrapped);
   const isBootstrapped = useAuthStore((state) => state.isBootstrapped);
 
+  // Wait for Zustand persist to finish rehydrating from localStorage
+  // before running any bootstrap logic to prevent race condition on CI
+  const [hasHydrated, setHasHydrated] = useState(
+    () => useAuthStore.persist.hasHydrated()
+  );
+
+  useEffect(() => {
+    if (useAuthStore.persist.hasHydrated()) {
+      setHasHydrated(true);
+      return;
+    }
+    const unsub = useAuthStore.persist.onFinishHydration(() => {
+      setHasHydrated(true);
+    });
+    return unsub;
+  }, []);
+
   const profileQuery = useQuery({
     queryKey: ["auth", "me"],
     queryFn: authService.getProfile,
-    enabled: Boolean(accessToken && !user),
+    // Only fetch profile after hydration, and only when token exists but user doesn't
+    enabled: hasHydrated && Boolean(accessToken && !user),
   });
 
+  // Case 1: No token after hydration → mark done immediately (guest user)
   useEffect(() => {
+    if (!hasHydrated) return;
     if (!accessToken && !isBootstrapped) {
       markBootstrapped();
     }
-  }, [accessToken, isBootstrapped, markBootstrapped]);
+  }, [hasHydrated, accessToken, isBootstrapped, markBootstrapped]);
 
+  // Case 2: Token + user both in store → mark done immediately
   useEffect(() => {
+    if (!hasHydrated) return;
     if (user && !isBootstrapped) {
       markBootstrapped();
     }
-  }, [isBootstrapped, markBootstrapped, user]);
+  }, [hasHydrated, isBootstrapped, markBootstrapped, user]);
 
+  // Case 3: Token exists, user fetched from API successfully
   useEffect(() => {
     if (profileQuery.data) {
       hydrateProfile(profileQuery.data);
@@ -38,6 +61,7 @@ export function useAuthBootstrap() {
     }
   }, [hydrateProfile, markBootstrapped, profileQuery.data]);
 
+  // Case 4: Token exists but API failed → logout and mark done
   useEffect(() => {
     if (profileQuery.isError) {
       logout();
@@ -46,6 +70,6 @@ export function useAuthBootstrap() {
   }, [logout, markBootstrapped, profileQuery.isError]);
 
   return {
-    isLoading: !isBootstrapped || profileQuery.isLoading,
+    isLoading: !hasHydrated || !isBootstrapped || profileQuery.isLoading,
   };
 }
