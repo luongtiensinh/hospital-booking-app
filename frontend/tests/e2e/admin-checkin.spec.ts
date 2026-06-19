@@ -19,7 +19,17 @@ test.describe('Admin/Doctor QR Check-in', () => {
       }));
     });
 
-    await page.goto('/');
+    // Mock auth profile so AuthBootstrapper completes even without a real backend (CI)
+    await page.route('**/api/auth/profile', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          user: { id: 'admin-123', email: 'admin@example.com', fullName: 'Admin User', role: 'admin', avatarUrl: null }
+        })
+      });
+    });
 
     // Mock verification
     await page.route(/.*\/api\/appointments\/verify-qr.*/, async route => {

@@ -20,6 +20,18 @@ test.describe('Booking Flow (Patient)', () => {
       }));
     });
 
+    // Mock auth profile so AuthBootstrapper completes even without a real backend (CI)
+    await page.route('**/api/auth/profile', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          user: { id: 'patient-123', email: 'patient@example.com', fullName: 'Nguyen Van A', phone: '0901234567', role: 'patient', avatarUrl: null }
+        })
+      });
+    });
+
     await page.route('**/api/counters', async route => {
       await route.fulfill({
         status: 200,
