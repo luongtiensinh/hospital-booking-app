@@ -135,37 +135,38 @@ test.describe('Booking Flow (Patient)', () => {
     // Go to appointments page
     await page.goto('/appointments');
 
-    // Wait for the booking wizard to appear
-    await expect(page.getByRole('heading', { name: 'Chọn Quầy Khám' })).toBeVisible();
+    // Wait for the page heading to appear (actual heading in AppointmentsPage)
+    await expect(page.getByRole('heading', { name: 'Đặt lịch khám' })).toBeVisible({ timeout: 10000 });
 
-    // Step 1: Select a counter
-    // The counter we mocked has name "Khám tổng quát"
+    // The CounterSelector h2 heading should be visible at step 1
+    await expect(page.getByRole('heading', { name: 'Chọn Quầy Khám' })).toBeVisible({ timeout: 10000 });
+
+    // Select a counter — the counter we mocked has name "Khám tổng quát"
     await page.getByText('Khám tổng quát').click();
     
-    // Step 2: Select a date and slot
-    // For date, since it's a calendar or date picker, we'll wait for the next step UI
+    // Step 2: After selecting a counter, stepper advances to time selection
     await expect(page.getByText('Ngày & Giờ khám')).toBeVisible();
     
-    // Click the date we mocked ('2029-01-01' -> day 1, with 10c capacity)
+    // Click the date we mocked (with 10 available slots)
     await page.locator('button:visible').filter({ hasText: /10c|10 chỗ/i }).first().click();
     
-    // The slots should be loaded. We mocked '08:00' as available and '08:10' as full.
-    await page.waitForTimeout(2000); // Wait a bit for React Query to finish
+    // Wait for React Query to fetch slots
+    await page.waitForTimeout(2000);
 
     const availableSlot = page.getByRole('button', { name: /08:00/i });
     await availableSlot.click();
     
-    // Step 3: Confirm booking
+    // Step 3: Confirm booking step
     await expect(page.getByText('Xác nhận đặt lịch').first()).toBeVisible();
     
-    // Check if patient info is displayed correctly
+    // Counter name should appear in confirmation
     await expect(page.getByText('Khám tổng quát')).toBeVisible();
 
-    // Click confirm booking
+    // Click confirm
     await page.getByRole('button', { name: /xác nhận đặt lịch/i }).click();
 
-    // Success message and redirection or completion screen
-    await expect(page.getByText('Đặt lịch thành công!')).toBeVisible();
+    // Success message
+    await expect(page.getByText('ĐẶT LỊCH THÀNH CÔNG!')).toBeVisible({ timeout: 10000 });
   });
 
   test('should cancel an appointment successfully', async ({ page }) => {
@@ -208,9 +209,12 @@ test.describe('Booking Flow (Patient)', () => {
 
     // Navigate to appointment history
     await page.goto('/appointments/history');
+    // Wait for the URL and page to fully settle before asserting
+    await page.waitForURL('**/appointments/history');
+    await page.waitForLoadState('networkidle');
 
-    // Wait for history to load
-    await expect(page.getByText('Khám tổng quát')).toBeVisible();
+    // Wait for history to load — the mocked counter name should appear
+    await expect(page.getByText('Khám tổng quát')).toBeVisible({ timeout: 10000 });
 
     // Click the cancel button
     await page.getByRole('button', { name: /hủy lịch/i }).click();
