@@ -20,6 +20,22 @@ test.describe('Booking Flow (Patient)', () => {
       }));
     });
 
+    // Handle CORS preflight for all API requests
+    await page.route('**/api/**', async route => {
+      if (route.request().method() === 'OPTIONS') {
+        await route.fulfill({
+          status: 200,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+            'Access-Control-Allow-Headers': '*'
+          }
+        });
+      } else {
+        await route.fallback();
+      }
+    });
+
     // Mock auth profile so AuthBootstrapper completes even without a real backend (CI)
     await page.route('**/api/auth/profile', async route => {
       await route.fulfill({
