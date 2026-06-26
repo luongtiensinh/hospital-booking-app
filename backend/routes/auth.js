@@ -193,7 +193,8 @@ router.post("/login", async (req, res, next) => {
       "find_profile_by_identifier",
       { identifier: identifierStr },
     );
-
+    console.log("profiles =", profiles);
+    console.log("profileError =", profileError);
     if (profileError) {
       return res
         .status(500)
